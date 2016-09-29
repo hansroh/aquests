@@ -37,7 +37,7 @@ classifiers = [
 ]
 
 packages = [
-	'aquest'	
+	'aquests'	
 ]
 
 package_dir = {
