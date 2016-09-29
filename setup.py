@@ -44,7 +44,7 @@ package_dir = {
 	'aquests': 'aquests'	
 }
 data_files = []
-data_files = {}
+package_data = {}
 
 setup(
 	name='aquests',
