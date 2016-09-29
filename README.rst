@@ -6,8 +6,8 @@ Asynchronous Requests
 Asynchronous Requests is an parallel requests tool for HTTP/Websocket protocols using Skitai_.
 
 
-Installation / Startup
-=========================
+Installation
+=============
 
 **On Posix**
 
