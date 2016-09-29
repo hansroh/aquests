@@ -255,17 +255,17 @@ class ResponseContainer:
 		return self.__rql.inherit (surl)
 		
 	def relocate (self, url):
-		from skitai import requests
-		requests.add (self.__rql.inherit (self.resolve (url), True), self.callback, front = True)
+		import aquests
+		aquests.add (self.__rql.inherit (self.resolve (url), True), self.callback, front = True)
 		
 	def visit (self, surl, callback = None):
-		from skitai import requests
-		requests.add (self.inherit (surl), callback and callback or self.callback)
+		import aquests
+		aquests.add (self.inherit (surl), callback and callback or self.callback)
 	
 	def retry (self):
-		from skitai import requests
+		import aquests
 		self.uinfo.eurl.inc_retrys ()
-		requests.add (self.__rql, self.callback, front = True)
+		aquests.add (self.__rql, self.callback, front = True)
 	
 	
 	
