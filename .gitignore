@@ -1,0 +1,9 @@
+*.pyc
+*.o
+*.a
+*.log
+hosts.txt
+build/
+dist/
+*.egg-info/
+*__pycache__
