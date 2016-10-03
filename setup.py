@@ -49,7 +49,8 @@ package_data = {}
 setup(
 	name='aquests',
 	version=__VER__,
-	description='Asynchronous Requests',	
+	description='Asynchronous Parallel Requests',	
+	url = 'https://github.com/hansroh/aquests',
 	author='Hans Roh',
 	author_email='hansroh@gmail.com',	
 	packages=packages,
