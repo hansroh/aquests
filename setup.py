@@ -37,7 +37,18 @@ classifiers = [
 ]
 
 packages = [
-	'aquests'	
+	'aquests',
+	'aquests.client',
+	'aquests.dbapi',	
+	'aquests.protocols.dns',
+	'aquests.protocols.dns.pydns',
+	'aquests.protocols.http',	
+	'aquests.protocols.http2',
+	'aquests.protocols.ws',	
+	'aquests.protocols.smtp',
+	'aquests.protocols.grpc',
+	'aquests.lib',
+	'aquests.lib.nets'
 ]
 
 package_dir = {
@@ -49,8 +60,8 @@ package_data = {}
 setup(
 	name='aquests',
 	version=__VER__,
-	description='Asynchronous Parallel Requests',	
-	url = 'https://github.com/hansroh/aquests',
+	description='Asynchronous Requests',	
+	url = 'https://gitlab.com/hansroh/aquests',
 	author='Hans Roh',
 	author_email='hansroh@gmail.com',	
 	packages=packages,
@@ -59,6 +70,6 @@ setup(
 	license='BSD',
 	platforms = ["posix", "nt"],
 	download_url = "https://pypi.python.org/pypi/aquests",
-	install_requires = ["skitai>=0.17", "lxml<=3.4.4", "cssselect", "html5lib"],
+	install_requires = ["redis>=2.10", "pymongo", "h2"],
 	classifiers=classifiers
 )
