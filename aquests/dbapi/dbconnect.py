@@ -27,6 +27,7 @@ class DBConnect:
 		self.active = 0
 		self.has_result = False
 		self.__history = []
+		self.__no_more_request = True
 		
 		self.set_event_time ()
 	
@@ -41,7 +42,8 @@ class DBConnect:
 	def close (self):		
 		self.callback = None
 		self.set_active (False)		
-		self.logger ("[info] DB %s has been closed" % str (self.address))
+		addr = type (self.address) is tuple and ("%s:%d" % self.address) or str (self.address)
+		self.logger ("[info] .....dbo %s has been closed" % addr)	
 					
 	def get_history (self):
 		return self.__history
@@ -50,8 +52,12 @@ class DBConnect:
 		return self.__class__ (self.address, self.params, self.lock, self.logger)
 		
 	def clean_shutdown_control (self, phase, time_in_this_phase):
-		if phase == 2:
-			self.handle_close (OperationalError, "was entered shutdown process")			
+		self.__no_more_request = True
+		if self.active ():
+			return 1
+		else:
+			self.handle_close ()
+			return 0
 	
 	def empty_cursor (self):
 		if self.has_result:
@@ -152,13 +158,16 @@ class DBConnect:
 		raise NotImplementedError
 						
 	def begin_tran (self, callback, sql):
+		if self.__no_more_request:
+			raise SystemError ("Entered Shutdown Process")
+			
 		self.__history = []
 		self.callback = callback
 		self.has_result = False
 		self.exception_str = ""
 		self.exception_class = None		
 		self.execute_count += 1	
-		self.set_event_time ()
+		self.set_event_time ()		
 		if DEBUG: self.log_history ("BEGIN TRAN: %s" % sql)
 		
 	def execute (self, callback, sql):		

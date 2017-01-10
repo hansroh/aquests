@@ -31,8 +31,11 @@ class DNSCache:
 		if "valid" not in answer:
 			return [answer]
 		else:
-			if check_ttl and answer ["valid"] < time.time ():
-				del self.cache [host][qtype]
+			now = time.time ()
+			if check_ttl and answer ["valid"] < now:				
+				# use max 5 minutes seconds for other querees
+				answer ['valid'] = mow + 300 
+				# nut new query will be started
 				return []
 			else:
 				return [answer]

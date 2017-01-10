@@ -5,13 +5,14 @@ from aquests.protocols.http.request import XMLRPCRequest
 class GRPCRequest (XMLRPCRequest):
 	initial_http_version = "2.0"
 	
-	def __init__ (self, uri, method, params = (), headers = None, encoding = "utf8", auth = None, logger = None):
+	def __init__ (self, uri, method, params = (), headers = None, encoding = "utf8", auth = None, logger = None, meta = {}):
 		self.uri = uri
 		self.method = method
 		self.params = params
 		self.encoding = encoding
 		self.auth = (auth and type (auth) is not tuple and tuple (auth.split (":", 1)) or auth)
 		self.logger = logger
+		self.meta = meta
 		self.address, self.path = self.split (uri)
 	
 		self.headers = {
@@ -44,4 +45,7 @@ class GRPCRequest (XMLRPCRequest):
 	
 	def serialize (self):
 		return grpc_producer (self.params [0])
+	
+	def get_content_length (self):	
+		return self.payload.get_content_length ()
 		

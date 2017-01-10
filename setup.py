@@ -31,10 +31,20 @@ classifiers = [
 	'Topic :: Software Development :: Libraries :: Python Modules',
 	'Intended Audience :: Developers',
 	'Intended Audience :: Science/Research',
-	'Programming Language :: Python',
-	'Programming Language :: Python :: 2.7',
+	'Programming Language :: Python',	
 	'Programming Language :: Python :: 3'
 ]
+
+PY_MAJOR_VERSION = sys.version_info [0]
+if PY_MAJOR_VERSION == 3:
+	if os.path.isfile ("aquests/lib/py2utils.py"):
+		os.remove ("aquests/lib/py2utils.py")
+		try: os.remove ("aquests/lib/py2utils.pyc")
+		except OSError: pass		
+else:
+	if not os.path.isfile ("aquests/lib/py2utils.py"):
+		with open ("aquests/lib/py2utils.py", "w") as f:
+			f.write ("def reraise(type, value, tb):\n\traise type, value, tb\n")			
 
 packages = [
 	'aquests',
@@ -51,11 +61,14 @@ packages = [
 	'aquests.lib.nets'
 ]
 
-package_dir = {
-	'aquests': 'aquests'	
+package_dir = {'aquests': 'aquests'}
+
+package_data = {
+	"aquests": [
+		"protocols/dns/*.txt",
+		"protocols/dns/pydns/*.txt"	
+	]
 }
-data_files = []
-package_data = {}
 
 setup(
 	name='aquests',

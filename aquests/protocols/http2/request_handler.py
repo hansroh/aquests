@@ -93,7 +93,11 @@ class RequestHandler (base_request_handler.RequestHandler):
 		if not is_upgrade:			
 			self.handle_request (handler)
 		else:
-			self.asyncon.set_active (False)					
+			self.asyncon.set_active (False)
+	
+	def working (self):
+		with self._llock:
+			return len (self.requests)	
 		
 	def go_away (self, errcode = 0, msg = None):
 		with self._plock:
@@ -146,9 +150,21 @@ class RequestHandler (base_request_handler.RequestHandler):
 		if producer:
 			payload = h2data_producer (stream_id, 0, 1, producer, self.conn, self._clock)
 			self.asyncon.push (payload)
+			rfcw = self.conn.remote_flow_control_window (stream_id)
 		
+		# IMP: 
+		self.increment_flow_control_window (stream_id, 1048576)
+		#print ('======local_flow_control_window', self.conn.local_flow_control_window (stream_id))				
+		#print ('======remote_flow_control_window', self.conn.remote_flow_control_window (stream_id))				
 		self.asyncon.set_active (False)
-				
+	
+	def increment_flow_control_window (self, stream_id, cl):
+		self.conn.increment_flow_control_window (cl)
+		rfcw = self.conn.remote_flow_control_window (stream_id)
+		if cl > rfcw:
+			self.conn.increment_flow_control_window (cl - rfcw, stream_id)
+		self.send_data ()
+					
 	def collect_incoming_data (self, data):
 		if not data:  return
 		if self.data_length:
@@ -156,7 +172,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 		else:
 			self.buf += data
 	
-	def connection_closed (self, why, msg):
+	def connection_closed (self, why, msg):		
 		with self._llock:
 			for stream_id, request in self.requests.items ():
 				request.connection_closed (why, msg)
@@ -246,6 +262,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 			elif isinstance(event, StreamEnded):
 				h = self.get_handler (event.stream_id)
 				if h:
+					#h.found_terminator ()
 					h.callback (h)
 					self.remove_handler (event.stream_id)
 				

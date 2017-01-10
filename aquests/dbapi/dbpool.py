@@ -40,6 +40,21 @@ class DBPool (socketpool.SocketPool):
 		serverkey = "%s/%s/%s/%s" % (server, dbname, user, dbtype)
 		return self._get (serverkey, server, (dbname, user, pwd), dbtype)
 
+pool = None
+
+def create (logger):
+	global pool
+	if pool is None:
+		pool = DBPool (logger)
+
+def get (uri):	
+	return pool.get (uri)
+		
+def cleanup ():	
+	pool.cleanup ()
+
+		
+	
 
 if __name__ == "__main__":
 	from skitai import lifetime

@@ -39,6 +39,7 @@ class AsynConnect (asynchat.async_chat):
 		self.logger = logger
 		self._cv = threading.Condition ()		
 		self.__sendlock = None
+		self.__no_more_request = False
 		self.set_event_time ()
 		self.proxy = False
 		self.proxy_client = False
@@ -63,7 +64,7 @@ class AsynConnect (asynchat.async_chat):
 			self.handler.connection_closed (self.errcode, self.errmsg)
 		
 		if not self.proxy_client:
-			self.logger ("[info] asyncon %s has been closed" % str (self.address))
+			self.logger ("[info] .....asyncon %s:%d has been closed" % self.address)
 		
 		self.set_proto (None)
 		self.set_active (False)
@@ -133,9 +134,13 @@ class AsynConnect (asynchat.async_chat):
 	def duplicate (self):
 		return self.__class__ (self.address, self.lock, self.logger)
 		
-	def clean_shutdown_control (self, phase, time_in_this_phase):
-		if phase == 2:
-			self.handle_close (705, "Server Entered Shutdown Process")
+	def clean_shutdown_control (self, phase, time_in_this_phase):	
+		self.__no_more_request = True
+		if self.isactive () or (self.handler and self.handler.working ()):
+			return 1
+		else:				
+			self.handle_close ()
+			return 0
 		
 	def readable (self):
 		if self.affluent is not None:
@@ -388,6 +393,9 @@ class AsynConnect (asynchat.async_chat):
 		self.proxy_client = flag
 						
 	def begin_tran (self, handler):		
+		if self.__no_more_request:
+			raise SystemError ("Entered Shutdown Process")
+		
 		self.errcode = 0
 		self.errmsg = ""
 		

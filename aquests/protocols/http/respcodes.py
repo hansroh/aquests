@@ -44,7 +44,7 @@ responses = {
 		702: "Socket Timeout",
 		703: "Socket Panic",
 		704: "DNS Not Found",
-		705: "Server Entered Shutdown Process",
+		705: "Entered Shutdown Process",
 		706: "Unknown Authedentification Method",
 		707: "HTTP Header/Body Error",
 		708: "No Data Recieved",

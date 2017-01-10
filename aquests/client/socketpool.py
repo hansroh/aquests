@@ -108,7 +108,6 @@ class SocketPool:
 	
 	def _get (self, serverkey, server, *args):
 		asyncon = None
-			
 		self.lock.acquire ()
 		try:
 			try:
@@ -196,14 +195,15 @@ class SocketPool:
 			self.logger.trace ()
 
 
-socketpool = None
+pool = None
 
 def create (logger):
-	global socketpool
-	if socketpool is None:
-		socketpool = SocketPool (logger)
+	global pool
+	if pool is None:
+		pool = SocketPool (logger)
 
-def cleanup ():
-	global socketpool
-	socketpool.cleanup ()
+def get (uri):	
+	return pool.get (uri)
 		
+def cleanup ():	
+	pool.cleanup ()

@@ -7,7 +7,22 @@ class grpc_producer:
 		self.closed = False
 		self.compressor = compressors.GZipCompressor ()
 		self.message = msg
-
+		self.serialized = b""
+		self.content_length = 0
+		
+	def content_length (self):
+		if self.content_length:
+			return self.content_length
+		
+		content_length = 0	
+		while 1:
+			d = self.more ()
+			if not d:
+				break
+			self.serialized += d
+			content_length += len (d)
+		self.content_length = 0
+		
 	def send (self, msg):
 		self.message.send (msg)
 		
@@ -19,7 +34,11 @@ class grpc_producer:
 			compressed = 1						
 		return struct.pack ("!B", compressed) + struct.pack ("!I", len (serialized)) + serialized
 				
-	def more (self):		
+	def more (self):	
+		if self.content_length:
+			self.close ()
+			return self.serialized
+				
 		if self.closed and not self.message:
 			return b""
 		
@@ -35,7 +54,8 @@ class grpc_producer:
 			self.close ()			
 			return b""
 		
-	def close (self):		
+	def close (self):	
+		self.content_length = 0	
 		self.closed = True
 		self.message = None
 
