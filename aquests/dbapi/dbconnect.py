@@ -10,7 +10,7 @@ class OperationalError (Exception):
 	pass
 	
 class DBConnect:
-	zombie_timeout = 120	
+	zombie_timeout = 120
 	
 	def __init__ (self, address, params = None, lock = None, logger = None):
 		self.address = address
@@ -25,9 +25,10 @@ class DBConnect:
 		
 		# need if there's not any request yet
 		self.active = 0
+		self.request = None
 		self.has_result = False
 		self.__history = []
-		self.__no_more_request = True
+		self.__no_more_request = False
 		
 		self.set_event_time ()
 	
@@ -40,7 +41,7 @@ class DBConnect:
 		self.close ()
 		
 	def close (self):		
-		self.callback = None
+		self.request = None
 		self.set_active (False)		
 		addr = type (self.address) is tuple and ("%s:%d" % self.address) or str (self.address)
 		self.logger ("[info] .....dbo %s has been closed" % addr)	
@@ -135,8 +136,8 @@ class DBConnect:
 	
 	def handle_close (self, expt = None, msg = ""):		
 		self.exception_class, self.exception_str = expt, msg		
-		self.close ()
 		self.close_case_with_end_tran ()
+		self.close ()
 	
 	def set_event_time (self):
 		self.event_time = time.time ()			
@@ -157,22 +158,20 @@ class DBConnect:
 	def end_tran (self):
 		raise NotImplementedError
 						
-	def begin_tran (self, callback, sql):
+	def begin_tran (self, request):
 		if self.__no_more_request:
 			raise SystemError ("Entered Shutdown Process")
-			
+		
+		self.request = request	
 		self.__history = []
-		self.callback = callback
 		self.has_result = False
 		self.exception_str = ""
 		self.exception_class = None		
-		self.execute_count += 1	
+		self.execute_count += 1
 		self.set_event_time ()		
-		if DEBUG: self.log_history ("BEGIN TRAN: %s" % sql)
 		
-	def execute (self, callback, sql):		
-		self.begin_tran (callback, sql)
-		
+	def execute (self, request):		
+		self.begin_tran (request)		
 		raise NotImplementedError("must be implemented in subclass")
 
 

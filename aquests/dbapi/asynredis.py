@@ -38,7 +38,7 @@ class AsynConnect (dbconnect.AsynDBConnect, asynchat.async_chat):
 	def push_command (self, *args):
 		self.set_event_time ()
 		self.last_command = args [0].upper ()
-		command = self.redis.pack_command (*args)
+		command = self.redis.pack_command (self.last_command, *args [1:])		
 		if isinstance(command, list):
 			command = b"".join (command)		
 		self.push (command)
@@ -72,8 +72,8 @@ class AsynConnect (dbconnect.AsynDBConnect, asynchat.async_chat):
 			self.num_elements.pop (-1)
 			if len (self.response) > 1:
 				item = self.response.pop (-1)
-				self.response [-1].append (item)				
-	
+				self.response [-1].append (item)		
+		
 	def raise_error (self, e):
 		raise RedisError (e.decode ("utf8"))
 		
@@ -134,26 +134,26 @@ class AsynConnect (dbconnect.AsynDBConnect, asynchat.async_chat):
 			self.close_case_with_end_tran ()
 	
 	def close_case (self):
-		if self.callback:
-			self.callback (None, self.exception_class, self.exception_str, self.fetchall ())
-			self.callback = None
+		if self.request:
+			self.request.handle_result (None, self.exception_class, self.exception_str, self.fetchall ())
+			self.request = None
 		self.set_active (False)
 	
 	def end_tran (self):
 		self.del_channel ()
 		
-	def begin_tran (self, callback, sql):
-		dbconnect.AsynDBConnect.begin_tran (self, callback, sql)
+	def begin_tran (self, request):
+		dbconnect.AsynDBConnect.begin_tran (self, request)
 		self.response = [[]]
 		self.data = []
 		self.length = -1
 		self.num_elements = [0]
 		self.last_command = None		
 						
-	def execute (self, callback, *command):
-		self.begin_tran (callback, command)
+	def execute (self, request):
+		self.begin_tran (request)
 		# SHOULD push before adding to map, otherwise raised threading collision
-		self.push_command (*command)
+		self.push_command (request.method, *request.params)
 		self.set_terminator (LINE_FEED)
 		if not self.connected:
 			self.connect ()

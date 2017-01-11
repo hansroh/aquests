@@ -20,7 +20,17 @@ def make_ws (_method, url, params, auth, headers, meta, proxy, logger):
 	return req, handler_class
 
 
+content_types = {
+	'xml': "text/xml",
+	'json': "application/json",	
+	'form': "application/x-www-form-urlencoded",
+	'nvp': "text/namevalue"	
+}
+
+
 def make_http (_method, url, params, auth, headers, meta, proxy, logger):
+	global content_types
+	
 	if proxy and url.startswith ('https://'):
 		handler_class = tunnel_handler.SSLProxyTunnelHandler
 	else:			
@@ -51,14 +61,17 @@ def make_http (_method, url, params, auth, headers, meta, proxy, logger):
 				if not ct: raise TypeError ("Content Type Undefined")
 			
 			elif _method != "upload":
-				ct = content_types.get (_method)
+				if _method [:4] == "post":					
+					cta, _method = _method [4:], "post"					 
+				else:
+					cta, _method = _method [3:], "put"							
+				ct = content_types.get (cta)
 				if not ct: raise TypeError ("Content Type Undefined")
 				headers ['Content-Type'] = ct
 				
 			if _method == "upload":
 				req = http_request.HTTPMultipartRequest (url, "POST", params, headers, None, auth, logger, meta)
 			else:
-				_method = _method.startswith ("posr") and _method [:4] or _method [:3]
 				req = http_request.HTTPRequest (url, _method.upper (), params, headers, None, auth, logger, meta)	
 			
 	return req, handler_class

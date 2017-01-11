@@ -212,10 +212,10 @@ class AsynConnect (asynredis.AsynConnect):
 		msg = message.delete (col, args [0], 1, (), self.codec_option, flags)		
 		self.push_command (msg)
 	
-	def begin_tran (self, callback, command, args, karg):
-		asynredis.AsynConnect.begin_tran (self, callback, "%s %s %s" % (command, args, karg))
+	def begin_tran (self, request):
+		asynredis.AsynConnect.begin_tran (self, request)
 		self.response = None
-		self.last_command = command
+		self.last_command = request.method.lower ()
 		self.preserve_cursor = False
 		self.data = []
 	
@@ -225,13 +225,13 @@ class AsynConnect (asynredis.AsynConnect):
 		"insert", "delete",
 		"update", "upsert", "updateone", "upsertone"		
 	)
-	def execute (self, callback, command, *args, **kargs):
+	def execute (self, request):
 		# SHOULD push before adding to map, otherwise raised threading collision
-		command = command.lower ()
+		command = request.method.lower ()
 		if command not in self.REQ_OPS_OF_WIRE_PROTOCOL:
 			raise NotImplementedError ("Command %s Not Impemented" % command)		
-		self.begin_tran (callback, command, args, kargs)		
-		getattr (self, command) (*args, **kargs)
+		self.begin_tran (request)		
+		getattr (self, command) (*request.params)
 		
 		self.set_terminator (16)
 		if not self.connected:

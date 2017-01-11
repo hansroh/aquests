@@ -83,8 +83,8 @@ else:
 			self.del_channel ()
 			self.conn = self.socket
 			self.cur = self.conn.cursor()		
-			self.set_socket (self.cur.connection)
-			
+			self.set_socket (self.cur.connection)			
+						
 		def handle_read (self):
 			state = self.poll ()
 			if self.cur and state == POLL_OK:
@@ -97,7 +97,7 @@ else:
 		def handle_write (self):
 			state = self.poll ()
 			if self.cur and state == POLL_OK:
-				self.set_event_time ()
+				self.set_event_time ()				
 				self.cur.execute (self.out_buffer)
 				self.out_buffer = ""
 			else:
@@ -107,12 +107,13 @@ else:
 		# Overriden
 		#-----------------------------------
 		def close_case (self):
-			if self.callback:
+			print ('--------', self.request.callback)
+			if self.request:
 				if self.has_result:
-					self.callback (self.cur.description, self.exception_class, self.exception_str, self.fetchall ())
+					self.request.handle_result (self.cur.description, self.exception_class, self.exception_str, self.fetchall ())					
 				else:
-					self.callback (None, self.exception_class, self.exception_str, None)
-				self.callback = None
+					self.request.handle_result (None, self.exception_class, self.exception_str, None)
+				self.request = None
 			self.set_active (False)
 			
 		def empty_cursor (self):
@@ -153,12 +154,12 @@ else:
 		def end_tran (self):
 			self.del_channel ()
 				
-		def begin_tran (self, callback, sql):
-			dbconnect.AsynDBConnect.begin_tran (self, callback, sql)
-			self.out_buffer = sql
+		def begin_tran (self, request):
+			dbconnect.AsynDBConnect.begin_tran (self, request)
+			self.out_buffer = request.params [0]
 								
-		def execute (self, callback, sql):			
-			self.begin_tran (callback, sql)			
+		def execute (self, request):			
+			self.begin_tran (request)			
 			if not self.connected:
 				self.connect ()				
 			else:

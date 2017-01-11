@@ -517,3 +517,5 @@ class AsynSSLProxyConnect (AsynSSLConnect, AsynConnect):
 			return AsynSSLConnect.send (self, data)
 		else:
 			return AsynConnect.send (self, data)
+
+	

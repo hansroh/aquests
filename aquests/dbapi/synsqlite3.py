@@ -37,13 +37,13 @@ class SynConnect (asynpsycopg2.AsynConnect, dbconnect.DBConnect):
 		else:	
 			self.connected = True
 				
-	def execute (self, callback, sql):
-		self.begin_tran (callback, sql)		
+	def execute (self, request):
+		self.begin_tran (request)		
 		if not self.connected:
 			self.connect ()
 		
 		tranaction = False
-		sql= sql.strip ()
+		sql= request.params [0].strip ()
 		try:
 			if sql [:7].lower () == "select ":
 				self.cur.execute (sql)
