@@ -46,6 +46,6 @@ class GRPCRequest (XMLRPCRequest):
 	def serialize (self):
 		return grpc_producer (self.params [0])
 	
-	def get_content_length (self):	
+	def get_content_length (self):
 		return self.payload.get_content_length ()
 		

@@ -67,10 +67,9 @@ class RequestHandler (base_request_handler.RequestHandler):
 		self._llock = threading.RLock () # local lock
 		self.asyncon.use_sendlock ()
 		self.fakecon = FakeAsynConnect (self.logger)
-		self._send_stream_id = 1
+		self._send_stream_id = -1
 		self.requests = {}
-		self.add_request (1, handler)						
-
+		
 		self.conn = H2Connection (client_side = True)
 		self.buf = b""
 		self.rfile = BytesIO ()
@@ -84,6 +83,9 @@ class RequestHandler (base_request_handler.RequestHandler):
 		if is_upgrade:
 			self.conn.initiate_upgrade_connection()
 			self.conn.update_settings({h2.settings.ENABLE_PUSH: 0})
+			# assume 1st request's stream_id = 1
+			self.add_request (1, handler)
+			self._send_stream_id = 1
 		else:		    
 			self.conn.initiate_connection()
 			
@@ -133,7 +135,6 @@ class RequestHandler (base_request_handler.RequestHandler):
 		
 		headers, content_encoded = handler.get_request_header ("2.0", False)
 		payload = handler.get_request_payload ()
-				
 		producer = None
 		if payload:
 			if type (payload) is bytes:
@@ -153,9 +154,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 			rfcw = self.conn.remote_flow_control_window (stream_id)
 		
 		# IMP: 
-		self.increment_flow_control_window (stream_id, 1048576)
-		#print ('======local_flow_control_window', self.conn.local_flow_control_window (stream_id))				
-		#print ('======remote_flow_control_window', self.conn.remote_flow_control_window (stream_id))				
+		self.increment_flow_control_window (stream_id, 65535)
 		self.asyncon.set_active (False)
 	
 	def increment_flow_control_window (self, stream_id, cl):
@@ -240,7 +239,6 @@ class RequestHandler (base_request_handler.RequestHandler):
 		
 	def handle_events (self, events):
 		for event in events:
-			#print ('++EVENT', event)
 			if isinstance(event, ResponseReceived):
 				self.handle_response (event.stream_id, event.headers)		
 					
@@ -259,11 +257,10 @@ class RequestHandler (base_request_handler.RequestHandler):
 				if h:
 					h.collect_incoming_data (event.data)
 				
-			elif isinstance(event, StreamEnded):
+			elif isinstance(event, StreamEnded):				
 				h = self.get_handler (event.stream_id)
 				if h:
 					#h.found_terminator ()
-					h.callback (h)
 					self.remove_handler (event.stream_id)
-				
+					h.callback (h)
 		self.send_data ()

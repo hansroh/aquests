@@ -154,7 +154,7 @@ class Response:
 	SIZE_LIMIT = 2**19
 	
 	def __init__ (self, request, header):		
-		self.request = request		
+		self.request = request
 		if header [:2] == "\r\n":
 			header = header [2:]
 		header = header.split ("\r\n")	

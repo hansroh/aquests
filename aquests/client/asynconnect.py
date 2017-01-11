@@ -60,12 +60,12 @@ class AsynConnect (asynchat.async_chat):
 		self.incoming = []
 		self.producer_fifo.clear()
 		
-		if self.handler and self.errcode:			
+		if self.handler and self.errcode:		
 			self.handler.connection_closed (self.errcode, self.errmsg)
 		
 		if not self.proxy_client:
 			self.logger ("[info] .....asyncon %s:%d has been closed" % self.address)
-		
+
 		self.set_proto (None)
 		self.set_active (False)
 		self.handler = None
@@ -392,7 +392,7 @@ class AsynConnect (asynchat.async_chat):
 	def set_proxy_client (self, flag = True):
 		self.proxy_client = flag
 						
-	def begin_tran (self, handler):		
+	def begin_tran (self, handler):
 		if self.__no_more_request:
 			raise SystemError ("Entered Shutdown Process")
 		
@@ -445,7 +445,7 @@ class AsynSSLConnect (AsynConnect):
 		except (AttributeError, NotImplementedError): 
 			try: self._proto = self.socket.selected_npn_protocol()
 			except (AttributeError, NotImplementedError): pass
-		
+
 		self._handshaked = True		
 		return True
 							

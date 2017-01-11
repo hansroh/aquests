@@ -57,6 +57,7 @@ packages = [
 	'aquests.protocols.ws',	
 	'aquests.protocols.smtp',
 	'aquests.protocols.grpc',
+	'aquests.protocols.proxy',
 	'aquests.lib',
 	'aquests.lib.nets'
 ]

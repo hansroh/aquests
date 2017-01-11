@@ -3,49 +3,23 @@
 VERSION = "0.2a1"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  VERSION.split (".")))
 
-from . import lifetime
-from .lib import logger
+from . import lifetime, queue, request_builder, response_builder, stubproxy
+from .lib import logger as logger_f
 from .client import socketpool
 from .dbapi import dbpool
 from .client import adns
-from .protocols.http import request as http_request, request_handler as http_request_handler
+
+
 try:
 	from urllib.parse import urlparse
 except ImportError:
 	from urlparse import urlparse	
 	
-class Queue:
-	def __init__ (self):
-		self.q = []
-	
-	def add (self, req):
-		self.q.append (req)
-		
-	def get (self):
-		try:
-			return self.q.pop (0)
-		except IndexError:
-			return None
-
-
-class AquestResponse:
-	def __init__ (self, handler):
-		self.response = handler.response
-		self.request = self.response.request
-		self.meta = self.request.meta
-		self.log = self.request.logger.log
-		self.traceback = self.request.logger.trace
-		del self.response.request		
-	
-	def __getattr__ (self, name):
-		return getattr (self.response, name)
-		
-	def read (self):
-		return self.response.get_content ()
-	
 
 def cb_gateway_demo (response):
-	print (_finished_total, response.code, response.msg, response.version)
+	print (_finished_total, response.code, response.msg, response.version)	
+	print (response.read ())
+	
 	
 _request_total = 0			
 _finished_total = 0		
@@ -54,16 +28,16 @@ _logger = None
 _cb_gateway = cb_gateway_demo
 _concurrent = 1
 _currents = 0
-_que = Queue ()
+_que = queue.Queue ()
 _dns_query_req = {}
 
-def configure (concurrent = 1, logger_obj = None, callback = None):
+def configure (workers = 1, logger = None, callback = None):
 	global _logger, _cb_gateway, _concurrent, _initialized
 	
-	_concurrent = concurrent
-	if logger_obj is None:
-		logger_obj = logger.screen_logger ()
-	_logger = logger_obj
+	_concurrent = workers
+	if logger is None:
+		logger = logger_f.screen_logger ()
+	_logger = logger
 	if callback:
 		_cb_gateway = callback
 	
@@ -72,19 +46,30 @@ def configure (concurrent = 1, logger_obj = None, callback = None):
 	adns.init (_logger)
 	lifetime.init ()
 	_initialized = True
-	
-def _request_finished (handler):
-	global _cb_gateway, _currents, _concurrent, _finished_total
+
+
+def _next ():
+	global _currents, _concurrent, _finished_total
 	
 	_finished_total += 1
-	_cb_gateway (AquestResponse (handler))
 	if lifetime._shutdown_phase:
 		_currents -= 1
 		return
+		
 	for i in range (_concurrent - _currents + 1):
 		_req ()
+			
+def _request_finished (handler):
+	global _cb_gateway, _currents, _concurrent, _finished_total	
+	_cb_gateway (response_builder.HTTPResponse (handler))
+	_next ()
+	
+def _query_finished (*args):
+	global _cb_gateway, _currents, _concurrent, _finished_total
+	_cb_gateway (response_builder.DBOResponse (*args))
+	_next ()	
 
-def _add (method, url, params = None, auth = None, headers = {}, meta = {}):
+def _add (method, url, params = None, auth = None, headers = {}, meta = {}, proxy = None):
 	def dns_result (answer = None):
 		pass
 		
@@ -97,49 +82,45 @@ def _add (method, url, params = None, auth = None, headers = {}, meta = {}):
 	if host not in _dns_query_req:
 		_dns_query_req [host] = None
 		adns.query (host, "A", callback = dns_result)	
-	_que.add ((method, url, params, auth, headers, meta))
+	_que.add ((method, url, params, auth, headers, meta, proxy))
+
+content_types = {
+	'postxml': "text/xml",
+	'postjson': "application/json",	
+	'postform': "application/x-www-form-urlencoded",
+	'postnvp': "text/namevalue"	
+}
 
 def _req ():
 	global _que, _logger, _finished_total, _currents, _request_total
-	args = _que.get ()
+	global content_types
+	
+	args = _que.get ()	
 	if args is None and lifetime._shutdown_phase == 0:		
 		lifetime.shutdown (0, 7)
-		return	
+		return
 	_request_total += 1	
 	
-	method, url, params, auth, headers, meta = args
+	method, url, params, auth, headers, meta, proxy = args
 	_method = method.lower ()
 	if _method in ("postgresql", "redis", "mongodb", "sqlite3"):
 		asyncon = dbpool.get (url)
 		handler = http_request_handler.RequestHandler (asyncon, req, _request_finished)
-		
-	elif _method in ("ws", "wss"):
-		asyncon = socketpool.get (url)
-		handler = http_request_handler.RequestHandler (asyncon, req, _request_finished)
-		
+	
 	else:	
 		asyncon = socketpool.get (url)
-		if _method in ("get", "delete"):						
-			req = http_request.HTTPRequest (url, method, params, headers, "utf8", auth, _logger, meta)
-		else:	
-			if not headers:
-				headers = {}
-				
-			if _method in ("post", "put", "postxml", "postjson", "postform"):
-				req = 1
-				
-			elif _method == "rpc":
-				req = 1
-				
-			elif _method == "grpc":
-				req = 1
-				
-		handler = http_request_handler.RequestHandler (asyncon, req, _request_finished)
+		if _method in ("ws", "wss"):
+			req, handler_class = request_builder.make_ws (_method, url, params, auth, headers, meta, proxy, _logger)		
+			handler = handler_class (asyncon, req, _request_finished)
+			
+		else:
+			req, handler_class = request_builder.make_http (_method, url, params, auth, headers, meta, proxy, _logger)
+			handler = handler_class (asyncon, req, _request_finished)
 		
-	if asyncon.get_proto () and asyncon.isconnected ():
-		asyncon.handler.handle_request (handler)
-	else:				
-		handler.handle_request ()
+		if asyncon.get_proto () and asyncon.isconnected ():
+			asyncon.handler.handle_request (handler)
+		else:
+			handler.handle_request ()
 		
 def countreq ():
 	global _request_total
@@ -168,6 +149,37 @@ def fetchall ():
 	dbpool.cleanup ()
 	
 def get (*args, **karg):
-	_add ('GET', *args, **karg)
+	_add ('get', *args, **karg)
+
+def post (*args, **karg):
+	_add ('post', *args, **karg)
+		
+def postform (*args, **karg):
+	_add ('postform', *args, **karg)
+
+def postxml (*args, **karg):
+	_add ('postxml', *args, **karg)
+
+def postjson (*args, **karg):
+	_add ('postjson', *args, **karg)	
+
+def postnvp (*args, **karg):
+	_add ('postnvp', *args, **karg)	
+
+def upload (*args, **karg):
+	_add ('upload', *args, **karg)	
+
+def ws (*args, **karg):
+	_add ('ws', *args, **karg)	
+
+def wss (*args, **karg):
+	_add ('wss', *args, **karg)	
+
+def _addrpc (method, rpcmethod, params, url, __params = None, auth = None, headers = {}, meta = {}, proxy = None):	
+	_add (method, url, (rpcmethod, params), auth, headers, meta, proxy)
 	
+def rpc	(*args, **karg):
+	return stubproxy.Proxy ('rpc', _addrpc, *args, **karg)
 	
+def grpc	(*args, **karg):
+	return stubproxy.Proxy ('grpc', _addrpc, *args, **karg)
