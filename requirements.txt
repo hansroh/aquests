@@ -1,0 +1,4 @@
+h2
+redis>=2.10
+pymongo
+protobuf
