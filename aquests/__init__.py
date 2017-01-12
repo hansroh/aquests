@@ -1,6 +1,6 @@
 # 2016. 1. 10 by Hans Roh hansroh@gmail.com
 
-VERSION = "0.2.13"
+VERSION = "0.2.14b4"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  VERSION.split (".")))
 
 from . import lifetime, queue, request_builder, response_builder, stubproxy
@@ -16,7 +16,6 @@ try:
 	from urllib.parse import urlparse
 except ImportError:
 	from urlparse import urlparse	
-	
 
 def cb_gateway_demo (response):
 	try: cl = len (response.content)

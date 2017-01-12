@@ -13,7 +13,6 @@ except ImportError:
 	from urlparse import urlparse
 				
 from aquests.lib import producers, strutil
-import skitai
 
 class XMLRPCRequest:	
 	user_agent = "Mozilla/5.0 (compatible; Skitai/%s.%s)" % aquests.version_info [:2]

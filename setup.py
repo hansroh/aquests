@@ -85,6 +85,6 @@ setup(
 	license='BSD',
 	platforms = ["posix", "nt"],
 	download_url = "https://pypi.python.org/pypi/aquests",
-	install_requires = ["redis>=2.10", "pymongo", "h2"],
+	install_requires = ["redis>=2.10", "pymongo", "h2", "protobuf"],
 	classifiers=classifiers
 )
