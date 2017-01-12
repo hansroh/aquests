@@ -5,13 +5,18 @@ class Response (response.Response):
 		self.request = request
 		self.code = code
 		self.msg = msg
-		self.data = data
+		self.__data = data
 		self.version = "1.1"
-		self.header = ["OPCODE: %s" % opcode]
+		self.opcode = opcode
 	
-	def get_content (self):
-		return self.data
+	@property
+	def data (self):
+		return self.__data
 	
+	@property
+	def headers (self):
+		return {}
+		
 	def done (self):
 		pass
 	

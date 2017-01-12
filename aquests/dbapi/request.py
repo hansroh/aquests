@@ -9,25 +9,49 @@ class Request:
 		self.callback = callback
 		
 		self.description = None
-		self.data = None
+		self.__data = None
+		self.__content = None
 		self.expt_class = None
 		self.expt_str = None
 		
-		self.code, self.msg = 200, "OK"
+		self.code, self.msg, self.version = 200, "OK", None
+	
+	def set_callback (self, callback):
+		self.callback = callback
 		
+	@property
+	def status_code (self):		
+		return self.code
+	
+	@property
+	def reason (self):
+		return self.msg
+			
 	def handle_result (self, description, expt_class, expt_str, data):
 		self.expt_class, self.expt_str = expt_class, expt_str
 		if expt_class:
 			self.code, self.msg = 500, "Error"
 
-		if not data:
-			self.data = data
-			return self.callback (self)			
-		
 		self.description = description
-		if description:
-			assert (len (description) == len (data [0]))		
-			cols = [type (col) is tuple and col [0] or col.name for col in description]		
+		self.__content = data
+		self.callback (self)
+	
+	@property
+	def content (self):
+		return self.__content
+		
+	@property
+	def data (self):
+		if self.__data:
+			return self.__data
+			
+		if not self.__content:
+			return self.__content	
+			
+		data = self.__content
+		if self.description:
+			assert (len (self.description) == len (data [0]))		
+			cols = [type (col) is tuple and col [0] or col.name for col in self.description]
 			d = []
 			for row in data:
 				i = 0
@@ -36,19 +60,16 @@ class Request:
 					drow [name] = row [i]
 					i += 1
 				d.append (drow)
-			self.data = d
+			self.__data = d
 		
 		else:
 			if type (data) is dict:
-				try:
-					self.data = AttrDict ()
-					for k, v in data.items ():
-						self.data [k] = v
-				except:
-					self.data = data
+				self.__data = AttrDict ()
+				for k, v in data.items ():
+					self.__data [k] = v				
 			else:		
-				self.data = data
+				self.__data = data
 		
-		self.callback (self)
+		return self.__data
 		
 		

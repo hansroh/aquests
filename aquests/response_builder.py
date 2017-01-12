@@ -4,17 +4,15 @@ class HTTPResponse:
 	def __init__ (self, handler):
 		self.response = handler.response
 		self.request = self.response.request
-		self.meta = self.request.meta		
+		self.meta = self.request.meta
+		# compet with requests
+		self.status_code = self.response.code
+		self.status_msg = self.response.msg		
 		
 	def __getattr__ (self, name):
 		return getattr (self.response, name)
-		
-	def read (self):
-		r = self.response.get_content ()
-		del self.response.request
-		return r
-
-
+	
+	
 class DBOResponse:
 	def __init__ (self, description, expt_class, expt_str, data):
 		self.description = description

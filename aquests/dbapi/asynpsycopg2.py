@@ -106,8 +106,7 @@ else:
 		#-----------------------------------
 		# Overriden
 		#-----------------------------------
-		def close_case (self):
-			print ('--------', self.request.callback)
+		def close_case (self):			
 			if self.request:
 				if self.has_result:
 					self.request.handle_result (self.cur.description, self.exception_class, self.exception_str, self.fetchall ())					

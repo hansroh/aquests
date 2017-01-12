@@ -1,14 +1,12 @@
 import re
-try:
-	import xmlrpc.client as xmlrpclib
-except ImportError:
-	import xmlrpclib
 from aquests.protocols.http import http_date
 from aquests.lib import compressors
 import time
 import json
 import struct
 from aquests.protocols.grpc import discover
+from . import buffers, treebuilder
+from . import localstorage as ls
 
 try:
 	from cStringIO import StringIO as BytesIO
@@ -23,131 +21,6 @@ def crack_response (data):
 	global RESPONSE
 	[ version, code, msg ] = RESPONSE.findall(data)[0]
 	return version, int(code), msg
-
-
-class FakeParser(object):
-	def __init__(self, target):
-		self.target = target
-
-	def feed(self, data):
-		self.target.feed(data)
-
-	def close(self):
-		pass
-
-
-class cachable_xmlrpc_buffer:
-	def __init__ (self, buf, cache):
-		self.buf = buf
-		self.cache = cache
-		self.cdata = None
-		
-	def __getattr__ (self, name):
-		return getattr (self.buf, name)
-		
-	def close (self):
-		if self.cdata:
-			return self.cdata
-		res = self.buf.close ()
-		if self.cache:
-			self.cdata = res
-		return res
-	
-	def no_cache (self):
-		self.cache = 0
-		self.cdata = None
-		
-	
-class list_buffer:
-	def __init__(self, cache = 0):
-		self.cache = cache
-		self.data = []
-		self.cdata = None
-	
-	def __len__ (self):
-		return len (self.data)
-		
-	def feed(self, data):
-		self.data.append(data)
-	
-	def read (self):	
-		# consume data, used by proxy response
-		data = self.build_data ()
-		self.data = []
-		return data
-		
-	def build_data (self):
-		return b''.join(self.data)
-	
-	def close (self):
-		if self.cdata:
-			return self.cdata
-		res = self.build_data ()
-		if self.cache:
-			self.cdata = res
-		return res
-	
-	def no_cache (self):
-		self.cache = 0
-		self.cdata = []
-
-
-class bytes_buffer:
-	def __init__(self, cache = 0):
-		self.cache = cache
-		self.fp = BytesIO ()
-		self.current_buffer_size = 0
-		self.cdata = None		
-	
-	def __len__ (self):
-		return self.current_buffer_size
-			
-	def feed (self, data):
-		self.current_buffer_size += len (data)
-		self.fp.write (data)
-			
-	def build_data (self):
-		return self.fp.getvalue ()
-	
-	def close (self):
-		if self.cdata:
-			return self.cdata
-		res = self.build_data ()
-		if self.cache:
-			self.cdata = res
-		return res
-	
-	def no_cache (self):
-		self.cache = 0
-		self.cdata = []
-
-
-class grpc_buffer (bytes_buffer):
-	def build_data (self):
-		msgs = []
-		fp = self.fp
-		fp.seek (0)
-		
-		byte = fp.read (1)
-		while byte:
-			iscompressed = struct.unpack ("<B", byte) [0]
-			length = struct.unpack ("<i", fp.read (4)) [0]
-			msg = fp.read (length)
-			msgs.append (msg)
-			byte = fp.read (1)
-		return tuple (msgs)
-	
-	def close (self):
-		if self.cdata:
-			return self.cdata
-		res = self.build_data ()
-		if self.cache:
-			self.cdata = res
-		return res
-		
-def getfakeparser (target_class, cache = False):
-	target = target_class(cache)
-	return FakeParser(target), target
 
 
 class Response:
@@ -167,6 +40,9 @@ class Response:
 		self.max_age = 0
 		self.decompressor = None
 		self.is_xmlrpc_return = False
+		self.__headerdict = None
+		self.__encoding = None
+		self.__data_cache = None
 		
 	def set_max_age (self):
 		self.max_age = 0
@@ -226,13 +102,12 @@ class Response:
 		self.set_max_age ()
 		ct = self.get_header ("content-type", "")
 		if ct.startswith ('application/grpc'):
-			self.p, self.u = getfakeparser (grpc_buffer, cache = self.max_age)
+			self.p, self.u = buffers.getfakeparser (buffers.grpc_buffer, cache = self.max_age)
 		elif ct == 'text/xml' and self.request.xmlrpc_serialized ():
-			self.p, self.u = xmlrpclib.getparser()
-			self.u = cachable_xmlrpc_buffer (self.u, self.max_age)
+			self.p = self.u = buffers.cachable_xmlrpc_buffer (self.max_age)
 			self.is_xmlrpc_return = True
 		else:			
-			self.p, self.u = getfakeparser (bytes_buffer, cache = self.max_age)
+			self.p, self.u = buffers.getfakeparser (buffers.bytes_buffer, cache = self.max_age)
 					
 		if self.get_header ("Content-Encoding") == "gzip":			
 			self.decompressor = compressors.GZipDecompressor ()
@@ -241,8 +116,7 @@ class Response:
 		if self.size == 0:
 			self.init_buffer ()		
 		self.size += len (data)
-			
-		#print ("<<<<<", repr (data)[-80:], len (data) )	
+		
 		if self.decompressor:
 			data = self.decompressor.decompress (data)
 		
@@ -250,7 +124,6 @@ class Response:
 			self.max_age = 0
 			self.u.no_cache ()
 		
-		#print (">>>>>", repr (data)[-80:])
 		if data:
 			# sometimes decompressor return "",
 			# null byte is signal of producer's ending, so ignore.
@@ -270,8 +143,8 @@ class Response:
 				a, b = each.strip ().split ("=", 1)
 			except ValueError:
 				a, b = each.strip (), None
-			d [a] = b
-		return v2 [0], d	
+			d [a.lower ()] = b
+		return v2 [0], d
 				
 	def get_header (self, header = None, default = None):
 		if header is None:
@@ -291,10 +164,90 @@ class Response:
 		else:
 			return hc[header] is not None and hc[header] or default
 	
-	def get_headers (self):
-		return self.header
+	def set_cookie (self, key, val, domain = None, path = "/"):
+		if ls.g:
+			ls.g.set_cookie (self.url, key, val, domain, path)
+		else:
+			raise SystemError ("Local Storage Not Created")
 	
-	def get_content (self):
+	def json (self):
+		return json.loads (self.raw.read ())
+
+	@property	
+	def new_cookies (self):
+		cookies = []
+		for line in self.header:
+			if line [:12].lower() == 'set-cookie: ':
+				cookies.append (line [12:])
+		return cookies			
+	
+	@property
+	def cookies (self):
+		if ls.g:
+			return ls.g.get_cookie_as_dict (self.url)
+		raise SystemError ("Local Storage Not Created")
+		
+	@property
+	def url (self):		
+		return self.request.uri
+		
+	@property
+	def status_code (self):		
+		return self.code
+	
+	@property
+	def reason (self):
+		return self.msg
+		
+	@property
+	def encoding (self):
+		if self.__encoding:
+			return self.__encoding
+		val, attr = self.get_header_with_attr ('content-type')
+		self.__encoding = attr.get ('charset')
+		return self.__encoding
+		
+	@property
+	def headers (self):
+		if self.__headerdict:
+			return self.__headerdict
+		headerdict = {}
+		for line in self.header:
+			k, v = line.split (": ", 1)
+			headerdict [k] = v
+		self.__headerdict = headerdict	
+		return headerdict		
+	
+	@property
+	def raw (self):
+		return self.u.raw ()
+	
+	@property
+	def content (self):
+		return self.raw.read ()
+	
+	@property
+	def binary (self):
+		return self.content
+		
+	@property
+	def text (self):
+		return treebuilder.to_str (self.content, self.encoding)		
+	
+	@encoding.setter
+	def encoding (self, value):
+		self.__encoding = value
+	
+	@property
+	def dom (self):
+		if treebuilder.HAS_SKILLSET:
+			return treebuilder.html (self.raw, self.request.uri, self.encoding)
+			
+	@property
+	def data (self):
+		if self.__data_cache:
+			return self.__data_cache
+			
 		if self.code >= 700:
 			return None
 		
@@ -302,11 +255,11 @@ class Response:
 			return b""
 				
 		self.p.close ()
-		result = self.u.close()	
-		ct = self.get_header ("content-type")	
+		result = self.u.close ()
+		ct = self.get_header ("content-type")
 		
 		if self.is_xmlrpc_return:
-			if len(result) == 1:
+			if len (result) == 1:
 				result = result [0]
 			return result
 			
@@ -324,7 +277,8 @@ class Response:
 			if not isstream:
 				return msgs [0]
 			return msgs	
-			
+		
+		self.__data_cache = result	
 		return result
 	
 
@@ -341,10 +295,14 @@ class FailedResponse (Response):
 	
 	def more (self):
 		return b""
-		
-	def get_content (self):
-		return b""
 	
 	def done (self):
 		pass
-		
+	
+	@property	
+	def content (self):
+		return b""
+	
+	@property	
+	def raw (self):
+		return b""	

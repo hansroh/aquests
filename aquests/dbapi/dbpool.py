@@ -47,8 +47,8 @@ def create (logger):
 	if pool is None:
 		pool = DBPool (logger)
 
-def get (uri):	
-	return pool.get (uri)
+def get (server, dbname, user, pwd, dbtype):	
+	return pool.get (server, dbname, user, pwd, dbtype)
 		
 def cleanup ():	
 	pool.cleanup ()

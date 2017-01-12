@@ -24,9 +24,9 @@ if sys.argv[-1] == 'publish':
 
 classifiers = [
   'License :: OSI Approved :: BSD License',
-  'Development Status :: 4 - Beta',
+  'Development Status :: 3 - Alpha',
   'Topic :: Internet :: WWW/HTTP',
-	'Topic :: Internet :: WWW/HTTP :: HTTP Servers',				
+  'Topic :: Database :: Front-Ends',
 	'Environment :: Console',	
 	'Topic :: Software Development :: Libraries :: Python Modules',
 	'Intended Audience :: Developers',
@@ -59,7 +59,8 @@ packages = [
 	'aquests.protocols.grpc',
 	'aquests.protocols.proxy',
 	'aquests.lib',
-	'aquests.lib.nets'
+	'aquests.lib.nets',
+	'aquests.examples'
 ]
 
 package_dir = {'aquests': 'aquests'}
@@ -74,7 +75,7 @@ package_data = {
 setup(
 	name='aquests',
 	version=__VER__,
-	description='Asynchronous Requests',	
+	description='Asynchronous HTTP2/DBO Requests',
 	url = 'https://gitlab.com/hansroh/aquests',
 	author='Hans Roh',
 	author_email='hansroh@gmail.com',	

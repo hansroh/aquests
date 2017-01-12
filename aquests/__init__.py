@@ -1,6 +1,6 @@
 # 2016. 1. 10 by Hans Roh hansroh@gmail.com
 
-VERSION = "0.2a1"
+VERSION = "0.2.13"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  VERSION.split (".")))
 
 from . import lifetime, queue, request_builder, response_builder, stubproxy
@@ -9,6 +9,8 @@ from .client import socketpool
 from .dbapi import dbpool
 from .client import adns
 from . import client, dbapi
+from .protocols.http import localstorage as ls
+from .dbapi import request as dbo_request
 
 try:
 	from urllib.parse import urlparse
@@ -17,10 +19,32 @@ except ImportError:
 	
 
 def cb_gateway_demo (response):
-	print (_finished_total, response.code, response.msg, response.version)	
-	print (response.read ())
-	
-	
+	try: cl = len (response.content)
+	except: cl = 0	
+	if isinstance (response, dbo_request.Request):		
+		status = "DBO %s %s %d records/docuements received"	% (
+			response.code, 
+			response.msg,
+			cl
+		)
+	else:
+		status = "HTTP/%s %s %s %d bytes received" % (
+			response.version,
+			response.code, 
+			response.msg, 
+			cl
+		)
+		
+		
+	print (
+		"REQ %s-%d. %s" % (
+		response.meta ['req_method'],
+		response.meta ['req_id'],		
+		status
+		)
+	)	
+	#print (response.data)
+
 _request_total = 0			
 _finished_total = 0		
 _initialized = False
@@ -31,7 +55,7 @@ _currents = 0
 _que = queue.Queue ()
 _dns_query_req = {}
 
-def configure (workers = 1, logger = None, callback = None, timeout = 10):
+def configure (workers = 1, logger = None, callback = None, timeout = 10, enable_cookie = False):
 	global _logger, _cb_gateway, _concurrent, _initialized
 	
 	_concurrent = workers
@@ -41,6 +65,8 @@ def configure (workers = 1, logger = None, callback = None, timeout = 10):
 	if callback:
 		_cb_gateway = callback
 	
+	if enable_cookie:
+		ls.create (_logger)
 	client.set_timeout (timeout)
 	dbapi.set_timeout (timeout)
 	
@@ -63,8 +89,16 @@ def _next ():
 		_req ()
 			
 def _request_finished (handler):
-	global _cb_gateway, _currents, _concurrent, _finished_total	
-	_cb_gateway (response_builder.HTTPResponse (handler))
+	global _cb_gateway, _currents, _concurrent, _finished_total, _enable_cookie	
+	if isinstance (handler, dbo_request.Request):
+		response = handler
+		response.meta = response.meta
+	else:
+		response = response_builder.HTTPResponse (handler)
+		if ls.g:
+			for cs in reponse.new_cookies:
+				ls.g.set_cookie_from_string (response.url, cs)
+	_cb_gateway (response)
 	_next ()
 	
 def _query_finished (*args):
@@ -76,10 +110,13 @@ def _add (method, url, params = None, auth = None, headers = {}, meta = {}, prox
 	def dns_result (answer = None):
 		pass
 		
-	global _que, _initialized, _dns_query_req
-		
-	if not _initialized:
-		configure ()	
+	global _que, _initialized, _dns_query_req			
+	
+	if not _initialized:		
+		configure ()		
+	if not meta: meta = {}
+	meta ['req_id'] = _que.req_id
+	meta ['req_method'] = method
 	host = urlparse (url) [1].split (":")[0]
 	# DNS query for caching and massive 
 	if host not in _dns_query_req:
@@ -88,23 +125,28 @@ def _add (method, url, params = None, auth = None, headers = {}, meta = {}, prox
 	_que.add ((method, url, params, auth, headers, meta, proxy))
 
 
-
 def _req ():
 	global _que, _logger, _finished_total, _currents, _request_total
 	
-	args = _que.get ()	
-	if args is None and lifetime._shutdown_phase == 0:		
-		lifetime.shutdown (0, 7)
+	args = _que.get ()
+	if args is None:
+		if lifetime._shutdown_phase == 0:		
+			lifetime.shutdown (0, 7)
 		return
-	_request_total += 1	
-	
-	method, url, params, auth, headers, meta, proxy = args
-	_method = method.lower ()
+		
+	_request_total += 1
+	_method = args [0].lower ()
 	if _method in ("postgresql", "redis", "mongodb", "sqlite3"):
-		asyncon = dbpool.get (url)
-		handler = http_request_handler.RequestHandler (asyncon, req, _request_finished)
-	
+		method, server, (dbmethod, params), dbname, auth, meta = args
+		if auth is None:
+			auth = ("", "")
+		asyncon = dbpool.get (server, dbname, auth [0], auth [1], "*" + _method)
+		req = request_builder.make_dbo (_method, server, dbmethod, params, dbname, auth, meta, _logger)
+		req.set_callback (_request_finished)
+		asyncon.execute (req)
+		
 	else:	
+		method, url, params, auth, headers, meta, proxy = args
 		asyncon = socketpool.get (url)
 		if _method in ("ws", "wss"):
 			req, handler_class = request_builder.make_ws (_method, url, params, auth, headers, meta, proxy, _logger)		
@@ -151,6 +193,9 @@ def fetchall ():
 def get (*args, **karg):
 	_add ('get', *args, **karg)
 
+def delete (*args, **karg):
+	_add ('delete', *args, **karg)
+	
 def post (*args, **karg):
 	_add ('post', *args, **karg)
 
@@ -206,10 +251,18 @@ def grpc	(*args, **karg):
 # DBO QEURY
 #----------------------------------------------------
 def _adddbo (method, dbmethod, params, server, dbname = None, auth = None, meta = {}):
-	_add (method, server, (dbmethod, params), auth, meta)
+	global _que
+	
+	if not _initialized:
+		configure ()
+	if not meta: meta = {}	
+	meta ['req_id'] = _que.req_id
+	meta ['req_method'] = method
+	_que.add ((method, server, (dbmethod, params), dbname, auth, meta))
 	
 def postgresql (*args, **karg):
 	return stubproxy.Proxy ('postgresql', _adddbo, *args, **karg)
+pg = postgresql
 
 def redis (*args, **karg):
 	return stubproxy.Proxy ('redis', _adddbo, *args, **karg)
@@ -220,4 +273,3 @@ def mongodb (*args, **karg):
 def sqlite3 (*args, **karg):
 	return stubproxy.Proxy ('sqlite3', _adddbo, *args, **karg)
 
-	
