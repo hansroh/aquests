@@ -13,7 +13,7 @@ try:
 except ImportError:
 	from io import BytesIO
 
-class RepsonseError (Exception): 
+class HTTPRepsonseError (Exception): 
 	pass
 
 RESPONSE = re.compile ('HTTP/([0-9.]+) ([0-9]{3})\s?(.*)')
@@ -172,7 +172,11 @@ class Response:
 	
 	def json (self):
 		return json.loads (self.raw.read ())
-
+	
+	def raise_for_status (self):
+		if self.status_code >= 400:
+			raise HTTPRepsonseError ("%d %s" % (self.status_code, self.reason))
+		
 	@property	
 	def new_cookies (self):
 		cookies = []

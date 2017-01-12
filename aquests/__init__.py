@@ -1,6 +1,6 @@
 # 2016. 1. 10 by Hans Roh hansroh@gmail.com
 
-VERSION = "0.2.14b4"
+VERSION = "0.3.9"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  VERSION.split (".")))
 
 from . import lifetime, queue, request_builder, response_builder, stubproxy
@@ -18,10 +18,12 @@ except ImportError:
 	from urlparse import urlparse	
 
 def cb_gateway_demo (response):
+	global _logger 
+	
 	try: cl = len (response.content)
 	except: cl = 0	
 	if isinstance (response, dbo_request.Request):		
-		status = "DBO %s %s %d records/docuements received"	% (
+		status = "DBO %s %s %d records/documents received"	% (
 			response.code, 
 			response.msg,
 			cl
@@ -33,9 +35,8 @@ def cb_gateway_demo (response):
 			response.msg, 
 			cl
 		)
-		
-		
-	print (
+			
+	_logger.log (
 		"REQ %s-%d. %s" % (
 		response.meta ['req_method'],
 		response.meta ['req_id'],		
@@ -88,7 +89,8 @@ def _next ():
 		_req ()
 			
 def _request_finished (handler):
-	global _cb_gateway, _currents, _concurrent, _finished_total, _enable_cookie	
+	global _cb_gateway, _currents, _concurrent, _finished_total, _logger
+	
 	if isinstance (handler, dbo_request.Request):
 		response = handler
 		response.meta = response.meta
@@ -97,6 +99,7 @@ def _request_finished (handler):
 		if ls.g:
 			for cs in reponse.new_cookies:
 				ls.g.set_cookie_from_string (response.url, cs)
+	response.logger = _logger
 	_cb_gateway (response)
 	_next ()
 	
@@ -194,7 +197,16 @@ def get (*args, **karg):
 
 def delete (*args, **karg):
 	_add ('delete', *args, **karg)
-	
+
+def head (*args, **karg):
+	_add ('head', *args, **karg)
+
+def trace (*args, **karg):
+	_add ('trace', *args, **karg)
+
+def options (*args, **karg):
+	_add ('options', *args, **karg)
+				
 def post (*args, **karg):
 	_add ('post', *args, **karg)
 

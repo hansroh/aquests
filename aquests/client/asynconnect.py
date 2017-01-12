@@ -64,7 +64,7 @@ class AsynConnect (asynchat.async_chat):
 			self.handler.connection_closed (self.errcode, self.errmsg)
 		
 		if not self.proxy_client:
-			self.logger ("[info] .....asyncon %s:%d has been closed" % self.address)
+			self.logger ("[info] .....socket %s:%d has been closed" % self.address)
 
 		self.set_proto (None)
 		self.set_active (False)

@@ -77,5 +77,5 @@ def make_http (_method, url, params, auth, headers, meta, proxy, logger):
 	return req, handler_class
 
 def make_dbo (_method, server, dbmethod, params, dbname, auth, meta, logger):
-	return dbo_request.Request (_method [1:], dbmethod, params, None, meta)
+	return dbo_request.Request (_method [1:], server, dbname, dbmethod, params, None, meta)
 	

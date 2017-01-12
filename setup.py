@@ -2,10 +2,7 @@
 Hans Roh 2015 -- http://osp.skitai.com
 License: BSD
 """
-
-import aquests
-__VER__ = aquests.VERSION
-
+import re
 import sys
 import os
 import shutil, glob
@@ -72,9 +69,18 @@ package_data = {
 	]
 }
 
+install_requires = [
+	"redis==2.10", "pymongo==3.4.0", 
+	"h2==2.5.1", "protobuf==3.1.0.post1", 
+	"psycopg2==2.6.2"
+]
+
+with open('aquests/__init__.py', 'r') as fd:
+	version = re.search(r'^VERSION\s*=\s*"(.*?)"',fd.read(), re.M).group(1)
+
 setup(
 	name='aquests',
-	version=__VER__,
+	version=version,
 	description='Asynchronous HTTP2/DBO Requests',
 	url = 'https://gitlab.com/hansroh/aquests',
 	author='Hans Roh',
@@ -85,6 +91,6 @@ setup(
 	license='BSD',
 	platforms = ["posix", "nt"],
 	download_url = "https://pypi.python.org/pypi/aquests",
-	install_requires = ["redis>=2.10", "pymongo", "h2", "protobuf"],
+	install_requires = install_requires,
 	classifiers=classifiers
 )

@@ -54,7 +54,7 @@ class DBConnect:
 		
 	def clean_shutdown_control (self, phase, time_in_this_phase):
 		self.__no_more_request = True
-		if self.active ():
+		if self.isactive ():
 			return 1
 		else:
 			self.handle_close ()

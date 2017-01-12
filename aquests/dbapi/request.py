@@ -1,7 +1,9 @@
 from aquests.lib.attrdict import AttrDict
 
 class Request:
-	def __init__ (self, dbtype, method, params, callback = None, meta = {}):
+	def __init__ (self, dbtype, server, dbname, method, params, callback = None, meta = {}):
+		self.server = server
+		self.dbname = dbname
 		self.method = method
 		self.params = params
 		self.meta = meta
@@ -18,7 +20,11 @@ class Request:
 	
 	def set_callback (self, callback):
 		self.callback = callback
-		
+	
+	def raise_for_status (self):
+		if self.expt_class:
+			raise self.expt_class (self.expt_str)
+			
 	@property
 	def status_code (self):		
 		return self.code

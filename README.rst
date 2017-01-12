@@ -2,7 +2,7 @@
 Asynchronous Requests
 ======================
 
-Aquests is generating asynchronous requests and fetching data from HTTP2, REST API, XMLRPC, gRPC and sevral Database engines. It was seperated from Skitai_ on Jan 2017.
+Aquests is generating asynchronous requests and fetching data from HTTP2, REST API, XMLRPC, gRPC and several Database engines. It was seperated from Skitai_ on Jan 2017.
 
 Supported requests are:
 
@@ -127,17 +127,17 @@ Binding Callback
   aquests.fetchall ()
 
 
-Change Logger
---------------
+Mixed Requests
+----------------
 
 .. code-block:: python
-  
-  from aquests.lib import logger
-  
-  aquests.configure (
-    workers = 10, 
-    logger = logger.file_logger ('/tmp/logs', 'aquests')
-  )
+
+  dbo = aquests.mongodb ("127.0.0.1:27017", "test_database")
+  aquests.configure (20)
+  for i in range (1000): 
+    aquests.get ("http://127.0.0.1:5000/")
+    dbo.findone ("posts", {"author": "James Milton"})
+  aquests.fetchall ()
 
 
 Making Traffic Load
@@ -178,29 +178,63 @@ Set Meta Information
 
 Note: meta ['req_id'] and meta ['req_method'] are automatically added by aquests.
 
+
+Change Logger
+--------------
+
+.. code-block:: python
+  
+  from aquests.lib import logger
+  
+  aquests.configure (
+    workers = 10, 
+    logger = logger.file_logger ('/tmp/logs', 'aquests')
+  )
+
+
 Response
 ---------
 
+I make similar naming with requests_' attribute and method names as possible.
+
 Response has these attributes and method:
 
-- meta: user added meta data including 'req_id'
-- url: requested URL
-- status_code: HTTP status code
+- meta: user added meta data including 'req_id' and 'req_method'
+- status_code: HTTP status code or DBO query success (200) or failure (500) code
 - reason: status text like OK, Not Found...
+- content: bytes content or original db result
+- data: usally same as content but on RPC, DB query situation, it returns result object.
+- logger: logger.log (msg, type ='info'), logger.trace ()
+- request.method: POST, GET, PUT etc for HTTP/RPC and execute, get, set or lrange etc for DBO
+- raise_for_status (): raise exception when HTTP status code >= 400 or DBO command excution failure
+
+Below things are available only on DBO responses.
+
+- request.server: database server address
+- request.dbname: database object name
+- request.params: database command parameters
+
+Below things aren't available on DBO responses.
+
+- url: requested url
 - version: HTTP protocol version
 - headers: Response headers
-- content: bytes content
-- text: encoded string
-- data: usally same as content but on RPC, DB query situation, it returns result object.
+- text: charset encoded string (unicode)
+- raw: file like object for bytes stream has raw.read (), raw.readline (),... methods
 - encoding: extracted from content-type header
+- request.headers
+- request.payload: request body bytes, not available at upload and grpc
 - json (): load JSON data
+
+
+.. _requests: https://pypi.python.org/pypi/requests
 
 
 List of Methods
 ==================
 
-HTTP GET, DELETE
------------------
+GET, DELETE and etc.
+---------------------
 
 .. code-block:: python
 
@@ -208,11 +242,10 @@ HTTP GET, DELETE
   aquests.delete ("http://127.0.0.1:5000/models/ak-40")
   aquests.get ("https://www.google.co.kr/search?q=aquests")
 
-Also aquests.delete () is available.
-
+Also aquests.head (), options () and trace () are available.
 
   
-HTTP POST, PUT
+POST, PUT
 ---------------
 
 .. code-block:: python
@@ -235,8 +268,8 @@ Put example,
 .. code-block:: python
   
   aquest.put (
-    "http://127.0.0.1:5000/", 
-    {'user': 'JamesMilton'},
+    "http://127.0.0.1:5000/users/jamesmilton",
+    {'fullnamer': 'James Milton'},
     {'Content-Type': 'application/json'}
     )
   )
@@ -244,8 +277,8 @@ Put example,
   # is equal to:
    
   aquests.putjson (
-    "http://127.0.0.1:5000/", 
-    {'user': 'JamesMilton'}
+    "http://127.0.0.1:5000/users/jamesmilton",
+    {'fullnamer': 'James Milton'}
   )
   
 There're some shorter ways ratehr than specifing content type:
@@ -292,6 +325,12 @@ XML-RPC
   stub.prelease_urls('roundup', '1.4.10')
   aquests.fetchall ()
 
+Returns,
+
+.. code-block:: python
+
+  ['1.5.1']
+  <class 'xmlrpc.client.Fault'> <Fault 1:...>
 
 
 gRPC
@@ -307,9 +346,20 @@ gRPC
     stub.GetFeature (point)
   aquests.fetchall ()
 
-For more about gRPC and route_guide_pb2, go to here_.
 
-.. _here: http://www.grpc.io/docs/tutorials/basic/go.html
+Returns,
+
+.. code-block:: python
+
+  name: "Berkshire Valley Management Area Trail, Jefferson, NJ, USA"
+  location {
+    latitude: 409146138
+    longitude: -746188906
+  }
+
+For more about gRPC and route_guide_pb2, go to `gRPC Basics - Python`_.
+
+.. _`gRPC Basics - Python`: http://www.grpc.io/docs/tutorials/basic/python.html
 
 
 PostgreSQL
@@ -381,7 +431,7 @@ Returns,
 Note: User authorization is not supported yet.
 
 
-Resis
+Redis
 ---------
 
 .. code-block:: python
@@ -410,6 +460,9 @@ Note: User authorization is not supported yet.
 History
 =========
 
+- 0.3.8: fix dbo request shutdown behavior
+- 0.3.1: add HEAD, OPTIONS, TRACE
+- 0.3: fix installation error
 - 0.2.13: change default display callback
 - 0.2.10: fix xmlrpc
 
