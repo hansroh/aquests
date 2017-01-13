@@ -76,7 +76,7 @@ install_requires = [
 ]
 
 with open('aquests/__init__.py', 'r') as fd:
-	version = re.search(r'^VERSION\s*=\s*"(.*?)"',fd.read(), re.M).group(1)
+	version = re.search(r'^__version__\s*=\s*"(.*?)"',fd.read(), re.M).group(1)
 
 setup(
 	name='aquests',

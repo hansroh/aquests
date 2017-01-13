@@ -290,7 +290,7 @@ class AsynConnect (asynchat.async_chat):
 			self.zombie_timeout = self.network_delay_timeout * 2
 		else:	
 			self.zombie_timeout = self.network_delay_timeout
-	
+		
 	def set_timeout (self, a = 10, b = 10):
 		self.set_keep_alive_timeout (a)
 		self.set_network_delay_timeout (b)

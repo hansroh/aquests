@@ -60,7 +60,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 		self.asyncon.set_proto ("h2c")
 		self.request = handler.request
 		base_request_handler.RequestHandler.__init__ (self, handler.request.logger)
-		self.asyncon.set_timeout (60, 60)
+		#self.asyncon.set_timeout (60, 60)
 		self.lock = handler.asyncon.lock # pool lock
 		self._ssl = handler._ssl
 		self._clock = threading.RLock () # conn lock
@@ -74,12 +74,12 @@ class RequestHandler (base_request_handler.RequestHandler):
 		self.buf = b""
 		self.rfile = BytesIO ()
 		self.frame_buf = self.conn.incoming_buffer
+		#self.conn.update_settings({h2.settings.MAX_FRAME_SIZE: 10740180})
 		self.frame_buf.max_frame_size = self.conn.max_inbound_frame_size		
 		self.data_length = 0
 		self.current_frame = None
 		
 		is_upgrade = not (self._ssl or self.request.initial_http_version == "2.0")			
-		
 		if is_upgrade:
 			self.conn.initiate_upgrade_connection()
 			self.conn.update_settings({h2.settings.ENABLE_PUSH: 0})
@@ -190,8 +190,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 						
 		elif buf:
 			self.current_frame, self.data_length = self.frame_buf._parse_frame_header (buf)
-			self.frame_buf.max_frame_size = self.conn.max_inbound_frame_size
-			self.frame_buf._validate_frame_length (self.data_length)
+			self.frame_buf.max_frame_size = self.data_length
 			if self.data_length == 0:
 				events = self.set_frame_data (b'')
 			self.asyncon.set_terminator (self.data_length == 0 and 9 or self.data_length)	# next frame header

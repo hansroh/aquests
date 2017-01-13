@@ -43,6 +43,7 @@ class Response:
 		self.__headerdict = None
 		self.__encoding = None
 		self.__data_cache = None
+		self.save_cookies ()
 		
 	def set_max_age (self):
 		self.max_age = 0
@@ -88,7 +89,6 @@ class Response:
 	def done (self):
 		# it must be called finally
 		self.got_all_data = True
-		
 		if self.decompressor:
 			try:
 				data = self.decompressor.flush ()
@@ -136,13 +136,14 @@ class Response:
 			return default, d
 			
 		v2 = v.split (";")
-		if len (v2) == 1:
-			return v, d
-		for each in v2 [1:]:
+		for each in v2:
+			if not each: continue
+			each = each.strip ()
+			print (each)
 			try:
-				a, b = each.strip ().split ("=", 1)
+				a, b = each.split ("=", 1)
 			except ValueError:
-				a, b = each.strip (), None
+				a, b = each, None				
 			d [a.lower ()] = b
 		return v2 [0], d
 				
@@ -168,8 +169,14 @@ class Response:
 		if ls.g:
 			ls.g.set_cookie (self.url, key, val, domain, path)
 		else:
-			raise SystemError ("Local Storage Not Created")
+			raise SystemError ("Cookie Storage Not Initiated")
 	
+	def get_cookie (self, key):
+		if ls.g:
+			ls.g.get_cookie (self.url, key)
+		else:
+			raise SystemError ("Cookie Storage Not Initiated")
+		
 	def json (self):
 		return json.loads (self.raw.read ())
 	
@@ -177,19 +184,18 @@ class Response:
 		if self.status_code >= 400:
 			raise HTTPRepsonseError ("%d %s" % (self.status_code, self.reason))
 		
-	@property	
-	def new_cookies (self):
-		cookies = []
+	def save_cookies (self):
+		if not ls.g: 
+			return
 		for line in self.header:
 			if line [:12].lower() == 'set-cookie: ':
-				cookies.append (line [12:])
-		return cookies			
-	
+				ls.g.set_cookie_from_string (self.url, line [12:])
+		
 	@property
 	def cookies (self):
 		if ls.g:
 			return ls.g.get_cookie_as_dict (self.url)
-		raise SystemError ("Local Storage Not Created")
+		raise SystemError ("Cookie Storage Not Initiated")
 		
 	@property
 	def url (self):		
@@ -218,7 +224,12 @@ class Response:
 		headerdict = {}
 		for line in self.header:
 			k, v = line.split (": ", 1)
-			headerdict [k] = v
+			if k in headerdict:
+				try: headerdict [k].append (v)
+				except AttributeError:
+					headerdict [k] = [headerdict [k], v]
+			else:		
+				headerdict [k] = v
 		self.__headerdict = headerdict	
 		return headerdict		
 	

@@ -35,8 +35,8 @@ class Maintern:
 			if args: 
 				func (now, *args)
 			else:
-				func (now)	
-		
+				func (now)
+
 		for i in range (excutes):
 			exetime, interval, func, args = self.q.pop (0)
 			#bisect.insort (self.q, (now + interval, interval, func, args))
@@ -53,7 +53,7 @@ def maintern_zombie_channel (now):
 		if hasattr (channel, "handle_timeout"):
 			try:
 				# +3 is make gap between server & client
-				iszombie = (now - channel.event_time) > channel.zombie_timeout + 3
+				iszombie = (now - channel.event_time) > channel.zombie_timeout
 			except AttributeError:
 				continue
 			if iszombie:				
@@ -64,10 +64,10 @@ def maintern_zombie_channel (now):
 					channel.handle_error ()
 
 maintern = None
-def init ():
+def init (kill_zombie_interval = 10.0):
 	global maintern
 	maintern = Maintern ()
-	maintern.sched (10.0, maintern_zombie_channel)
+	maintern.sched (kill_zombie_interval, maintern_zombie_channel)
 	maintern.sched (300.0, maintern_gc)
 
 def shutdown (exit_code, shutdown_timeout = 30.0):

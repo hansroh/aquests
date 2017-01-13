@@ -78,14 +78,14 @@ Now result is,
 
 .. code-block:: bash
 
-  REQID 635. HTTP/2.0 200 OK 4210 bytes received
-  REQID 627. HTTP/2.0 200 OK 4210 bytes received
-  REQID 594. HTTP/2.0 200 OK 4210 bytes received
-  REQID 702. HTTP/2.0 200 OK 4210 bytes received
-  REQID 685. HTTP/2.0 200 OK 4210 bytes received
-  REQID 637. HTTP/2.0 200 OK 4210 bytes received
-  REQID 591. HTTP/2.0 200 OK 4210 bytes received
-  REQID 586. HTTP/2.0 200 OK 4210 bytes received
+  REQID 3635. HTTP/2.0 200 OK 4210 bytes received
+  REQID 3627. HTTP/2.0 200 OK 4210 bytes received
+  REQID 3594. HTTP/2.0 200 OK 4210 bytes received
+  REQID 3702. HTTP/2.0 200 OK 4210 bytes received
+  REQID 3685. HTTP/2.0 200 OK 4210 bytes received
+  REQID 3637. HTTP/2.0 200 OK 4210 bytes received
+  REQID 3591. HTTP/2.0 200 OK 4210 bytes received
+  REQID 3586. HTTP/2.0 200 OK 4210 bytes received
   (and scrolled fast...)
 
 Installation
@@ -127,26 +127,13 @@ Binding Callback
   aquests.fetchall ()
 
 
-Mixed Requests
-----------------
-
-.. code-block:: python
-
-  dbo = aquests.mongodb ("127.0.0.1:27017", "test_database")
-  aquests.configure (20)
-  for i in range (1000): 
-    aquests.get ("http://127.0.0.1:5000/")
-    dbo.findone ("posts", {"author": "James Milton"})
-  aquests.fetchall ()
-
-
-Making Traffic Load
----------------------
+Making Traffic Load With Generator Style
+------------------------------------------
 
 .. code-block:: python
   
   numreq = 0
-  limit = 100000
+  limit = 1000000
   workers = 100
   
   def finish_request (response):
@@ -162,8 +149,9 @@ Making Traffic Load
     numreq += 1
   aquests.fetchall ()  
 
-Set Meta Information
-----------------------
+
+Set/Get Request Meta Information
+------------------------------------
 
 .. code-block:: python
   
@@ -177,6 +165,54 @@ Set Meta Information
   aquests.get ("http://127.0.0.1:5000/", meta = {'job_name': 'test2'})
 
 Note: meta ['req_id'] and meta ['req_method'] are automatically added by aquests.
+
+
+Timeout Setting
+----------------
+
+.. code-block:: python
+  
+  aquests.configure (20, timeout = 10) # 10 seconds
+  aquests.get ("https://www.google.co.kr/?gfe_rd=cr&ei=3y14WPCTG4XR8gfSjoK4DQ")  
+  aquests.fetchall ()
+
+If timeout occured, response status_code will be 702. Also note above 700 codes mostly indicates network related error.
+
+
+**Caution**
+
+1. You can't specify timout for each task
+2. Cause of aquests' single thread coroutine feature, timeout will not work with exactly timeout seconds.
+
+
+Mixed Requests
+----------------
+
+.. code-block:: python
+
+  dbo = aquests.mongodb ("127.0.0.1:27017", "test_database")
+  aquests.configure (20)
+  for i in range (1000): 
+    aquests.get ("http://127.0.0.1:5000/")
+    dbo.findone ("posts", {"author": "James Milton"})
+  aquests.fetchall ()
+
+
+Enabling Cookie
+------------------
+
+.. code-block:: python
+  
+  def finish_request (response):
+    print (response.cookies)
+    
+  aquests.configure (20, callback = finish_request, cookie = True)
+  aquests.get ("https://www.google.co.kr/?gfe_rd=cr&ei=3y14WPCTG4XR8gfSjoK4DQ")  
+  aquests.fetchall ()
+
+**Caution**
+
+This cookie feature shouldn't handle as different sessions per worker. All workers (connections) of aquests share same cookie values per domain. Imagine lots of FireFox windows on a desktop computer. If you really need session control, use requests_.
 
 
 Change Logger
@@ -203,7 +239,7 @@ Response has these attributes and method:
 - status_code: HTTP status code or DBO query success (200) or failure (500) code
 - reason: status text like OK, Not Found...
 - content: bytes content or original db result
-- data: usally same as content but on RPC, DB query situation, it returns result object.
+- data: usally same as content but on RPC, DB query or json response situation, it returns result object.
 - logger: logger.log (msg, type ='info'), logger.trace ()
 - request.method: POST, GET, PUT etc for HTTP/RPC and execute, get, set or lrange etc for DBO
 - raise_for_status (): raise exception when HTTP status code >= 400 or DBO command excution failure
@@ -221,13 +257,33 @@ Below things aren't available on DBO responses.
 - headers: Response headers
 - text: charset encoded string (unicode)
 - raw: file like object for bytes stream has raw.read (), raw.readline (),... methods
+- cookies: if configure (cookie = True), returns dictionary
 - encoding: extracted from content-type header
 - request.headers
 - request.payload: request body bytes, not available at upload and grpc
-- json (): load JSON data
-
+- json (): load JSON data, but if response content-type is application/json, automatically loaded into response.data then you can just use it.
+- get_header (key, default = None): returns header value, if not exists return default
+- get_header_with_attr (key, default = None): returns header value and attr dict like 'text/html', {'charset': 'utf-8'}
+- set_cookie (key, val, domain = None, path = "/")
+- get_cookie (key)
 
 .. _requests: https://pypi.python.org/pypi/requests
+
+
+Configuration Parameters
+==========================
+
+.. code-block:: python
+
+  import aquests
+  
+  aquests.configure (workers = 1, logger = None, callback = None, timeout = 10, cookie = False)
+  
+- workers: number of fetching workers, it'not threads
+- logger: logger shoukd have 2 method - log (msg, type = 'info') and trace () for exception logging. if not provided, aquests uses aquests.ib.logger.screen_logger
+- callback: function has receiving response arg
+- timeout: request timeout seconds
+- cookie: enable/disable using cookie for request
 
 
 List of Methods
@@ -291,8 +347,8 @@ There're some shorter ways ratehr than specifing content type:
 And putform (), putjson ()... is also available.
 
   
-HTTP File Upload
-------------------
+File Upload
+------------
 
 .. code-block:: python
 
@@ -312,6 +368,8 @@ Websocket
 .. code-block:: python
 
   aquests.ws ("ws://127.0.0.1:5000/websocket/echo", "Hello World")
+  # secure websocket channel, use wss
+  aquests.wss ("wss://127.0.0.1:5000/websocket/echo", "Hello World")
   aquests.fetchall ()
 
 
@@ -327,7 +385,7 @@ XML-RPC
 
 Returns,
 
-.. code-block:: python
+.. code-block:: bash
 
   ['1.5.1']
   <class 'xmlrpc.client.Fault'> <Fault 1:...>
@@ -460,6 +518,8 @@ Note: User authorization is not supported yet.
 History
 =========
 
+- 0.4: add timeout feature
+- 0.3.10: fix http2 frame length validation, add cookie feature
 - 0.3.8: fix dbo request shutdown behavior
 - 0.3.1: add HEAD, OPTIONS, TRACE
 - 0.3: fix installation error

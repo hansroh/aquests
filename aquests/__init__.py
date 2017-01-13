@@ -1,7 +1,7 @@
 # 2016. 1. 10 by Hans Roh hansroh@gmail.com
 
-VERSION = "0.3.9"
-version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  VERSION.split (".")))
+__version__ = "0.4"
+version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 
 from . import lifetime, queue, request_builder, response_builder, stubproxy
 from .lib import logger as logger_f
@@ -11,6 +11,8 @@ from .client import adns
 from . import client, dbapi
 from .protocols.http import localstorage as ls
 from .dbapi import request as dbo_request
+import os
+import timeit
 
 try:
 	from urllib.parse import urlparse
@@ -43,8 +45,10 @@ def cb_gateway_demo (response):
 		status
 		)
 	)	
-	#print (response.data)
-
+	#print (response.headers)
+	#print (response.get_header ('set-cookie'))
+	#print (response.cookies)
+	
 _request_total = 0			
 _finished_total = 0		
 _initialized = False
@@ -54,9 +58,10 @@ _concurrent = 1
 _currents = 0
 _que = queue.Queue ()
 _dns_query_req = {}
+_timeout = 10
 
-def configure (workers = 1, logger = None, callback = None, timeout = 10, enable_cookie = False):
-	global _logger, _cb_gateway, _concurrent, _initialized
+def configure (workers = 1, logger = None, callback = None, timeout = 10, cookie = False):
+	global _logger, _cb_gateway, _concurrent, _initialized, _timeout
 	
 	_concurrent = workers
 	if logger is None:
@@ -65,15 +70,16 @@ def configure (workers = 1, logger = None, callback = None, timeout = 10, enable
 	if callback:
 		_cb_gateway = callback
 	
-	if enable_cookie:
+	if cookie:
 		ls.create (_logger)
+	_timeout = timeout	
 	client.set_timeout (timeout)
 	dbapi.set_timeout (timeout)
 	
 	socketpool.create (_logger)
 	dbpool.create (_logger)
 	adns.init (_logger)
-	lifetime.init ()
+	lifetime.init (_timeout / 2.) # maintern interval
 	_initialized = True
 	
 
@@ -96,9 +102,7 @@ def _request_finished (handler):
 		response.meta = response.meta
 	else:
 		response = response_builder.HTTPResponse (handler)
-		if ls.g:
-			for cs in reponse.new_cookies:
-				ls.g.set_cookie_from_string (response.url, cs)
+		
 	response.logger = _logger
 	_cb_gateway (response)
 	_next ()
@@ -176,19 +180,25 @@ def countcli ():
 	return _currents
 
 def fetchall ():
-	global _concurrent, _currents
+	global _concurrent, _currents, _logger, _que, _timeout
 	
 	if not _initialized:
 		configure ()
-			
+	
+	_fetch_started = timeit.default_timer ()		
 	for i in range (_concurrent):		
 		_req ()
 		_currents += 1
 		
-	lifetime.loop (1.0)
+	lifetime.loop (os.name == "nt" and 1.0 or _timeout / 2.0)
+	_duration = timeit.default_timer () - _fetch_started
+	
 	socketpool.cleanup ()
 	dbpool.cleanup ()
-
+	
+	_logger.log ("* %d tasks during %1.2f sec, %1.2f tasks/sec" % (_que.req_id, _duration, _que.req_id / _duration))
+	
+	
 #----------------------------------------------------
 # REST CALL
 #----------------------------------------------------	
