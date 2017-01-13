@@ -18,7 +18,7 @@ class XMLRPCRequest:
 	user_agent = "Mozilla/5.0 (compatible; Aquests/%s.%s)" % aquests.version_info [:2]
 	initial_http_version = "1.1"
 			
-	def __init__ (self, uri, method, params = (), headers = None, encoding = "utf8", auth = None, logger = None, meta = {}):
+	def __init__ (self, uri, method, params = (), headers = None, encoding = "utf8", auth = None, logger = None, meta = {}, http_version = None):
 		self.uri = uri
 		self.method = method
 		self.params = params		
@@ -26,6 +26,7 @@ class XMLRPCRequest:
 		self.auth = (auth and type (auth) is not tuple and tuple (auth.split (":", 1)) or auth)
 		self.logger = logger
 		self.meta = meta
+		self.http_version = http_version
 		self.content_length = 0
 		self.address, self.path = self.split (uri)
 		self.__xmlrpc_serialized = False

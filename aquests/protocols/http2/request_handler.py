@@ -1,6 +1,6 @@
 from aquests.protocols.http import base_request_handler
 from h2.connection import H2Connection, GoAwayFrame
-from h2.exceptions import ProtocolError, NoSuchStreamError
+from h2.exceptions import ProtocolError, NoSuchStreamError, StreamClosedError
 from h2.events import DataReceived, ResponseReceived, StreamEnded, ConnectionTerminated, StreamReset, WindowUpdated
 from h2.errors import PROTOCOL_ERROR, FLOW_CONTROL_ERROR, NO_ERROR
 import h2.settings
@@ -96,7 +96,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 			self.handle_request (handler)
 		else:
 			self.asyncon.set_active (False)
-	
+		
 	def working (self):
 		with self._llock:
 			return len (self.requests)	
@@ -153,15 +153,20 @@ class RequestHandler (base_request_handler.RequestHandler):
 			self.asyncon.push (payload)
 			rfcw = self.conn.remote_flow_control_window (stream_id)
 		
-		# IMP: 
+		# IMP:  why?
 		self.increment_flow_control_window (stream_id, 65535)
 		self.asyncon.set_active (False)
 	
 	def increment_flow_control_window (self, stream_id, cl):
-		self.conn.increment_flow_control_window (cl)
 		rfcw = self.conn.remote_flow_control_window (stream_id)
 		if cl > rfcw:
-			self.conn.increment_flow_control_window (cl - rfcw, stream_id)
+			try:
+				self.conn.increment_flow_control_window (cl - rfcw, stream_id)
+			except StreamClosedError:
+				pass
+			else:
+				self.conn.increment_flow_control_window (cl)
+							
 		self.send_data ()
 					
 	def collect_incoming_data (self, data):
@@ -255,6 +260,9 @@ class RequestHandler (base_request_handler.RequestHandler):
 				h = self.get_handler (event.stream_id)
 				if h:
 					h.collect_incoming_data (event.data)
+					rfcw = self.conn.remote_flow_control_window (event.stream_id)
+					if rfcw < 131070:
+						self.increment_flow_control_window (event.stream_id, 1048576)
 				
 			elif isinstance(event, StreamEnded):				
 				h = self.get_handler (event.stream_id)

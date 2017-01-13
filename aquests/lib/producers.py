@@ -148,7 +148,7 @@ class file_producer:
 		if self.done:
 			return b''
 		else:
-			data = self.file.read (self.buffer_size)
+			data = self.file.read (self.buffer_size)			
 			if not data:
 				self.file.close()
 				del self.file

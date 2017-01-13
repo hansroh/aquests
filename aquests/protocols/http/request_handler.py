@@ -363,8 +363,8 @@ class RequestHandler (base_request_handler.RequestHandler):
 		self.buffer, self.response = b"", None
 		self.asyncon.set_terminator (b"\r\n\r\n")		
 		if (self.asyncon.connected) or not (self._ssl or self.request.initial_http_version == "2.0"):
-			# IMP: if already connected, it means not http2
-			for data in self.get_request_buffer ("1.1", not self.asyncon.connected and True or False):
+			# IMP: if already connected, it means not http2			
+			for data in self.get_request_buffer ("1.1", not self.asyncon.connected and True or False):			
 				self.asyncon.push (data)		
 		self.asyncon.begin_tran (self)
 	

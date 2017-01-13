@@ -20,12 +20,12 @@ def fetch_all (r):
 	sem = asyncio.Semaphore (10)
 	tasks = []
 	for i in range (r):
-		task = asyncio.ensure_future (bound_fetch (sem, "http://127.0.0.1:5000/"))
+		task = asyncio.ensure_future (bound_fetch (sem, "http://127.0.0.1:5000/images/gif1.gif"))
 		tasks.append (task)	
 	started = timeit.default_timer ()	
 	yield from asyncio.gather (*tasks)
 
-future = asyncio.ensure_future (fetch_all (1000))	
+future = asyncio.ensure_future (fetch_all (200))	
 asyncio.get_event_loop ().run_until_complete (future)
 
 _duration = timeit.default_timer ()	- started

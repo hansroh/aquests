@@ -518,6 +518,8 @@ Note: User authorization is not supported yet.
 History
 =========
 
+- 0.4.2: fix http2 large content download
+- 0.4.1: add a few examples
 - 0.4: add timeout feature
 - 0.3.10: fix http2 frame length validation, add cookie feature
 - 0.3.8: fix dbo request shutdown behavior

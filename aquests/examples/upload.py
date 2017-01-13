@@ -2,7 +2,7 @@ import aquests
 
 formdata = {
 	'submit-name': 'Hans Roh', 
-	"file1": open (r"D:\download\Jack.Reacher.2012.1080p.BluRay.H264.AAC-RARBG.smi", "rb")
+	"file1": open (r"D:\IDCs\serversoftwares\Coldfusion5\ClusterCATS-5.1-w32.exe", "rb")
 }
 	
 aquests.configure (10)
