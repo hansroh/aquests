@@ -184,7 +184,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 			self.uri,
 			http_version,
 			"\r\n".join (self.header)
-		)).encode ("utf8")
+		)).encode ("utf8")		
 		return req
 		
 	def get_request_payload (self):
@@ -320,19 +320,24 @@ class RequestHandler (base_request_handler.RequestHandler):
 	def connection_closed (self, why, msg):
 		is_real_asyncon = hasattr (self.asyncon, "address")
 		
+		if not is_real_asyncon: # http2
+			self.response = http_response.FailedResponse (why, msg, self.request)
+			if self.callback:
+				self.callback (self)
+			return	
+			
 		if self.response and self.expect_disconnect:
 			self.close_case ()
 			return
-	
+		
 		# possibly disconnected cause of keep-alive timeout		
 		if why == 700 and self.response is None and self.retry_count == 0:
-			self.retry_count = 1			
-			if is_real_asyncon:
-				# if not exists, fake asyncon
-				self.handle_request ()
-				return
+			self.retry_count = 1					
+			# if not exists, fake asyncon
+			self.handle_request ()
+			return
 		
-		self.response = http_response.FailedResponse (why, msg, self.request)				
+		self.response = http_response.FailedResponse (why, msg, self.request)
 		if hasattr (self.asyncon, "begin_tran"):
 			self.close_case ()
 	

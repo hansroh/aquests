@@ -180,12 +180,11 @@ Content-Type: application/octet-stream
 class multipart_producer:
 	buffer_size = 4096
 	
-	def __init__ (self, data, boundary, encoding = None):
+	def __init__ (self, data, boundary):
 		# self.data = {"name": "Hans Roh", "file1": <open (path, "rb")>}
 		self.data = data
 		self.dlist = []
-		self.boundary = boundary
-		self.encoding = encoding
+		self.boundary = boundary		
 		self.current_file = None
 		self.content_length = self.calculate_size ()
 		#self.bytes_out = 0
@@ -207,9 +206,6 @@ class multipart_producer:
 				value.close ()
 			
 			else:
-				if self.encoding:
-					value = value.decode (self.encoding)
-					self.data [name] = value
 				size += len (value.encode ("utf8")) + 2 # value + \r\n
 				self.dlist.append ((0, name, value))
 

@@ -6,12 +6,7 @@ from .protocols.proxy import tunnel_handler
 from .protocols.http import localstorage as ls
 
 def make_ws (_method, url, params, auth, headers, meta, proxy, logger):
-	if type (params) is tuple:
-		op_code, msg = params
-	else:
-		op_code, msg = 1, params # OP_TEXT
-			
-	req = ws_request.Request (url, msg, headers, op_code, auth, logger, meta)
+	req = ws_request.Request (url, params, headers, auth, logger, meta)
 	if proxy:
 		if _method == 'wss':
 			handler_class = tunnel_handler.WSSSLProxyTunnelHandler
@@ -41,15 +36,15 @@ def make_http (_method, url, params, auth, headers, meta, proxy, logger):
 
 	if _method == "rpc":
 		rpcmethod, params = params
-		req = http_request.XMLRPCRequest (url, rpcmethod, params, headers, None, auth, logger, meta)
+		req = http_request.XMLRPCRequest (url, rpcmethod, params, headers, auth, logger, meta)
 		
 	elif _method == "grpc":
 		rpcmethod, params = params
-		req = grpc_request.GRPCRequest (url, rpcmethod, params, headers, None, auth, logger, meta)
+		req = grpc_request.GRPCRequest (url, rpcmethod, params, headers, auth, logger, meta)
 	
 	else:		
 		if _method in ("get", "delete"):						
-			req = http_request.HTTPRequest (url, _method.upper (), params, headers, None, auth, logger, meta)
+			req = http_request.HTTPRequest (url, _method.upper (), params, headers, auth, logger, meta)
 			
 		else:	
 			if _method in ("post", "put"):
@@ -70,12 +65,12 @@ def make_http (_method, url, params, auth, headers, meta, proxy, logger):
 				headers ['Content-Type'] = ct
 				
 			if _method == "upload":
-				req = http_request.HTTPMultipartRequest (url, "POST", params, headers, None, auth, logger, meta)
+				req = http_request.HTTPMultipartRequest (url, "POST", params, headers, auth, logger, meta)
 			else:
-				req = http_request.HTTPRequest (url, _method.upper (), params, headers, None, auth, logger, meta)	
+				req = http_request.HTTPRequest (url, _method.upper (), params, headers, auth, logger, meta)	
 			
 	return req, handler_class
 
-def make_dbo (_method, server, dbmethod, params, dbname, auth, meta, logger):
+def make_dbo (_method, server, dbmethod, params, dbname, meta, logger):
 	return dbo_request.Request (_method [1:], server, dbname, dbmethod, params, None, meta)
 	

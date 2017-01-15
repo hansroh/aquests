@@ -3,7 +3,7 @@
 # Hans Roh (hansroh@gmail.com)
 # 2015.6.9
 #-------------------------------------------------------
-
+		
 DEBUG = False
 
 try:
@@ -26,8 +26,7 @@ else:
 		def __init__ (self, address, params = None, lock = None, logger = None):
 			dbconnect.AsynDBConnect.__init__ (self, address, params, lock, logger)			
 			self.conn = None
-			self.cur = None
-			self.dbname, self.user, self.password = self.params
+			self.cur = None			
 			asyncore.dispatcher.__init__ (self)
 			
 		def check_state (self, state):

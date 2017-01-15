@@ -1,26 +1,27 @@
 from aquests.protocols.http import request
 from aquests.lib import strutil
+from . import OPCODE_TEXT
 import struct
 import os
 
 class Request (request.HTTPRequest):
-	def __init__ (self, uri, message, headers = None, encoding = None, auth = None, logger = None, meta = {}):
+	def __init__ (self, uri, message, headers = None, auth = None, logger = None, meta = {}):
 		if uri.startswith ("ws://"):
 			uri = "http://" + uri [5:]
 		elif uri.startswith ("wss://"):
 			uri = "https://" + uri [6:]
-		request.HTTPRequest.__init__ (self, uri, "get", {}, headers, None, auth, logger, meta)		
-		self.message = message		
+		request.HTTPRequest.__init__ (self, uri, "get", {}, headers, auth, logger, meta)		
+		
+		if type (message) is tuple:
+			self.opcode, self.message = message
+		else:
+			self.opcode, self.message = OPCODE_TEXT, message
+		
 		if not self.message:
 			self.message = b""			
 		elif strutil.is_encodable (self.message):
 			self.message = self.message.encode ("utf8")
-			
-		if self.encoding is None:
-			self.opcode = 1 # OP_TEXT
-		else:
-			self.opcode = self.encoding
-		
+				
 		self.payload_length = 0		
 		self.fin = 1
 		self.rsv1 = 0

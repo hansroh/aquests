@@ -36,9 +36,10 @@ class DBPool (socketpool.SocketPool):
 			con_class = asynpsycopg2.AsynConnect
 		return con_class ((host, port), params, self.lock, self.logger)
 		
-	def get (self, server, dbname, user, pwd, dbtype = DB_PGSQL):
-		serverkey = "%s/%s/%s/%s" % (server, dbname, user, dbtype)
-		return self._get (serverkey, server, (dbname, user, pwd), dbtype)
+	def get (self, server, dbname, auth, dbtype = DB_PGSQL):
+		serverkey = "%s/%s/%s" % (server, dbname, auth)
+		return self._get (serverkey, server, (dbname, auth), dbtype)
+
 
 pool = None
 
@@ -47,8 +48,8 @@ def create (logger):
 	if pool is None:
 		pool = DBPool (logger)
 
-def get (server, dbname, user, pwd, dbtype):	
-	return pool.get (server, dbname, user, pwd, dbtype)
+def get (server, dbname, auth, dbtype):	
+	return pool.get (server, dbname, auth, dbtype)
 		
 def cleanup ():	
 	pool.cleanup ()

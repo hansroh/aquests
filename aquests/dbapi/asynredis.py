@@ -16,7 +16,6 @@ class RedisError (Exception):
 class AsynConnect (dbconnect.AsynDBConnect, asynchat.async_chat):	
 	def __init__ (self, address, params = None, lock = None, logger = None):
 		dbconnect.AsynDBConnect.__init__ (self, address, params, lock, logger)
-		self.dbname, self.user, self.password = self.params
 		self.redis = redisconn.Connection ()
 		asynchat.async_chat.__init__ (self)
 	

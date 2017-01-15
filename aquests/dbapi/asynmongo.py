@@ -63,7 +63,6 @@ class MongoMessageHandler:
 class AsynConnect (asynredis.AsynConnect):	
 	def __init__ (self, address, params = None, lock = None, logger = None):
 		asynredis.AsynConnect.__init__ (self, address, params, lock, logger)
-		self.dbname, self.user, self.password = self.params	
 		self.mgh = MongoMessageHandler (self)
 		self.codec_option = CodecOptions (SON)
 		self._state = None

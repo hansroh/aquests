@@ -14,7 +14,10 @@ class SynConnect (asynpsycopg2.AsynConnect, dbconnect.DBConnect):
 		self.connected = False
 		self.conn = None
 		self.cur = None
-		
+	
+	def is_channel_in_map (self, map = None):
+		return False
+			
 	def close (self):	
 		if self.cur:
 			self.cur.close ()

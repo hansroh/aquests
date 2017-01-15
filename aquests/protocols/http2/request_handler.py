@@ -56,8 +56,6 @@ class FakeAsynConnect:
 class RequestHandler (base_request_handler.RequestHandler):
 	def __init__ (self, handler):
 		self.asyncon = handler.asyncon
-		self.asyncon.handler = self	
-		self.asyncon.set_proto ("h2c")
 		self.request = handler.request
 		base_request_handler.RequestHandler.__init__ (self, handler.request.logger)
 		#self.asyncon.set_timeout (60, 60)
@@ -65,20 +63,9 @@ class RequestHandler (base_request_handler.RequestHandler):
 		self._ssl = handler._ssl
 		self._clock = threading.RLock () # conn lock
 		self._llock = threading.RLock () # local lock
-		self.asyncon.use_sendlock ()
 		self.fakecon = FakeAsynConnect (self.logger)
-		self._send_stream_id = -1
-		self.requests = {}
 		
-		self.conn = H2Connection (client_side = True)
-		self.buf = b""
-		self.rfile = BytesIO ()
-		self.frame_buf = self.conn.incoming_buffer
-		#self.conn.update_settings({h2.settings.MAX_FRAME_SIZE: 10740180})
-		self.frame_buf.max_frame_size = self.conn.max_inbound_frame_size		
-		self.data_length = 0
-		self.current_frame = None
-		
+		self.initiate ()		
 		is_upgrade = not (self._ssl or self.request.initial_http_version == "2.0")			
 		if is_upgrade:
 			self.conn.initiate_upgrade_connection()
@@ -96,7 +83,20 @@ class RequestHandler (base_request_handler.RequestHandler):
 			self.handle_request (handler)
 		else:
 			self.asyncon.set_active (False)
-		
+	
+	def initiate (self):	
+		self.asyncon.handler = self
+		self.asyncon.use_sendlock ()
+		self._send_stream_id = -1
+		self.requests = {}
+		self.conn = H2Connection (client_side = True)
+		self.buf = b""
+		self.rfile = BytesIO ()
+		self.frame_buf = self.conn.incoming_buffer
+		self.frame_buf.max_frame_size = self.conn.max_inbound_frame_size		
+		self.data_length = 0
+		self.current_frame = None
+			
 	def working (self):
 		with self._llock:
 			return len (self.requests)	
@@ -129,10 +129,13 @@ class RequestHandler (base_request_handler.RequestHandler):
 			self.asyncon.push (data_to_send)
 							
 	def handle_request (self, handler):
-		self.request = handler.request					
+		if not self.asyncon.connected:
+			self.initiate ()
+			self.asyncon.connect ()
+			
+		self.request = handler.request
 		stream_id = self.get_new_stream_id ()
 		self.add_request (stream_id, handler)
-		
 		headers, content_encoded = handler.get_request_header ("2.0", False)
 		payload = handler.get_request_payload ()
 		producer = None
@@ -144,19 +147,21 @@ class RequestHandler (base_request_handler.RequestHandler):
 			else:
 				# multipart, grpc_producer 
 				producer = producers.globbing_producer (payload)				
-
-		header = h2header_producer (stream_id, headers, producer, self.conn, self._clock)
-		self.asyncon.push (header)
-					
+		
+		header = h2header_producer (stream_id, headers, producer, self.conn, self._clock)		
+		self.asyncon.push (header)				
 		if producer:
 			payload = h2data_producer (stream_id, 0, 1, producer, self.conn, self._clock)
 			self.asyncon.push (payload)
-			rfcw = self.conn.remote_flow_control_window (stream_id)
 		
-		# IMP:  why?
-		self.increment_flow_control_window (stream_id, 65535)
+		if self.asyncon.connected:		
+			# IMP:  why?
+			rfcw = self.conn.remote_flow_control_window (stream_id)
+			if rfcw < 16384:
+				self.increment_flow_control_window (stream_id, 65535)
+				
 		self.asyncon.set_active (False)
-	
+			
 	def increment_flow_control_window (self, stream_id, cl):
 		rfcw = self.conn.remote_flow_control_window (stream_id)
 		if cl > rfcw:
@@ -176,10 +181,12 @@ class RequestHandler (base_request_handler.RequestHandler):
 		else:
 			self.buf += data
 	
-	def connection_closed (self, why, msg):		
-		with self._llock:
-			for stream_id, request in self.requests.items ():
-				request.connection_closed (why, msg)
+	def connection_closed (self, why, msg):
+		with self._llock:			
+			requests = list (self.requests.items ())
+		for stream_id, request in requests:
+			request.connection_closed (why, msg)
+		with self._llock:	
 			self.requests = {}
 										
 	def found_terminator (self):
@@ -241,8 +248,12 @@ class RequestHandler (base_request_handler.RequestHandler):
 			h.collect_incoming_data ("\r\n".join (jheaders).encode ("utf8"))
 			h.found_terminator ()
 		
+		# finally, make inactive on post, put request 
+		self.asyncon.set_active (False)	
+		
 	def handle_events (self, events):
 		for event in events:
+			#print (event)
 			if isinstance(event, ResponseReceived):
 				self.handle_response (event.stream_id, event.headers)		
 					

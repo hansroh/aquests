@@ -18,11 +18,13 @@ class XMLRPCRequest:
 	user_agent = "Mozilla/5.0 (compatible; Aquests/%s.%s)" % aquests.version_info [:2]
 	initial_http_version = "1.1"
 			
-	def __init__ (self, uri, method, params = (), headers = None, encoding = "utf8", auth = None, logger = None, meta = {}, http_version = None):
-		self.uri = uri
+	def __init__ (self, uri, method, params = (), headers = None, auth = None, logger = None, meta = {}, http_version = None):
+		# mount point generalizing, otherwise some servers reponse 301
+		if uri [-1] !="/":
+			uri += "/"
+		self.uri = uri		
 		self.method = method
 		self.params = params		
-		self.encoding = encoding
 		self.auth = (auth and type (auth) is not tuple and tuple (auth.split (":", 1)) or auth)
 		self.logger = logger
 		self.meta = meta
@@ -104,7 +106,7 @@ class XMLRPCRequest:
 		
 	def serialize (self):
 		self.__xmlrpc_serialized = True
-		data = xmlrpclib.dumps (self.params, self.method, encoding=self.encoding, allow_none=1).encode ("utf8")
+		data = xmlrpclib.dumps (self.params, self.method, allow_none = 1).encode ("utf8")
 		self.headers ["Content-Type"] = "text/xml"
 		cl = len (data)
 		self.headers ["Content-Length"] = cl
@@ -150,9 +152,7 @@ class HTTPRequest (XMLRPCRequest):
 	def to_bytes (self, data, set_content_length = True):
 		if type (self.params) is not bytes:			
 			if strutil.is_encodable (self.params):
-				data = self.params.encoding ("utf8")		
-			elif self.encoding and strutil.is_decodable (self.params):
-				data = self.params.decode (self.encoding).encoding ("utf8") 		
+				data = self.params.encoding ("utf8")			
 			
 		if set_content_length:
 			# when only bytes type, in case proxy_request this value will be just bool type
@@ -168,10 +168,7 @@ class HTTPRequest (XMLRPCRequest):
 	
 	def urlencode (self, to_bytes = True):
 		fm = []
-		for k, v in list(self.params.items ()):
-			if self.encoding:
-				k = k.decode (self.encoding)
-				v = v.decode (self.encoding)
+		for k, v in list(self.params.items ()):			
 			fm.append ("%s=%s" % (quote (k), quote (v)))				
 		if to_bytes:	
 			return "&".join (fm).encode ("utf8")
@@ -180,9 +177,6 @@ class HTTPRequest (XMLRPCRequest):
 	def nvpencode (self):
 		fm = []
 		for k, v in list(self.params.items ()):
-			if self.encoding:
-				k = k.decode (self.encoding)
-				v = v.decode (self.encoding)
 			v = v.encode ("utf8")
 			fm.append (k.encode ("utf8") + b"[" + str (len (v)).encode ("utf8") + b"]=" + v)
 		return b"&".join (fm)
@@ -224,8 +218,8 @@ class HTTPRequest (XMLRPCRequest):
 class HTTPMultipartRequest (HTTPRequest):
 	boundary = "-------------------Skitai-%s.%s-a1a80da4-ca3d-11e6-b245-001b216d6e71" % aquests.version_info [:2]
 		
-	def __init__ (self, uri, method, params = {}, headers = None, encoding = None, auth = None, logger = None, meta = {}):
-		HTTPRequest.__init__ (self, uri, method, params, headers, encoding, auth, logger, meta)
+	def __init__ (self, uri, method, params = {}, headers = None, auth = None, logger = None, meta = {}):
+		HTTPRequest.__init__ (self, uri, method, params, headers, auth, logger, meta)
 		if type (self.params) is bytes:
 			self.find_boundary ()
 	
@@ -247,7 +241,7 @@ class HTTPMultipartRequest (HTTPRequest):
 	def serialize (self):
 		self.headers ["Content-Type"] = "multipart/form-data; boundary=" + self.boundary
 		if type (self.params) is dict:
-			p = producers.multipart_producer (self.params, self.boundary, self.encoding)
+			p = producers.multipart_producer (self.params, self.boundary)
 			cl = p.get_content_length ()
 			self.headers ["Content-Length"] = cl
 			self.set_content_length (cl)

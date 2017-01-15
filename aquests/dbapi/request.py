@@ -24,7 +24,13 @@ class Request:
 	def raise_for_status (self):
 		if self.expt_class:
 			raise self.expt_class (self.expt_str)
-			
+	reraise = raise_for_status
+	
+	def get_error_as_string (self):
+		if self.request.expt_class:
+			return "%s %s" % (self.expt_class, self.expt_str)		
+		return ""
+		
 	@property
 	def status_code (self):		
 		return self.code

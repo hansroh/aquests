@@ -48,9 +48,8 @@ class AsynConnect (asynchat.async_chat):
 		asynchat.async_chat.__init__ (self)
 	
 	def close (self):
-		if self._closed:
-			return
-		
+		#if self._closed:
+		#	return
 		if self.socket:
 			# self.socket is still None, when DNS not found
 			asynchat.async_chat.close (self)
@@ -66,7 +65,6 @@ class AsynConnect (asynchat.async_chat):
 		if not self.proxy_client:
 			self.logger ("[info] .....socket %s:%d has been closed" % self.address)
 
-		self.set_proto (None)
 		self.set_active (False)
 		self.handler = None
 		self._closed = True
@@ -191,7 +189,7 @@ class AsynConnect (asynchat.async_chat):
 	def get_request_count (self):	
 		return self.request_count
 	
-	def add_channel (self, map = None):		
+	def add_channel (self, map = None):
 		self.zombie_timeout =  self.network_delay_timeout
 		self._fileno = self.socket.fileno ()
 		return asynchat.async_chat.add_channel (self, map)		
@@ -395,7 +393,6 @@ class AsynConnect (asynchat.async_chat):
 	def begin_tran (self, handler):
 		if self.__no_more_request:
 			raise SystemError ("Entered Shutdown Process")
-		
 		self.errcode = 0
 		self.errmsg = ""
 		

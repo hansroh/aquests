@@ -1,6 +1,6 @@
 # 2016. 1. 10 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.4.2"
+__version__ = "0.4.13"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 
 from . import lifetime, queue, request_builder, response_builder, stubproxy
@@ -45,9 +45,8 @@ def cb_gateway_demo (response):
 		status
 		)
 	)	
-	#print (response.headers)
-	#print (response.get_header ('set-cookie'))
-	#print (response.cookies)
+	#print (response.headers)	
+	#print (response.data)
 	
 _request_total = 0			
 _finished_total = 0		
@@ -98,19 +97,13 @@ def _request_finished (handler):
 	global _cb_gateway, _currents, _concurrent, _finished_total, _logger
 	
 	if isinstance (handler, dbo_request.Request):
-		response = handler
-		response.meta = response.meta
+		response = handler		
 	else:
 		response = response_builder.HTTPResponse (handler)
 		
 	response.logger = _logger
 	_cb_gateway (response)
 	_next ()
-	
-def _query_finished (*args):
-	global _cb_gateway, _currents, _concurrent, _finished_total
-	_cb_gateway (response_builder.DBOResponse (*args))
-	_next ()	
 
 def _add (method, url, params = None, auth = None, headers = {}, meta = {}, proxy = None):
 	def dns_result (answer = None):
@@ -144,10 +137,8 @@ def _req ():
 	_method = args [0].lower ()
 	if _method in ("postgresql", "redis", "mongodb", "sqlite3"):
 		method, server, (dbmethod, params), dbname, auth, meta = args
-		if auth is None:
-			auth = ("", "")
-		asyncon = dbpool.get (server, dbname, auth [0], auth [1], "*" + _method)
-		req = request_builder.make_dbo (_method, server, dbmethod, params, dbname, auth, meta, _logger)
+		asyncon = dbpool.get (server, dbname, auth, "*" + _method)
+		req = request_builder.make_dbo (_method, server, dbmethod, params, dbname, meta, _logger)
 		req.set_callback (_request_finished)
 		asyncon.execute (req)
 		

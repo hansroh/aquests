@@ -56,8 +56,8 @@ packages = [
 	'aquests.protocols.grpc',
 	'aquests.protocols.proxy',
 	'aquests.lib',
-	'aquests.lib.nets',
-	'aquests.examples'
+	'aquests.lib.athreads',
+	'aquests.lib.nets'
 ]
 
 package_dir = {'aquests': 'aquests'}

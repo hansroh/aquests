@@ -14,8 +14,19 @@ class DBConnect:
 	
 	def __init__ (self, address, params = None, lock = None, logger = None):
 		self.address = address
-		self.params = params
-		self.lock = lock		
+		self.params = params		
+		self.dbname, self.user, self.password = "", "", ""
+		
+		if self.params:
+			self.dbname, auth = self.params
+			if auth:			
+				if type (auth) is not tuple:
+					self.user = auth
+				else:
+					try: self.user, self.password = auth
+					except ValueError: self.username = auth
+						
+		self.lock = lock
 		self.logger = logger
 		
 		self.request_count = 0

@@ -181,9 +181,15 @@ class Response:
 		return json.loads (self.raw.read ())
 	
 	def raise_for_status (self):
-		if self.status_code >= 400:
+		if self.status_code >= 300:
 			raise HTTPRepsonseError ("%d %s" % (self.status_code, self.reason))
-		
+	reraise = raise_for_status
+	
+	def get_error_as_string (self):
+		if self.status_code >= 300:
+			return "<HTTPRepsonseError> %d %s" % (self.status_code, self.reason)		
+		return ""	
+			
 	def save_cookies (self):
 		if not ls.g: 
 			return
@@ -200,7 +206,11 @@ class Response:
 	@property
 	def url (self):		
 		return self.request.uri
-		
+	
+	@property
+	def method (self):
+		return self.request.method
+			
 	@property
 	def status_code (self):		
 		return self.code

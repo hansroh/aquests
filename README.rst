@@ -20,7 +20,7 @@ Supported requests are:
 .. contents:: Table of Contents
 
 
-Quick Start
+Quickstart
 =============
 
 For fetching single web page:
@@ -91,22 +91,9 @@ Now result is,
 Installation
 ===============
 
-**Requirements**
-
-- `hyper-h2`_: HTTP/2 State-Machine based protocol implementation
-- pymongo_: Python driver for MongoDB
-- redis_: Python client for Redis key-value store
-
-But these will be automatically installed, when aquests installed.
-
 .. code-block:: bash
 
   pip install aquests
-
-
-.. _`hyper-h2`: https://pypi.python.org/pypi/h2
-.. _pymongo: https://pypi.python.org/pypi/pymongo
-.. _redis: https://pypi.python.org/pypi/redis/2.10.5
 
 
 Usage
@@ -137,8 +124,7 @@ Making Traffic Load With Generator Style
   workers = 100
   
   def finish_request (response):
-    global numreq, limit   
-     
+    global numreq, limit     
     if numreq < limit:
       aquests.get ("http://127.0.0.1:5000/")
       numreq += 1
@@ -198,6 +184,19 @@ Mixed Requests
   aquests.fetchall ()
 
 
+Authorization
+-----------------
+
+For requesting with basic/digest authorization:
+
+.. code:: python
+
+  s = was.rpc (url, auth = (username, password))
+  rs = s.get_prime_number_gt (10000)
+  result = rs.getwait (2)
+
+If you provide both (username, password), aquests try basic/digest authorization. But if just (username,) aquests handle username as bearer token like API Key.
+
 Enabling Cookie
 ------------------
 
@@ -212,7 +211,7 @@ Enabling Cookie
 
 **Caution**
 
-This cookie feature shouldn't handle as different sessions per worker. All workers (connections) of aquests share same cookie values per domain. Imagine lots of FireFox windows on a desktop computer. If you really need session control, use requests_.
+This cookie feature shouldn't handle as different sessions per worker. All workers (connections) of aquests share same cookie values per domain. It means a worker sign in a website, so are the others. Imagine lots of FireFox windows on a desktop computer. If you really need session control, use requests_.
 
 
 Change Logger
@@ -241,14 +240,15 @@ Response has these attributes and method:
 - content: bytes content or original db result
 - data: usally same as content but on RPC, DB query or json response situation, it returns result object.
 - logger: logger.log (msg, type ='info'), logger.trace ()
-- request.method: POST, GET, PUT etc for HTTP/RPC and execute, get, set or lrange etc for DBO
+- method: POST, GET, PUT etc for HTTP/RPC and execute, get, set or lrange etc for DBO
 - raise_for_status (): raise exception when HTTP status code >= 400 or DBO command excution failure
+- reraise (): shortcut for raise_for_status ()
 
 Below things are available only on DBO responses.
 
-- request.server: database server address
-- request.dbname: database object name
-- request.params: database command parameters
+- server: database server address
+- dbname: database object name
+- params: database command parameters
 
 Below things aren't available on DBO responses.
 
@@ -277,7 +277,13 @@ Configuration Parameters
 
   import aquests
   
-  aquests.configure (workers = 1, logger = None, callback = None, timeout = 10, cookie = False)
+  aquests.configure (
+    workers = 1, 
+    logger = None, 
+    callback = None, 
+    timeout = 10, 
+    cookie = False
+  )
   
 - workers: number of fetching workers, it'not threads
 - logger: logger shoukd have 2 method - log (msg, type = 'info') and trace () for exception logging. if not provided, aquests uses aquests.ib.logger.screen_logger
@@ -300,7 +306,7 @@ GET, DELETE and etc.
 
 Also aquests.head (), options () and trace () are available.
 
-  
+
 POST, PUT
 ---------------
 
@@ -372,6 +378,15 @@ Websocket
   aquests.wss ("wss://127.0.0.1:5000/websocket/echo", "Hello World")
   aquests.fetchall ()
 
+If you want to specify message type.
+
+.. code-block:: python
+  
+  from aquests.protocols.ws import OPCODE_TEXT, OPCODE_BINARY
+    
+  aquests.ws ("ws://127.0.0.1:5000/websocket/echo", (OPCODE_BINARY, b"Hello World"))
+  aquests.fetchall ()
+  
 
 XML-RPC
 ----------
@@ -426,7 +441,7 @@ PostgreSQL
 .. code-block:: python
   
   def finish_request (response):
-  	print (response.data)  	
+    print (response.data)  	
   
   aquests.configure (3, callback = finish_request)	
   dbo = aquests.postgresql ("127.0.0.1:5432", "mydb", ("test", "1111"))
@@ -515,9 +530,73 @@ Possibly you can use all `Redis commands`_.
 Note: User authorization is not supported yet.
 
 
+SQLite3 For Fast App Prototyping
+---------------------------------
+
+Usage is almost same with PostgreSQL. This service IS NOT asynchronous BUT just emulating.
+
+.. code:: python
+  
+  dbo = aquests.sqlite3 ("sqlite3.db")
+  dbo.execute ("""
+    drop table if exists people;
+    create table people (name_last, age);
+    insert into people values ('Cho', 42);
+  """)
+  aquests.fetchall ()
+  
+  
+Requests Parameters
+========================
+
+For get, post*, put*, upload, delete, options, trace parameters are the same.
+
+.. code-block:: python
+
+  aquests.get (url, params = None, headers = None, auth = None, meta = {})
+  
+- url: request url string
+- params: None or dictionary, if it provide with get method, it will be attached on tail of url with '?'
+- headers: None or dictionary
+- auth: None or tuple (username, password)
+- meta: dictionary
+
+For rpc, grpc stub creation:
+
+.. code-block:: python
+
+  stub = aquests.rpc (url, headers = None, auth = None, meta = {})
+  stub = aquests.grpc (url, headers = None, auth = None, meta = {})
+  
+- url: request url string
+- headers: None or dictionary
+- auth: None or tuple (username, password)
+- meta: dictionary
+
+Note: stub's methods and parameters are defined by RPC service providers
+
+For postgresql, mongodb, redis dbo creation:
+
+.. code-block:: python
+
+  dbo = aquests.postgresql (server, dbname = None, auth = None, meta = {})
+  dbo = aquests.mongodb (server, dbname = None, auth = None, meta = {})  
+  dbo = aquests.redis (server, dbname = None, auth = None, meta = {})
+  
+- server: address:port formated string
+- dbname: None or string
+- auth: None or tuple (username, password)
+- meta: dictionary
+
+Note: stub's methods and parameters are defined by database engines. Please read above related chapters But SQL based postgresql has only 1 method and parameters - execute(sql) or do(sql) just for your convinience.
+
+
 History
 =========
 
+- 0.4.10: fix xmlrpc stub url / trailing
+- 0.4.9: changed response properties - request.method -> method, request.server -> server, request.dbname -> dbname and request.params -> params
+- 0.4.4: add lib.athreads
 - 0.4.2: fix http2 large content download
 - 0.4.1: add a few examples
 - 0.4: add timeout feature
