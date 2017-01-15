@@ -34,7 +34,7 @@ class DNSCache:
 			now = time.time ()
 			if check_ttl and answer ["valid"] < now:				
 				# use max 5 minutes seconds for other querees
-				answer ['valid'] = mow + 300 
+				answer ['valid'] = now + 300 
 				# nut new query will be started
 				return []
 			else:

@@ -6,6 +6,8 @@ import time
 import zlib
 from warnings import warn
 from errno import ECONNRESET, ENOTCONN, ESHUTDOWN, ECONNABORTED, EWOULDBLOCK
+if os.name == "nt":
+	from errno import WSAENOTCONN
 import select
 import threading
 from . import adns
@@ -138,6 +140,7 @@ class AsynConnect (asynchat.async_chat):
 			return 1
 		else:				
 			self.handle_close ()
+			self.__no_more_request = False
 			return 0
 		
 	def readable (self):
@@ -428,7 +431,7 @@ class AsynSSLConnect (AsynConnect):
 			
 			try: ssl_context.set_alpn_protocols (H2_PROTOCOLS)
 			except AttributeError: ssl_context.set_npn_protocols (H2_PROTOCOLS)								
-			self.socket = ssl_context.wrap_socket (self.socket, do_handshake_on_connect = False, server_hostname = self.address [0])
+			self.socket = ssl_context.wrap_socket (self.socket, do_handshake_on_connect = False, server_hostname = self.address [0])			
 			self._handshaking = True
 			
 		try:
@@ -443,7 +446,7 @@ class AsynSSLConnect (AsynConnect):
 			try: self._proto = self.socket.selected_npn_protocol()
 			except (AttributeError, NotImplementedError): pass
 
-		self._handshaked = True		
+		self._handshaked = True
 		return True
 							
 	def handle_connect_event (self):	
@@ -462,7 +465,7 @@ class AsynSSLConnect (AsynConnect):
 				return b''
 			else:				
 				return data
-
+			
 		except ssl.SSLError as why:
 			if why.errno == ssl.SSL_ERROR_WANT_READ:
 				try: 

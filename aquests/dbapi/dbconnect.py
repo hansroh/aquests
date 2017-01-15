@@ -69,6 +69,7 @@ class DBConnect:
 			return 1
 		else:
 			self.handle_close ()
+			self.__no_more_request = False
 			return 0
 	
 	def empty_cursor (self):
