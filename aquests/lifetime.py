@@ -195,7 +195,7 @@ def graceful_shutdown_loop ():
 				poll_fun(timeout, map)
 			except select.error as why:
 				if os.name == "nt":
-					if whay.args [0] == WSAENOTSOCK: # sometimes postgresql connection forcely closed
+					if why.args [0] == WSAENOTSOCK: # sometimes postgresql connection forcely closed
 						remove_notsocks (map)
 					
 		else:

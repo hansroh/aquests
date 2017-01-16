@@ -14,6 +14,9 @@ responses = {
 		303: "See Other",
 		304: "Not Modified",
 		305: "Use Proxy",
+		306: "Switch Proxy",
+		307: "Temporary Redirect",
+		308: "Permanent Redirect",
 		400: "Bad Request",
 		401: "Unauthorized",
 		402: "Payment Required",
@@ -50,9 +53,11 @@ responses = {
 		708: "No Data Recieved",
 		709: "Invalid Content",
 		710: "Channel Closed",	
+		720: "HTTP2 Connection Closed",
+		721: "HTTP2 Stream Reset"
 }
 
-def get (code, default):
+def get (code, default = "Undefined Error"):
 	return responses.get (code, default)
 	
 	

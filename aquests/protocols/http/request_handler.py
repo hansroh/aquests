@@ -318,23 +318,14 @@ class RequestHandler (base_request_handler.RequestHandler):
 		return 0 #pass
 			
 	def connection_closed (self, why, msg):
-		is_real_asyncon = hasattr (self.asyncon, "address")
-		
-		if not is_real_asyncon: # http2
-			self.response = http_response.FailedResponse (why, msg, self.request)
-			if self.callback:
-				self.callback (self)
-			return	
-			
 		if self.response and self.expect_disconnect:
 			self.close_case ()
 			return
 		
 		# possibly disconnected cause of keep-alive timeout		
 		if why == 700 and self.response is None and self.retry_count == 0:
-			self.retry_count = 1					
-			# if not exists, fake asyncon
-			self.handle_request ()
+			self.retry_count = 1				
+			self.handle_request ()			
 			return
 		
 		self.response = http_response.FailedResponse (why, msg, self.request)
@@ -369,7 +360,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 		self.asyncon.set_terminator (b"\r\n\r\n")		
 		if (self.asyncon.connected) or not (self._ssl or self.request.initial_http_version == "2.0"):
 			# IMP: if already connected, it means not http2			
-			for data in self.get_request_buffer ("1.1", not self.asyncon.connected and True or False):			
+			for data in self.get_request_buffer ("1.1", not self.asyncon.connected and True or False):				
 				self.asyncon.push (data)		
 		self.asyncon.begin_tran (self)
 	

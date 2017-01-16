@@ -7,6 +7,7 @@ import h2.settings
 from aquests.lib import producers
 from .producers import h2data_producer, h2header_producer
 from aquests.protocols.http import respcodes
+from aquests.protocols.http import response as http_response
 
 from aquests.client import asynconnect
 import threading
@@ -72,7 +73,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 			self.conn.update_settings({h2.settings.ENABLE_PUSH: 0})
 			# assume 1st request's stream_id = 1
 			self.add_request (1, handler)
-			self._send_stream_id = 1
+			self._send_stream_id = 1 # nexet request stream_id will be 3
 		else:		    
 			self.conn.initiate_connection()
 			
@@ -128,14 +129,11 @@ class RequestHandler (base_request_handler.RequestHandler):
 		if data_to_send:
 			self.asyncon.push (data_to_send)
 							
-	def handle_request (self, handler):
-		if not self.asyncon.connected:
-			self.initiate ()
-			self.asyncon.connect ()
-			
+	def handle_request (self, handler):				
 		self.request = handler.request
 		stream_id = self.get_new_stream_id ()
 		self.add_request (stream_id, handler)
+		
 		headers, content_encoded = handler.get_request_header ("2.0", False)
 		payload = handler.get_request_payload ()
 		producer = None
@@ -146,7 +144,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 				)
 			else:
 				# multipart, grpc_producer 
-				producer = producers.globbing_producer (payload)				
+				producer = producers.globbing_producer (payload)
 		
 		header = h2header_producer (stream_id, headers, producer, self.conn, self._clock)		
 		self.asyncon.push (header)				
@@ -155,12 +153,12 @@ class RequestHandler (base_request_handler.RequestHandler):
 			self.asyncon.push (payload)
 		
 		if self.asyncon.connected:		
-			# IMP:  why?
+			# IMP:  why?			
 			rfcw = self.conn.remote_flow_control_window (stream_id)
 			if rfcw < 16384:
 				self.increment_flow_control_window (stream_id, 65535)
 				
-		self.asyncon.set_active (False)
+		self.asyncon.set_active (False)		
 			
 	def increment_flow_control_window (self, stream_id, cl):
 		rfcw = self.conn.remote_flow_control_window (stream_id)
@@ -182,13 +180,15 @@ class RequestHandler (base_request_handler.RequestHandler):
 			self.buf += data
 	
 	def connection_closed (self, why, msg):
-		with self._llock:			
+		with self._llock:
 			requests = list (self.requests.items ())
-		for stream_id, request in requests:
-			request.connection_closed (why, msg)
-		with self._llock:	
+		for stream_id, h in requests:
+			h.response = http_response.FailedResponse (720, respcodes.get (720), h.request)
+			if h.callback:
+				h.callback (h)
+		with self._llock:
 			self.requests = {}
-										
+
 	def found_terminator (self):
 		buf, self.buf = self.buf, b""		
 		events = None
@@ -255,13 +255,15 @@ class RequestHandler (base_request_handler.RequestHandler):
 		for event in events:
 			#print (event)
 			if isinstance(event, ResponseReceived):
-				self.handle_response (event.stream_id, event.headers)		
+				self.handle_response (event.stream_id, event.headers)
 					
 			elif isinstance(event, StreamReset):
 				if event.remote_reset:				
 					h = self.get_handler (event.stream_id)
 					if h:
-						h.connection_closed (720, "HTTP2 Stream Rest")
+						h.response = http_response.FailedResponse (721, respcodes.get (721), h.request)
+						if h.callback:
+							h.callback (h)						
 						self.remove_handler (event.stream_id)
 					
 			elif isinstance(event, ConnectionTerminated):

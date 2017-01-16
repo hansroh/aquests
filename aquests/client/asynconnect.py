@@ -50,8 +50,9 @@ class AsynConnect (asynchat.async_chat):
 		asynchat.async_chat.__init__ (self)
 	
 	def close (self):
-		#if self._closed:
-		#	return
+		if self._closed:
+			return
+			
 		if self.socket:
 			# self.socket is still None, when DNS not found
 			asynchat.async_chat.close (self)
@@ -59,18 +60,19 @@ class AsynConnect (asynchat.async_chat):
 		# re-init asychat
 		self.ac_in_buffer = b''
 		self.incoming = []
-		self.producer_fifo.clear()
+		self.producer_fifo.clear()		
+		self._proto = None
 		
 		if self.handler and self.errcode:		
 			self.handler.connection_closed (self.errcode, self.errmsg)
 		
-		if not self.proxy_client:
-			self.logger ("[info] .....socket %s:%d has been closed" % self.address)
-
 		self.set_active (False)
 		self.handler = None
 		self._closed = True
-			
+		
+		if not self.proxy_client:
+			self.logger ("[info] .....socket %s:%d has been closed" % self.address)
+		
 	def end_tran (self):
 		self.del_channel ()
 		self.handler = None
@@ -243,7 +245,7 @@ class AsynConnect (asynchat.async_chat):
 		self.set_event_time ()
 		try:
 			data = self.socket.recv(buffer_size)	
-			#print ("+++++DATA", len (data), repr (data [:40]))
+			#print ("+++++RECV", len (data), repr (data [:40]))
 			if not data:
 				self.handle_close (700, "Connection closed unexpectedly in recv")
 				return b''
@@ -395,7 +397,7 @@ class AsynConnect (asynchat.async_chat):
 						
 	def begin_tran (self, handler):
 		if self.__no_more_request:
-			raise SystemError ("Entered Shutdown Process")
+			return self.handle_close (705, "Entered Shutdown Process")
 		self.errcode = 0
 		self.errmsg = ""
 		

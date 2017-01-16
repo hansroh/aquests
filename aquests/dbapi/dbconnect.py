@@ -171,8 +171,12 @@ class DBConnect:
 		raise NotImplementedError
 						
 	def begin_tran (self, request):
-		if self.__no_more_request:
-			raise SystemError ("Entered Shutdown Process")
+		if self.__no_more_request:			
+			try: 
+				raise OperationalError ("Entered Shutdown Process")
+			except: 
+				self.handle_error ()
+				return
 		
 		self.request = request	
 		self.__history = []

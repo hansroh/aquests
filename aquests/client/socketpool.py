@@ -202,7 +202,7 @@ def create (logger):
 	if pool is None:
 		pool = SocketPool (logger)
 
-def get (uri):	
+def get (uri):
 	return pool.get (uri)
 		
 def cleanup ():	

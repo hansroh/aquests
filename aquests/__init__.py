@@ -1,6 +1,6 @@
 # 2016. 1. 10 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.4.13"
+__version__ = "0.4.16"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 
 from . import lifetime, queue, request_builder, response_builder, stubproxy
@@ -152,8 +152,7 @@ def _req ():
 		else:
 			req, handler_class = request_builder.make_http (_method, url, params, auth, headers, meta, proxy, _logger)
 			handler = handler_class (asyncon, req, _request_finished)
-		
-		if asyncon.get_proto () and asyncon.isconnected ():
+		if asyncon.get_proto () and asyncon.isconnected ():			
 			asyncon.handler.handle_request (handler)
 		else:
 			handler.handle_request ()

@@ -594,6 +594,7 @@ Note: stub's methods and parameters are defined by database engines. Please read
 History
 =========
 
+- 0.4.16: fix http2 disconnecting behavior
 - 0.4.10: fix xmlrpc stub url / trailing
 - 0.4.9: changed response properties - request.method -> method, request.server -> server, request.dbname -> dbname and request.params -> params
 - 0.4.4: add lib.athreads
