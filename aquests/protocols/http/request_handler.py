@@ -81,6 +81,8 @@ class Authorizer:
 authorizer = Authorizer ()
 
 class RequestHandler (base_request_handler.RequestHandler):
+	FORCE_HTTP_11 = False
+	
 	def __init__ (self, asyncon, request, callback, connection = "keep-alive"):
 		self.asyncon = asyncon
 		self.wrap_in_chunk = False
@@ -197,6 +199,9 @@ class RequestHandler (base_request_handler.RequestHandler):
 		return [self.get_request_header (http_version, upgrade), payload]	
 		
 	def collect_incoming_data (self, data):
+		if not data:
+			self.end_of_data = True
+			return
 		if not self.response or self.asyncon.get_terminator () == b"\r\n":
 			self.buffer += data
 		else:			
@@ -360,7 +365,12 @@ class RequestHandler (base_request_handler.RequestHandler):
 		self.asyncon.set_terminator (b"\r\n\r\n")		
 		if (self.asyncon.connected) or not (self._ssl or self.request.initial_http_version == "2.0"):
 			# IMP: if already connected, it means not http2			
-			for data in self.get_request_buffer ("1.1", not self.asyncon.connected and True or False):				
+			upgrade = True
+			if self.FORCE_HTTP_11:
+				upgrade = False
+			elif self.asyncon.isconnected ():
+				upgrade = False
+			for data in self.get_request_buffer ("1.1", upgrade):
 				self.asyncon.push (data)		
 		self.asyncon.begin_tran (self)
 	

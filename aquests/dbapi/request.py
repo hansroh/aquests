@@ -30,7 +30,10 @@ class Request:
 		if self.request.expt_class:
 			return "%s %s" % (self.expt_class, self.expt_str)		
 		return ""
-		
+	
+	def __nonzero__ (self):
+		return self.data and True or False
+			
 	@property
 	def status_code (self):		
 		return self.code

@@ -282,7 +282,9 @@ Configuration Parameters
     logger = None, 
     callback = None, 
     timeout = 10, 
-    cookie = False
+    cookie = False,
+    force_http1 = False, 
+    http2_constreams = 3
   )
   
 - workers: number of fetching workers, it'not threads
@@ -290,6 +292,8 @@ Configuration Parameters
 - callback: function has receiving response arg
 - timeout: request timeout seconds
 - cookie: enable/disable using cookie for request
+- force_http1: enforce http 1.1 not 2.0
+- http2_constreams: if you making requests to single http2 server, how many concurrent streams per channel. BE CAREFUL, it might be useful for generating traffic load for testing your http2 web servers. and if your server doesn't provide http2, your workers will be increased to number of http2_constreams times than you really want.
 
 
 List of Methods
@@ -594,6 +598,11 @@ Note: stub's methods and parameters are defined by database engines. Please read
 History
 =========
 
+- 0.4.22: fix http2_constreams
+- 0.4.21: fix http2 flow control window
+- 0.4.20: add configure options: force_http1, http2_constreams
+- 0.4.18: url / trailing
+- 0.4.17: fix finding end of data on http2
 - 0.4.16: fix http2 disconnecting behavior
 - 0.4.10: fix xmlrpc stub url / trailing
 - 0.4.9: changed response properties - request.method -> method, request.server -> server, request.dbname -> dbname and request.params -> params

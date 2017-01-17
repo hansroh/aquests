@@ -27,7 +27,7 @@ class AsynConnect (asynchat.async_chat):
 	ac_out_buffer_size = 65535
 	zombie_timeout = 10
 	keep_alive_timeout = 10
-	network_delay_timeout = 10	
+	network_delay_timeout = 10
 	ready = None
 	affluent = None	
 	
@@ -244,8 +244,9 @@ class AsynConnect (asynchat.async_chat):
 	def recv (self, buffer_size):		
 		self.set_event_time ()
 		try:
-			data = self.socket.recv(buffer_size)	
+			data = self.socket.recv (buffer_size)
 			#print ("+++++RECV", len (data), repr (data [:40]))
+			#print ("+", len (data), end = ' ')
 			if not data:
 				self.handle_close (700, "Connection closed unexpectedly in recv")
 				return b''

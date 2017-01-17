@@ -162,7 +162,7 @@ def poll_fun_wrap (timeout, map):
 def lifetime_loop (timeout = 30.0):
 	global _last_maintern
 	global _maintern_interval
-				
+
 	map = asyncore.socket_map
 	while map and _shutdown_phase == 0:
 		poll_fun_wrap (timeout, map)

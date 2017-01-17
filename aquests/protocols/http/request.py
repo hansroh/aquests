@@ -20,9 +20,7 @@ class XMLRPCRequest:
 			
 	def __init__ (self, uri, method, params = (), headers = None, auth = None, logger = None, meta = {}, http_version = None):
 		# mount point generalizing, otherwise some servers reponse 301
-		if uri [-1] !="/":
-			uri += "/"
-		self.uri = uri		
+		self.uri = uri
 		self.method = method
 		self.params = params		
 		self.auth = (auth and type (auth) is not tuple and tuple (auth.split (":", 1)) or auth)
@@ -44,7 +42,7 @@ class XMLRPCRequest:
 					continue					
 				self.headers [k] = v			
 		self.payload = self.serialize ()
-	
+		
 	def set_content_length (self, length):
 		self.content_length = length
 	
@@ -105,7 +103,10 @@ class XMLRPCRequest:
 		return (host, port)	, path
 		
 	def serialize (self):
-		self.__xmlrpc_serialized = True
+		self.__xmlrpc_serialized = True		
+		if self.uri [-1] != "/":
+			self.uri += "/"
+			self.path += "/"
 		data = xmlrpclib.dumps (self.params, self.method, allow_none = 1).encode ("utf8")
 		self.headers ["Content-Type"] = "text/xml"
 		cl = len (data)
@@ -138,7 +139,7 @@ class XMLRPCRequest:
 
 
 	
-class HTTPRequest (XMLRPCRequest):
+class HTTPRequest (XMLRPCRequest):		
 	def get_method (self):
 		return self.method.upper ()
 	

@@ -17,10 +17,11 @@ def bound_fetch (sem, url):
 @asyncio.coroutine
 def fetch_all (r):
 	global started	
-	sem = asyncio.Semaphore (10)
+	sem = asyncio.Semaphore (20)
 	tasks = []
 	for i in range (r):
 		task = asyncio.ensure_future (bound_fetch (sem, "http://127.0.0.1:5000/images/gif1.gif"))
+		#task = asyncio.ensure_future (bound_fetch (sem, "http://127.0.0.1:5000/images/concept.png"))		
 		tasks.append (task)	
 	started = timeit.default_timer ()	
 	yield from asyncio.gather (*tasks)

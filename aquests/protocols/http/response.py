@@ -196,6 +196,9 @@ class Response:
 		for line in self.header:
 			if line [:12].lower() == 'set-cookie: ':
 				ls.g.set_cookie_from_string (self.url, line [12:])
+	
+	def __nonzero__ (self):
+		return self.status_code < 300 and self.data and True or False
 		
 	@property
 	def cookies (self):
@@ -314,7 +317,15 @@ class FailedResponse (Response):
 		self.buffer = None
 		self.got_all_data = True
 		self.max_age = 0
-				
+	
+	@property
+	def data (self):
+		return None
+	
+	@property
+	def content (self):
+		return None
+			
 	def collect_incoming_data (self, data):
 		raise IOError("This Is Failed Response")
 	
@@ -323,11 +334,4 @@ class FailedResponse (Response):
 	
 	def done (self):
 		pass
-	
-	@property	
-	def content (self):
-		return b""
-	
-	@property	
-	def raw (self):
-		return b""	
+

@@ -7,9 +7,29 @@ except ImportError:
 	from urlparse import urlparse	
 import copy
 from aquests.protocols.http2 import H2_PROTOCOLS
+from aquests.protocols import http2
 
-PROTO_LOADBALANCE = H2_PROTOCOLS
+PROTO_CONCURRENT_STREAMS = H2_PROTOCOLS
 
+def select_channel (asyncons):
+	asyncon = None
+	_asyncons = []
+	for each in asyncons:
+		if each.isactive ():
+			continue
+		if not each.isconnected ():
+			_asyncons = [(each, 0)]
+			break
+		if each.handler is not None:			
+			_asyncons.append ((each, each.handler.jobs ()))
+	
+	if _asyncons:
+		_asyncons.sort (key = lambda x: x [1])
+		if _asyncons [0][1] < http2.MAX_HTTP2_CONCURRENT_STREAMS:
+			asyncon = _asyncons [0][0]
+	
+	return asyncon
+	
 
 class SocketPool:
 	object_timeout = 120
@@ -105,7 +125,7 @@ class SocketPool:
 				del self.__socketfarm [serverkey]
 				
 		self.__last_maintern = time.time ()
-	
+				
 	def _get (self, serverkey, server, *args):
 		asyncon = None
 		self.lock.acquire ()
@@ -121,15 +141,16 @@ class SocketPool:
 					self.__socketfarm [serverkey][id (asyncon)] = asyncon
 					
 				else:		
-					proto = self.__protos.get (serverkey)
 					asyncons = list(self.__socketfarm [serverkey].values ())
-					if proto in PROTO_LOADBALANCE:
-						random.shuffle (asyncons)
-												
-					for each in asyncons:	
-						if not each.isactive ():
-							asyncon = each
-							break
+					#print ('~~~~~~~~~~', len (asyncons))
+					if self.__protos.get (serverkey) in PROTO_CONCURRENT_STREAMS:
+						asyncon = select_channel (asyncons)
+						
+					else:
+						for each in asyncons:								
+							if not each.isactive ():
+								asyncon = each
+								break
 					
 					if not asyncon:
 						asyncon = self.create_asyncon (server, *args)
@@ -189,6 +210,9 @@ class SocketPool:
 				for server in list(self.__socketfarm.keys ()):					
 					for asyncon in list(self.__socketfarm [server].values ()):
 						asyncon.disconnect ()
+						del asyncon
+				self.__socketfarm = {}
+				self.__protos = {}
 			finally:
 				self.lock.release ()
 		except:

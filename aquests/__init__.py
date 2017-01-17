@@ -1,6 +1,6 @@
 # 2016. 1. 10 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.4.16"
+__version__ = "0.4.24"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 
 from . import lifetime, queue, request_builder, response_builder, stubproxy
@@ -10,6 +10,8 @@ from .dbapi import dbpool
 from .client import adns
 from . import client, dbapi
 from .protocols.http import localstorage as ls
+from .protocols.http import request_handler
+from .protocols import http2
 from .dbapi import request as dbo_request
 import os
 import timeit
@@ -18,6 +20,7 @@ try:
 	from urllib.parse import urlparse
 except ImportError:
 	from urlparse import urlparse	
+
 
 def cb_gateway_demo (response):
 	global _logger 
@@ -54,18 +57,33 @@ _initialized = False
 _logger = None
 _cb_gateway = cb_gateway_demo
 _concurrent = 1
+_workers = 1
 _currents = 0
 _que = queue.Queue ()
 _dns_query_req = {}
 _timeout = 10
 
-def configure (workers = 1, logger = None, callback = None, timeout = 10, cookie = False):
-	global _logger, _cb_gateway, _concurrent, _initialized, _timeout
 	
-	_concurrent = workers
+def configure (
+	workers = 1, logger = None, 
+	callback = None, timeout = 10, 
+	cookie = False, 
+	force_http1 = False,
+	http2_constreams = 1
+):
+	global _logger, _cb_gateway, _concurrent, _initialized, _timeout, _workers
+	
 	if logger is None:
 		logger = logger_f.screen_logger ()
 	_logger = logger
+	
+	request_handler.RequestHandler.FORCE_HTTP_11 = force_http1
+	http2.MAX_HTTP2_CONCURRENT_STREAMS = max (http2_constreams, 3)		
+	_workers = workers
+	_concurrent = workers
+	if not force_http1:
+		_concurrent = workers * http2_constreams
+			
 	if callback:
 		_cb_gateway = callback
 	
@@ -87,17 +105,18 @@ def _next ():
 	
 	_finished_total += 1
 	if lifetime._shutdown_phase:
-		_currents -= 1
 		return
-		
-	for i in range (_concurrent - _currents + 1):
+				
+	#print ('===========', _concurrent, _currents)
+	for i in range (_concurrent - _currents):
 		_req ()
 			
 def _request_finished (handler):
 	global _cb_gateway, _currents, _concurrent, _finished_total, _logger
 	
+	_currents -= 1
 	if isinstance (handler, dbo_request.Request):
-		response = handler		
+		response = handler
 	else:
 		response = response_builder.HTTPResponse (handler)
 		
@@ -132,7 +151,8 @@ def _req ():
 		if lifetime._shutdown_phase == 0:		
 			lifetime.shutdown (0, 7)
 		return
-		
+	
+	_currents += 1
 	_request_total += 1
 	_method = args [0].lower ()
 	if _method in ("postgresql", "redis", "mongodb", "sqlite3"):
@@ -144,7 +164,7 @@ def _req ():
 		
 	else:	
 		method, url, params, auth, headers, meta, proxy = args
-		asyncon = socketpool.get (url)
+		asyncon = socketpool.get (url)		
 		if _method in ("ws", "wss"):
 			req, handler_class = request_builder.make_ws (_method, url, params, auth, headers, meta, proxy, _logger)		
 			handler = handler_class (asyncon, req, _request_finished)
@@ -170,23 +190,21 @@ def countcli ():
 	return _currents
 
 def fetchall ():
-	global _concurrent, _currents, _logger, _que, _timeout
+	global _workers, _logger, _que, _timeout
 	
 	if not _initialized:
 		configure ()
 	
-	_fetch_started = timeit.default_timer ()		
-	for i in range (_concurrent):		
-		_req ()
-		_currents += 1
+	_fetch_started = timeit.default_timer ()
+	for i in range (_workers):
+		_req ()		
 		
 	lifetime.loop (os.name == "nt" and 1.0 or _timeout / 2.0)
-	_duration = timeit.default_timer () - _fetch_started
-	
+	_duration = timeit.default_timer () - _fetch_started	
 	socketpool.cleanup ()
 	dbpool.cleanup ()
 	
-	_logger.log ("* %d tasks during %1.2f sec, %1.2f tasks/sec" % (_que.req_id, _duration, _que.req_id / _duration))
+	_logger.log ("* %d tasks during %1.5f sec, %1.2f tasks/sec" % (_que.req_id, _duration, _que.req_id / _duration))
 	
 	
 #----------------------------------------------------
