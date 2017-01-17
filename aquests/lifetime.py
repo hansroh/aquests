@@ -141,21 +141,20 @@ def poll_fun_wrap (timeout, map):
 		# WSAENOTSOCK		
 		remove_notsocks (map)
 	
-	except ValueError:
+	except ValueError:		
 		# negative file descriptor, testing all sockets
-		killed = remove_notsocks (map)
+		killed = remove_notsocks (map)		
 		if not killed:
 			# too many file descriptors in select(), divide and conquer
-			half = len (map) / 2
+			half = int (len (map) / 2)
 			tmap = {}
-			cc = 0
+			cc = 0			
 			for k, v in list(map.items ()):
 				tmap [k] = v
 				cc += 1
-				if cc == half:
+				if cc == half:					
 					poll_fun_wrap (timeout, tmap)
 					tmap = {}
-					
 		poll_fun_wrap (timeout, tmap)
 
 
@@ -191,13 +190,7 @@ def graceful_shutdown_loop ():
 					obj.handle_error()
 					
 		if veto and time_in_this_phase < _shutdown_timeout:
-			try:
-				poll_fun(timeout, map)
-			except select.error as why:
-				if os.name == "nt":
-					if why.args [0] == WSAENOTSOCK: # sometimes postgresql connection forcely closed
-						remove_notsocks (map)
-					
+			poll_fun_wrap (timeout, map)					
 		else:
 			_shutdown_phase += 1
 			timestamp = time.time()

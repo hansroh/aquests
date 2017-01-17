@@ -598,6 +598,7 @@ Note: stub's methods and parameters are defined by database engines. Please read
 History
 =========
 
+- 0.4.25: fix select.select () divide and conquer
 - 0.4.22: fix http2_constreams
 - 0.4.21: fix http2 flow control window
 - 0.4.20: add configure options: force_http1, http2_constreams
