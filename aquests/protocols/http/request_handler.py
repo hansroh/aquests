@@ -348,7 +348,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 			self.callback (self)
 	
 	def switch_to_http2 (self):
-		http2_request_handler.RequestHandler (self)		
+		http2_request_handler.RequestHandler (self)
 		
 	def has_been_connected (self):
 		if self._ssl or self.request.initial_http_version == "2.0":
@@ -358,13 +358,13 @@ class RequestHandler (base_request_handler.RequestHandler):
 				self.switch_to_http2 ()
 			else:
 				for data in self.get_request_buffer ("1.1", False):
-					self.asyncon.push (data)				
+					self.asyncon.push (data)
 					
 	def handle_request (self):
 		self.buffer, self.response = b"", None
 		self.asyncon.set_terminator (b"\r\n\r\n")		
 		if (self.asyncon.connected) or not (self._ssl or self.request.initial_http_version == "2.0"):
-			# IMP: if already connected, it means not http2			
+			# IMP: if already connected, it means not http2
 			upgrade = True
 			if self.FORCE_HTTP_11:
 				upgrade = False

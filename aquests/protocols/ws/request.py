@@ -15,10 +15,15 @@ class Request (request.HTTPRequest):
 		if type (message) is tuple:
 			self.opcode, self.message = message
 		else:
-			self.opcode, self.message = OPCODE_TEXT, message
+			if type (message) is bytes:
+				self.opcode, self.message = OPCODE_BINARY, message
+			elif type (message) is str:
+				self.opcode, self.message = OPCODE_TEXT, message
+			else:
+				raise TypeError ("Websocket Messags OP Code Not Specified")
 		
 		if not self.message:
-			self.message = b""			
+			self.message = b""
 		elif strutil.is_encodable (self.message):
 			self.message = self.message.encode ("utf8")
 				

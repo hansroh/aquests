@@ -284,7 +284,7 @@ Configuration Parameters
     timeout = 10, 
     cookie = False,
     force_http1 = False, 
-    http2_constreams = 3
+    http2_constreams = 1
   )
   
 - workers: number of fetching workers, it'not threads
@@ -379,7 +379,7 @@ Websocket
 
   aquests.ws ("ws://127.0.0.1:5000/websocket/echo", "Hello World")
   # secure websocket channel, use wss
-  aquests.wss ("wss://127.0.0.1:5000/websocket/echo", "Hello World")
+  aquests.ws ("wss://127.0.0.1:5000/websocket/echo", "Hello World")
   aquests.fetchall ()
 
 If you want to specify message type.
@@ -565,6 +565,26 @@ For get, post*, put*, upload, delete, options, trace parameters are the same.
 - auth: None or tuple (username, password)
 - meta: dictionary
 
+For Websocket,
+
+.. code-block:: python
+
+  aquests.ws (url, params = None, headers = None, auth = None, meta = {})
+  
+- url: request url string, should start with 'ws://' or 'wss://'(SSL Websocket)
+- params: string, bytes or tuple. if messages is not string you specify message type code using tuple like (ws.OPCODE_PING, b"hello"), you can find OPCODE list, 'from aquests.protocols import ws'. CAUTION. if your params type is bytes type, opcode will automatically be OPCODE_BINARY and string type, be OPCODE_TEXT. and opcode is inffluent to receiver. if you avoid auto opcode, specify opcode with tuple.
+  
+    * ws.OPCODE_TEXT
+    * ws.OPCODE_BINARY
+    * ws.OPCODE_CONTINUATION
+    * ws.OPCODE_PING
+    * ws.OPCODE_PONG
+    * ws.OPCODE_CLOSE
+    
+- headers: None or dictionary
+- auth: None or tuple (username, password)
+- meta: dictionary
+
 For rpc, grpc stub creation:
 
 .. code-block:: python
@@ -598,6 +618,8 @@ Note: stub's methods and parameters are defined by database engines. Please read
 History
 =========
 
+- 0.4.30: add websocket message type detection
+- 0.4.28: remove aquests.wss, use aquests.ws with url wss://...
 - 0.4.25: fix select.select () divide and conquer
 - 0.4.22: fix http2_constreams
 - 0.4.21: fix http2 flow control window

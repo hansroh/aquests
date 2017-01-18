@@ -55,10 +55,10 @@ class list_buffer:
 		self.cdata = None
 	
 	def __len__ (self):
-		return len (self.data)
+		return len (self.raw)
 		
 	def feed(self, data):
-		self.raw.append(data)
+		self.raw.append (data)
 	
 	def raw (self):
 		f = BytesIO (b"".join (self.raw))
