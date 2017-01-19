@@ -6,8 +6,8 @@ def finish_request (response):
 	print (response.content [-180:])
 	
 aquests.configure (1, callback = finish_request)		
-for i in range (1):
+for i in range (2):
 	#aquests.postform ("http://127.0.0.1:5000/lb/lib/login.htm", {'fid': 'i' * 105535})
-	aquests.postform ("http://127.0.0.1:5000/lb/lib/login.htm", {'fid': 'i' * 10553})
+	aquests.postform ("http://127.0.0.1:5000/lb/lib/login.htm", {'fid': 'i' * 1055})
 aquests.fetchall ()
 

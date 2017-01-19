@@ -12,7 +12,7 @@ import select
 import threading
 from . import adns
 from aquests.protocols.http2 import H2_PROTOCOLS
-
+from aquests.lib.athreads.fifo import ready_producer_fifo
 from aquests.lib.ssl_ import resolve_cert_reqs, resolve_ssl_version, create_urllib3_context
 
 NPN_PROTOCOL = 'h2'
@@ -28,9 +28,6 @@ class AsynConnect (asynchat.async_chat):
 	zombie_timeout = 10
 	keep_alive_timeout = 10
 	network_delay_timeout = 10
-	ready = None
-	affluent = None	
-	
 	request_count = 0
 	active = 0
 	proxy = False
@@ -47,7 +44,11 @@ class AsynConnect (asynchat.async_chat):
 		self.proxy_client = False
 		self.handler = None
 		self.initialize_connection ()
-		asynchat.async_chat.__init__ (self)
+		#asynchat.async_chat.__init__ (self)
+		self.ac_in_buffer = b''
+		self.incoming = []
+		self.producer_fifo = ready_producer_fifo ()
+		asyncore.dispatcher.__init__(self)
 	
 	def close (self):
 		if self._closed:
@@ -76,9 +77,6 @@ class AsynConnect (asynchat.async_chat):
 	def end_tran (self):
 		self.del_channel ()
 		self.handler = None
-		# IMP: should be here, ready, affluent set before begin_tran
-		self.ready = None
-		self.affluent = None
 		self.set_active (False)
 				
 	def use_sendlock (self):
@@ -145,17 +143,7 @@ class AsynConnect (asynchat.async_chat):
 			self.handle_close ()
 			self.__no_more_request = False
 			return 0
-		
-	def readable (self):
-		if self.affluent is not None:
-			return asynchat.async_chat.readable (self)	and self.affluent ()
-		return asynchat.async_chat.readable (self)
 	
-	def writable (self):
-		if self.ready is not None:
-			return asynchat.async_chat.writable (self) and self.ready ()
-		return asynchat.async_chat.writable (self)	
-  
 	def is_channel_in_map (self, map = None):
 		if map is None:
 			map = self._map
@@ -289,12 +277,6 @@ class AsynConnect (asynchat.async_chat):
 	
 	def set_zombie_timeout (self, timeout = 10):
 		self.zombie_timeout = timeout
-	
-	def set_zombie_timeout_by_case (self):
-		if self.affluent or self.ready:
-			self.zombie_timeout = self.network_delay_timeout * 2
-		else:	
-			self.zombie_timeout = self.network_delay_timeout
 		
 	def set_timeout (self, a = 10, b = 10):
 		self.set_keep_alive_timeout (a)
@@ -309,14 +291,6 @@ class AsynConnect (asynchat.async_chat):
 	def handle_connect (self):
 		if hasattr (self.handler, "has_been_connected"):		
 			self.handler.has_been_connected ()
-		
-	def handle_read (self):
-		self.set_zombie_timeout_by_case ()		
-		asynchat.async_chat.handle_read (self)
-		
-	def handle_write (self):
-		self.set_zombie_timeout_by_case ()		
-		asynchat.async_chat.handle_write (self)
 			
 	def handle_expt (self):
 		self.logger ("socket panic", "fail")

@@ -618,6 +618,7 @@ Note: stub's methods and parameters are defined by database engines. Please read
 History
 =========
 
+- 0.5.1: change from list to deque on producer_fifo
 - 0.4.33: force_http1 applied to https
 - 0.4.32: fix http.buffer.list_buffer class
 - 0.4.30: add websocket message type detection
