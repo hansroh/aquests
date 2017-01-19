@@ -76,6 +76,9 @@ class AsynConnect (asynchat.async_chat):
 	def end_tran (self):
 		self.del_channel ()
 		self.handler = None
+		# IMP: should be here, ready, affluent set before begin_tran
+		self.ready = None
+		self.affluent = None
 		self.set_active (False)
 				
 	def use_sendlock (self):
@@ -108,8 +111,6 @@ class AsynConnect (asynchat.async_chat):
 		
 		self.established = False		
 		self.upgraded = False		
-		self.ready = None
-		self.affluent = None
 		
 	def set_event_time (self):
 		self.event_time = time.time ()
@@ -259,9 +260,9 @@ class AsynConnect (asynchat.async_chat):
 			else:
 				raise
 	
-	def send (self, data):		
-		#print ("SEND", data)
+	def send (self, data):
 		self.set_event_time ()
+		#print ("====SEND", data)
 		try:
 			return self.socket.send (data)
 		except socket.error as why:
@@ -422,8 +423,10 @@ class AsynConnect (asynchat.async_chat):
 
 
 class AsynSSLConnect (AsynConnect):	
-	ac_out_buffer_size = 65536
-	ac_in_buffer_size = 65536
+	ac_negotiate_http2 = True
+	
+	def negotiate_http2 (self, flag):
+		self.ac_negotiate_http2 = flag
 		
 	def handshake (self):
 		if not self._handshaking:
@@ -431,9 +434,9 @@ class AsynSSLConnect (AsynConnect):
 			if err != 0:
 				raise socket.error(err, _strerror(err))								
 			ssl_context = create_urllib3_context(ssl_version=resolve_ssl_version(None), cert_reqs=resolve_cert_reqs(None))
-			
-			try: ssl_context.set_alpn_protocols (H2_PROTOCOLS)
-			except AttributeError: ssl_context.set_npn_protocols (H2_PROTOCOLS)								
+			if self.ac_negotiate_http2:
+				try: ssl_context.set_alpn_protocols (H2_PROTOCOLS)
+				except AttributeError: ssl_context.set_npn_protocols (H2_PROTOCOLS)								
 			self.socket = ssl_context.wrap_socket (self.socket, do_handshake_on_connect = False, server_hostname = self.address [0])			
 			self._handshaking = True
 			

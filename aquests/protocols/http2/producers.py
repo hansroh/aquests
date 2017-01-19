@@ -86,11 +86,11 @@ class h2data_producer:
 	
 class h2stream_producer (h2data_producer):
 	def __repr__ (self):
-		return "<grpc_stream_producer stream_id:%d>" % (self.stream_id,)
+		return "<h2stream_producer stream_id:%d>" % (self.stream_id,)
 	
-	def close (self):
-		self._end_stream = True
-	
+	def is_end_stream (self, data):
+		return len (data) == 0
+		
 	def more (self):
 		if self.is_done ():
 			return b''
@@ -100,13 +100,10 @@ class h2stream_producer (h2data_producer):
 				
 		else:
 			data = self.producer.more ()
-			if not data:
-				self._end_stream = True
-				
+			self._end_stream = self.is_end_stream (data)
 			if len (data) > self.BUFFER_SIZE:
 				data, self._buf = data [:self.BUFFER_SIZE], data [self.BUFFER_SIZE:]
 		
-		# print ("MULTIPLEXING", self.stream_id, self.encoder.local_flow_control_window (self.stream_id))
 		with self._lock:
 			try:
 				self.encoder.send_data (
@@ -122,4 +119,5 @@ class h2stream_producer (h2data_producer):
 				return b''
 		
 		return data_to_send
+		
 		

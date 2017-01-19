@@ -362,7 +362,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 					
 	def handle_request (self):
 		self.buffer, self.response = b"", None
-		self.asyncon.set_terminator (b"\r\n\r\n")		
+		self.asyncon.set_terminator (b"\r\n\r\n")
 		if (self.asyncon.connected) or not (self._ssl or self.request.initial_http_version == "2.0"):
 			# IMP: if already connected, it means not http2
 			upgrade = True
@@ -372,6 +372,8 @@ class RequestHandler (base_request_handler.RequestHandler):
 				upgrade = False
 			for data in self.get_request_buffer ("1.1", upgrade):
 				self.asyncon.push (data)		
+		if self._ssl and self.FORCE_HTTP_11 and self.request.initial_http_version != "2.0":
+			self.asyncon.negotiate_http2 (False)
 		self.asyncon.begin_tran (self)
 	
 	def will_be_close (self):		

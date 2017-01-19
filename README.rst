@@ -2,7 +2,7 @@
 Asynchronous Requests
 ======================
 
-Aquests is generating asynchronous requests and fetching data from HTTP2, REST API, XMLRPC, gRPC and several Database engines. It was seperated from Skitai_ on Jan 2017.
+Aquests is generating asynchronous requests and fetching data from HTTP2, REST API, Websocket, RPCs and several Database engines. This project was originally started for testing `Skitai App Engine`_ and seperated for efficient developing eaches on Jan 2017.
 
 Supported requests are:
 
@@ -15,7 +15,7 @@ Supported requests are:
 - MongoDB
 - Redis
 
-.. _Skitai: https://pypi.python.org/pypi/skitai
+.. _`Skitai App Engine`: https://pypi.python.org/pypi/skitaid
 
 .. contents:: Table of Contents
 
@@ -618,6 +618,8 @@ Note: stub's methods and parameters are defined by database engines. Please read
 History
 =========
 
+- 0.4.33: force_http1 applied to https
+- 0.4.32: fix http.buffer.list_buffer class
 - 0.4.30: add websocket message type detection
 - 0.4.28: remove aquests.wss, use aquests.ws with url wss://...
 - 0.4.25: fix select.select () divide and conquer
