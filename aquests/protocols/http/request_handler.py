@@ -208,7 +208,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 			self.response.collect_incoming_data (data)
 		
 	def found_terminator (self):
-		if self.response:
+		if self.response:			
 			if self.end_of_data:
 				return self.found_end_of_body ()
 			
@@ -256,15 +256,13 @@ class RequestHandler (base_request_handler.RequestHandler):
 				try:
 					clen = self.get_content_length ()
 				except TypeError:
-					if self.will_be_close ():
-						clen = ""
+					if self.will_be_close () or self.response.get_header ("content-type"):
+						clen = None
 						self.expect_disconnect = True
 					else:
-						clen = 0 # no transfer-encoding, no content-lenth												
-				
+						clen = 0 # no transfer-encoding, no content-lenth
 				if clen == 0:
 					return self.found_end_of_body ()
-					
 				self.asyncon.set_terminator (clen)
 			
 	def create_response (self):

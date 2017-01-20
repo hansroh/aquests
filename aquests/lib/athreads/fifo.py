@@ -27,7 +27,7 @@ class ready_producer_fifo:
 	
 		if self.r:
 			for i in range (len (self.r)):				
-				if self.r [0].ready ():					
+				if self.r [0].ready ():
 					self.l.append (self.r.popleft ())
 					return 1	
 				self.r.rotate (1)				
@@ -52,7 +52,7 @@ class ready_producer_fifo:
 	def __delitem__ (self, index):
 		del self.l [index]
 	
-	def append (self, item):		
+	def append (self, item):
 		self.insert (-1, item)
 	
 	def appendleft (self, item):

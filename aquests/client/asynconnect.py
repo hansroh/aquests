@@ -234,7 +234,6 @@ class AsynConnect (asynchat.async_chat):
 		self.set_event_time ()
 		try:
 			data = self.socket.recv (buffer_size)
-			#print ("+++++RECV", len (data), repr (data [:40]))
 			#print ("+", len (data), end = ' ')
 			if not data:
 				self.handle_close (700, "Connection closed unexpectedly in recv")
@@ -242,7 +241,7 @@ class AsynConnect (asynchat.async_chat):
 			else:
 				return data		
 		except socket.error as why:
-			if why.errno in asyncore._DISCONNECTED:				
+			if why.errno in asyncore._DISCONNECTED:
 				self.handle_close (700, "Connection closed unexpectedly in recv")
 				return b''				
 			else:

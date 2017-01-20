@@ -295,7 +295,6 @@ class output_producer:
 			return result
 		else:
 			return b''
-
 		
 class composite_producer:
 	"combine a fifo of producers into one"
@@ -303,20 +302,12 @@ class composite_producer:
 		self.producers = producers
 		self.bind_ready ()
 	
-	def bind_ready (self):
-		if len(self.producers) == 0:
-			return
-		p = self.producers.first()
+	def bind_ready (self):	
+		p = self.producers.first ()
 		if hasattr (p, "ready"):
 			self.ready = p.ready
 			p.ready = None
-			
-		else:
-			try:
-				del self.ready
-			except AttributeError:
-				pass		
-				
+						
 	def more (self):
 		while len(self.producers):
 			p = self.producers.first()
@@ -324,8 +315,7 @@ class composite_producer:
 			if d:
 				return d
 			else:
-				self.producers.pop()
-				self.bind_ready ()
+				self.producers.pop()	
 		else:
 			return b''
 
@@ -340,10 +330,12 @@ class globbing_producer:
 		self.producer = producer
 		self.buffer = b''
 		self.buffer_size = buffer_size
-		
-		if hasattr (producer, "ready"):
-			self.ready = producer.ready
-			producer.ready = None
+		self.bind_ready ()
+	
+	def bind_ready (self):	
+		if hasattr (self.producer, "ready"):
+			self.ready = self.producer.ready
+			self.producer.ready = None
 		
 	def more (self):
 		while len(self.buffer) < self.buffer_size:
@@ -357,7 +349,7 @@ class globbing_producer:
 		return r
 
 
-class hooked_producer:
+class hooked_producer (globbing_producer):
 	"""
 	A producer that will call <function> when it empties,.
 	with an argument of the number of bytes produced.  Useful
@@ -368,10 +360,7 @@ class hooked_producer:
 		self.producer = producer
 		self.function = function
 		self.bytes = 0
-		
-		if hasattr (producer, "ready"):
-			self.ready = producer.ready
-			producer.ready = None
+		self.bind_ready ()
 
 	def more (self):
 		#print "hooked_producer.more ()"
@@ -394,7 +383,7 @@ class hooked_producer:
 # Blessing, and it really ought to be used even with normal files.
 # How beautifully it blends with the concept of the producer.
 
-class chunked_producer:
+class chunked_producer (globbing_producer):
 	"""A producer that implements the 'chunked' transfer coding for HTTP/1.1.
 	Here is a sample usage:
 		request['Transfer-Encoding'] = 'chunked'
@@ -407,15 +396,11 @@ class chunked_producer:
 	def __init__ (self, producer, footers=None):
 		self.producer = producer
 		self.footers = footers
-		
-		if hasattr (producer, "ready"):
-			self.ready = producer.ready
-			producer.ready = None
+		self.bind_ready ()
 			
 	def more (self):
 		if self.producer:
 			data = self.producer.more()
-			#print "------------", len (data)
 			if data:
 				dlen = '%x' % len (data)
 				return dlen.encode ("utf8") + b"\r\n" + data + b'\r\n'
@@ -440,7 +425,7 @@ try:
 except ImportError:
 	zlib = None
 
-class compressed_producer:
+class compressed_producer (globbing_producer):
 	"""
 	Compress another producer on-the-fly, using ZLIB
 	[Unfortunately, none of the current browsers seem to support this]
@@ -459,11 +444,6 @@ class compressed_producer:
 		self.compressor = zlib.compressobj (level, zlib.DEFLATED)
 		self.bind_ready ()
 	
-	def bind_ready (self):	
-		if hasattr (self.producer, "ready"):
-			self.ready = self.producer.ready
-			self.producer.ready = None
-			
 	def more (self):
 		if self.producer:
 			cdata = b''
@@ -498,11 +478,8 @@ class escaping_producer:
 		self.esc_to = esc_to
 		self.buffer = b''
 		from asynchat import find_prefix_at_end
-		self.find_prefix_at_end = find_prefix_at_end
-		
-		if hasattr (producer, "ready"):
-			self.ready = producer.ready
-			producer.ready = None
+		self.find_prefix_at_end = find_prefix_at_end		
+		self.bind_ready ()
 			
 	def more (self):
 		esc_from = self.esc_from

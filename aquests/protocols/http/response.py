@@ -26,7 +26,7 @@ def crack_response (data):
 class Response:
 	SIZE_LIMIT = 2**19
 	
-	def __init__ (self, request, header):		
+	def __init__ (self, request, header):	
 		self.request = request
 		if header [:2] == "\r\n":
 			header = header [2:]
@@ -112,7 +112,7 @@ class Response:
 		if self.get_header ("Content-Encoding") == "gzip":			
 			self.decompressor = compressors.GZipDecompressor ()
 			
-	def collect_incoming_data (self, data):
+	def collect_incoming_data (self, data):		
 		if self.size == 0:
 			self.init_buffer ()		
 		self.size += len (data)

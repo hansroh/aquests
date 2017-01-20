@@ -213,7 +213,6 @@ if __name__	== "__main__":
 	from aquests.lib import logger
 	import pprint
 	f = Request (logger.screen_logger ())
-	f.req ("www.openfos.com", protocol = "tcp", callback = pprint.pprint, qtype="a")
 	f.req ("www.yahoo.com", protocol = "tcp", callback = pprint.pprint, qtype="a")
 	f.req ("www.hungryboarder.com", protocol = "tcp", callback = pprint.pprint, qtype="a")
 	f.req ("www.alexa.com", protocol = "tcp", callback = pprint.pprint, qtype="a")
