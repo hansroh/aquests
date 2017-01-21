@@ -12,8 +12,9 @@ import select
 import threading
 from . import adns
 from aquests.protocols.http2 import H2_PROTOCOLS
-from aquests.lib.athreads.fifo import ready_producer_fifo
+from aquests.lib.athreads.fifo import await_fifo
 from aquests.lib.ssl_ import resolve_cert_reqs, resolve_ssl_version, create_urllib3_context
+from collections import deque
 
 NPN_PROTOCOL = 'h2'
 H2_NPN_PROTOCOLS = [NPN_PROTOCOL, 'h2-16', 'h2-15', 'h2-14']
@@ -31,7 +32,8 @@ class AsynConnect (asynchat.async_chat):
 	request_count = 0
 	active = 0
 	proxy = False
-
+	fifo_class = deque
+	
 	def __init__ (self, address, lock = None, logger = None):
 		self.address = address
 		self.lock = lock
@@ -47,7 +49,7 @@ class AsynConnect (asynchat.async_chat):
 		#asynchat.async_chat.__init__ (self)
 		self.ac_in_buffer = b''
 		self.incoming = []
-		self.producer_fifo = ready_producer_fifo ()
+		self.producer_fifo = self.fifo_class ()
 		asyncore.dispatcher.__init__(self)
 	
 	def close (self):

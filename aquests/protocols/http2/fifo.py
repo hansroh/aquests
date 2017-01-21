@@ -1,7 +1,7 @@
-from aquests.lib.athreads.fifo import ready_producer_ts_fifo
+from aquests.lib.athreads.fifo import await_ts_fifo
 			
-class http2_producer_fifo (ready_producer_ts_fifo):
-	# Asyncore ready_producer_fifo replacement
+class http2_producer_fifo (await_ts_fifo):
+	# Asyncore await_fifo replacement
 	# For resorting, removeing by http2 priority, cacnel and reset features
 	# Also can handle producers has 'ready' method
 		

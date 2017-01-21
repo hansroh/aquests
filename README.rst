@@ -1,6 +1,6 @@
-======================
-Asynchronous Requests
-======================
+====================================
+Asynchronous Multiplexing Requests
+====================================
 
 Aquests is generating asynchronous requests and fetching data from HTTP2, REST API, Websocket, RPCs and several Database engines. This project was originally started for testing `Skitai App Engine`_ and seperated for efficient developing eaches on Jan 2017.
 
@@ -618,6 +618,7 @@ Note: stub's methods and parameters are defined by database engines. Please read
 History
 =========
 
+- 0.5.2: remove ready_producer_fifo, this will be used only serverside
 - 0.5.1: change from list to deque on producer_fifo
 - 0.4.33: force_http1 applied to https
 - 0.4.32: fix http.buffer.list_buffer class

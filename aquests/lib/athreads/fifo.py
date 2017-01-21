@@ -1,7 +1,7 @@
 import threading
 from collections import deque
 
-class ready_producer_fifo:
+class await_fifo:
 	# On http2, it is impossible to bind channel.ready function, 
 	# Because http2 channels handle multiple responses concurrently
 	# Practically USE http2_producer_fifo
@@ -79,35 +79,35 @@ class ready_producer_fifo:
 		self.r.clear ()
 	
 	
-class ready_producer_ts_fifo (ready_producer_fifo):
+class await_ts_fifo (await_fifo):
 	def __init__ (self):
-		ready_producer_fifo.__init__ (self)
+		await_fifo.__init__ (self)
 		self._lock = threading.Lock ()
 	
 	def working (self):
 		with self._lock:
-			return ready_producer_fifo.working (self)
+			return await_fifo.working (self)
 		
 	def __len__ (self):
 		with self._lock:
-			return ready_producer_fifo.__len__ (self)
+			return await_fifo.__len__ (self)
 			
 	def __getitem__(self, index):
 		with self._lock:
-			return ready_producer_fifo.__getitem__ (self, index)
+			return await_fifo.__getitem__ (self, index)
 		
 	def __setitem__(self, index, item):
 		with self._lock:
-			ready_producer_fifo.__setitem__ (self, index, item)
+			await_fifo.__setitem__ (self, index, item)
 		
 	def __delitem__ (self, index):
 		with self._lock:
-			ready_producer_fifo.__delitem__ (self, index)
+			await_fifo.__delitem__ (self, index)
 	
 	def clear (self):
 		with self._lock:
-			ready_producer_fifo.clear (self)
+			await_fifo.clear (self)
 			
 	def insert (self, index, item):
 		with self._lock:
-			ready_producer_fifo.insert (self, index, item)
+			await_fifo.insert (self, index, item)

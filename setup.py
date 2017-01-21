@@ -81,7 +81,7 @@ with open('aquests/__init__.py', 'r') as fd:
 setup(
 	name='aquests',
 	version=version,
-	description='Asynchronous HTTP2/DBO Requests',
+	description='Asynchronous Multiplexing HTTP2/DBO Requests',
 	url = 'https://gitlab.com/hansroh/aquests',
 	author='Hans Roh',
 	author_email='hansroh@gmail.com',	
