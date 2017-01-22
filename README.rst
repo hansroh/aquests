@@ -241,7 +241,7 @@ Response has these attributes and method:
 - data: usally same as content but on RPC, DB query or json response situation, it returns result object.
 - logger: logger.log (msg, type ='info'), logger.trace ()
 - method: POST, GET, PUT etc for HTTP/RPC and execute, get, set or lrange etc for DBO
-- raise_for_status (): raise exception when HTTP status code >= 400 or DBO command excution failure
+- raise_for_status (): raise exception when HTTP status code >= 300 or DBO command excution failure
 - reraise (): shortcut for raise_for_status ()
 
 Below things are available only on DBO responses.
