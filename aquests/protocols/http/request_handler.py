@@ -1,87 +1,17 @@
 from . import response as http_response
 from aquests.protocols.http2 import request_handler as http2_request_handler
-from . import base_request_handler
+from . import base_request_handler, http_auth, respcodes
 from aquests.client import asynconnect
 import base64
-from aquests.protocols.http import http_util
 from hashlib import md5
-from base64 import b64encode
 import os
 from hyperframe.frame import SettingsFrame
 from aquests.protocols.http2 import H2_PROTOCOLS
-
-class Authorizer:
-	def __init__ (self):
-		self.db = {}
-	
-	def get (self, netloc, auth, method, uri, data):
-		if netloc not in self.db:
-			return ""
-			
-		infod = self.db [netloc]
-		if infod ["meth"] == "basic":
-			return "Basic " + base64.encodestring ("%s:%s" % auth) [:-1]
-		elif infod ["meth"] == "bearer":
-			return "Bearer " + auth [0]
-		else:
-			infod ["nc"] += 1
-			hexnc = hex (infod ["nc"])[2:].zfill (8)
-			infod ["cnonce"] = http_util.md5uniqid ()
-			
-			A1 = md5 (("%s:%s:%s" % (auth [0], infod ["realm"], auth [1])).encode ("utf8")).hexdigest ()
-			if infod ["qop"] == "auth":
-				A2 = md5 (("%s:%s" % (method, uri)).encode ("utf8")).hexdigest ()
-			elif type (data) is bytes:
-				entity = md5 (data).hexdigest ()
-				A2 = md5 (("%s:%s" % (method, uri)).encode ("utf8")).hexdigest ()
-			else:
-				return # sorry data is not bytes
-						
-			Hash = md5 (("%s:%s:%s:%s:%s:%s" % (
-				A1,
-				infod ["nonce"],
-				hexnc,
-				infod ["cnonce"],
-				infod ["qop"],
-				A2
-				)).encode ("utf8")
-			).hexdigest ()
-			
-			return (
-				'Digest username="%s", realm="%s", nonce="%s", '
-				'uri="%s", response="%s", opaque="%s", qop=%s, nc=%s, cnonce="%s"' % (
-					auth [0], infod ["realm"], infod ["nonce"], uri, Hash, 
-					infod ["opaque"], infod ["qop"], hexnc, infod ["cnonce"]
-				)
-			)
-			
-	def set (self, netloc, authreq, auth):
-		if auth is None:
-			return
-		
-		amethod, authinfo = authreq.split (" ", 1)		
-		infod = {"meth": amethod.lower ()}
-		infod ["nc"] = 0
-		for info in authinfo.split (","):
-			k, v = info.strip ().split ("=", 1)
-			if not v: return self.get_www_authenticate ()
-			if v[0] == '"': v = v [1:-1]
-			infod [k]	 = v
-		
-		if "qop" in infod:
-			qop = list (map (lambda x: x.strip (), infod ["qop"].split (",")))
-			if "auth" in qop:
-				infod ["qop"] = "auth"
-			else:
-				infod ["qop"] = "auth-int"
-				
-		self.db [netloc] = infod
-		
-
-authorizer = Authorizer ()
+from aquests.client import socketpool
 
 class RequestHandler (base_request_handler.RequestHandler):
 	FORCE_HTTP_11 = False
+	ALLOW_REDIRECTS = False
 	
 	def __init__ (self, asyncon, request, callback, connection = "keep-alive"):
 		self.asyncon = asyncon
@@ -97,14 +27,12 @@ class RequestHandler (base_request_handler.RequestHandler):
 		self.expect_disconnect = False
 		self.retry_count = 0
 		self.reauth_count = 0
+		self.http2_handler = None
 		
 		self.buffer = b""	
 		self.response = None
 		
-		self._ssl = False
-		if isinstance (self.asyncon, asynconnect.AsynSSLConnect):
-			self._ssl = True
-			
+		self._ssl = isinstance (self.asyncon, asynconnect.AsynSSLConnect)			
 		self.method, self.uri = (
 			self.request.get_method (),			
 			self.asyncon.is_proxy () and self.request.uri or self.request.path
@@ -122,16 +50,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 	#------------------------------------------------
 	# handler must provide these methods
 	#------------------------------------------------
-	def get_http_auth_header (self, data = b""):
-		auth = self.request.get_auth ()
-		if auth:
-			uri = self.asyncon.is_proxy () and self.request.uri or self.request.path
-			auth_header = authorizer.get (self.request.get_address (), auth, self.method, uri, data)
-			if auth_header is None:
-				raise AssertionError ("Unknown authedentification method")
-			return auth_header
-	
-	def rebuild_http2_headers (self, headers, headers_1x, payload):
+	def rebuild_http2_headers (self, headers, headers_1x):
 		content_encoding = None
 		for k, v in headers_1x:
 			k = k.lower ()
@@ -166,19 +85,19 @@ class RequestHandler (base_request_handler.RequestHandler):
 		else:
 			hc = {}
 			
-		payload = self.request.get_payload ()	
-		auth_header = self.get_http_auth_header (payload)
-		if auth_header:
-			hc ["Authorization"] = auth_header
-		
+		auth_header = http_auth.authorizer.make_http_auth_header (self.request, self.asyncon.is_proxy ())
 		if http_version == "2.0":
 			headers = [
 				(":method", self.method),
 				(":path", self.uri),
 				(":scheme", self._ssl and "https" or "http")
 			]
-			return self.rebuild_http2_headers (headers, self.request.get_headers (), payload)			
+			if auth_header:
+				headers.append (("authorization", auth_header))
+			return self.rebuild_http2_headers (headers, self.request.get_headers ())			
 		
+		if auth_header:
+			hc ["Authorization"] = auth_header
 		headers = list (hc.items ()) + self.request.get_headers ()
 		self.header = ["%s: %s" % x for x in headers]
 		req = ("%s %s HTTP/%s\r\n%s\r\n\r\n" % (
@@ -186,7 +105,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 			self.uri,
 			http_version,
 			"\r\n".join (self.header)
-		)).encode ("utf8")		
+		)).encode ("utf8")
 		return req
 		
 	def get_request_payload (self):
@@ -286,40 +205,66 @@ class RequestHandler (base_request_handler.RequestHandler):
 			if self.response.get_header ("Upgrade") == "h2c":
 				self.asyncon._proto = "h2c"
 				self.response = None
-				self.switch_to_http2 ()				
+				self.switch_to_http2 ()
 				return True
 		return False
-		
-	def found_end_of_body (self):	
-		if self.response:
-			self.response.done ()
-		if self.handled_http_authorization ():
-			return
-		if self.will_be_close ():
-			self.asyncon.disconnect ()			
-		self.close_case_with_end_tran ()
+	
+	def handle_redirect (self):
+		if not self.ALLOW_REDIRECTS:
+			return 0
+
+		if self.response.status_code in (301, 302, 307, 308):
+			#print ('+++', self.response.status_code, self.response.get_header ('location'))
+			try:
+				self.request = self.response.request.relocate (self.response)
+			except:				
+				self.response.code, self.response.msg = 711, respcodes.get (711)
+				return 0
+			self.asyncon.end_tran ()									
+			self.asyncon = socketpool.get (self.request.uri)
+			if not self.asyncon.isconnected (): 
+				# domain's changed
+				self.http2_handler = None
+			self.method, self.uri = (
+				self.request.get_method (),
+				self.asyncon.is_proxy () and self.request.uri or self.request.path
+			)
+			self._ssl = isinstance (self.asyncon, asynconnect.AsynSSLConnect)
+			self.response = None
+			self.handle_request ()
+			return 1
+		return 0	
 	
 	def handled_http_authorization (self):
 		if self.response.code != 401:
 			return 0 #pass
 			
 		if self.reauth_count > 0:
-			self.asyncon.handle_close (710, "Authorization Failed")
-			return 1 # abort
-		
+			return 0 # abort
+
 		self.reauth_count = 1		
 		try: 
-			authorizer.set (self.request.get_address (), self.response.get_header ("WWW-Authenticate"), self.request.get_auth ())					
+			http_auth.authorizer.save_http_auth_header (self.request, self.response)
 		except:
-			self.trace ()
-			self.asyncon.handle_close (711, "Unknown Authedentification Method")
-			return 1 # abort			
+			self.trace ()			
+			return 0 # abort
 		else:
+			self.response = None
 			self.handle_request ()
-			return 1
-		
+			return 1		
 		return 0 #pass
-			
+	
+	def found_end_of_body (self):	
+		if self.response:
+			self.response.done ()
+		if self.handle_redirect ():
+			return
+		if self.handled_http_authorization ():
+			return			
+		if self.will_be_close ():
+			self.asyncon.disconnect ()			
+		self.close_case_with_end_tran ()
+				
 	def connection_closed (self, why, msg):
 		if self.response and self.expect_disconnect:
 			self.close_case ()
@@ -346,7 +291,10 @@ class RequestHandler (base_request_handler.RequestHandler):
 			self.callback (self)
 	
 	def switch_to_http2 (self):
-		http2_request_handler.RequestHandler (self)
+		if self.http2_handler is None:
+			self.http2_handler = http2_request_handler.RequestHandler (self)
+		else:
+			self.http2_handler.handle_request (self)	
 		
 	def has_been_connected (self):
 		if self._ssl or self.request.initial_http_version == "2.0":
@@ -359,8 +307,10 @@ class RequestHandler (base_request_handler.RequestHandler):
 					self.asyncon.push (data)
 					
 	def handle_request (self):
+		if self.asyncon.isconnected () and self.asyncon.get_proto ():			
+			return self.switch_to_http2 ()
 		self.buffer, self.response = b"", None
-		self.asyncon.set_terminator (b"\r\n\r\n")
+		self.asyncon.set_terminator (b"\r\n\r\n")	
 		if (self.asyncon.connected) or not (self._ssl or self.request.initial_http_version == "2.0"):
 			# IMP: if already connected, it means not http2
 			upgrade = True
@@ -369,12 +319,12 @@ class RequestHandler (base_request_handler.RequestHandler):
 			elif self.asyncon.isconnected ():
 				upgrade = False
 			for data in self.get_request_buffer ("1.1", upgrade):
-				self.asyncon.push (data)		
+				self.asyncon.push (data)	
 		if self._ssl and self.FORCE_HTTP_11 and self.request.initial_http_version != "2.0":
-			self.asyncon.negotiate_http2 (False)
+			self.asyncon.negotiate_http2 (False)		
 		self.asyncon.begin_tran (self)
 	
-	def will_be_close (self):		
+	def will_be_close (self):
 		if self.connection == "close": #server misbehavior ex.paxnet
 			return True
 				

@@ -1,6 +1,6 @@
 # 2016. 1. 10 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.5.5"
+__version__ = "0.6"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 
 from . import lifetime, queue, request_builder, response_builder, stubproxy
@@ -69,7 +69,8 @@ def configure (
 	callback = None, timeout = 10, 
 	cookie = False, 
 	force_http1 = False,
-	http2_constreams = 1
+	http2_constreams = 1,
+	allow_redirects = True
 ):
 	global _logger, _cb_gateway, _concurrent, _initialized, _timeout, _workers
 	
@@ -78,6 +79,7 @@ def configure (
 	_logger = logger
 	
 	request_handler.RequestHandler.FORCE_HTTP_11 = force_http1
+	request_handler.RequestHandler.ALLOW_REDIRECTS = allow_redirects
 	http2.MAX_HTTP2_CONCURRENT_STREAMS = max (http2_constreams, 3)		
 	_workers = workers
 	_concurrent = workers

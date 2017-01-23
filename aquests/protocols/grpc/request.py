@@ -43,8 +43,15 @@ class GRPCRequest (XMLRPCRequest):
 		return (host, port), path
 	
 	def serialize (self):
-		return grpc_producer (self.params [0])
+		payload = []
+		p = grpc_producer (self.params [0])
+		while 1:
+			d = p.more ()
+			if not d: break
+			payload.append (d)
+		d = b''.join (d)
+		cl = len (d)
+		self.headers ["Content-Length"] = cl		
+		self.set_content_length (cl)
+		return d
 	
-	def get_content_length (self):
-		return self.payload.get_content_length ()
-		

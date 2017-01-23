@@ -16,8 +16,6 @@ from aquests.lib.athreads.fifo import await_fifo
 from aquests.lib.ssl_ import resolve_cert_reqs, resolve_ssl_version, create_urllib3_context
 from collections import deque
 
-NPN_PROTOCOL = 'h2'
-H2_NPN_PROTOCOLS = [NPN_PROTOCOL, 'h2-16', 'h2-15', 'h2-14']
 DEBUG = False
 	
 class SocketPanic (Exception): pass

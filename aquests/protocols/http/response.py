@@ -44,6 +44,9 @@ class Response:
 		self.__encoding = None
 		self.__data_cache = None
 		self.save_cookies ()
+	
+	def __repr__ (self):
+		return "<Response [%d]>" % self.status_code
 		
 	def set_max_age (self):
 		self.max_age = 0
@@ -205,6 +208,10 @@ class Response:
 		if ls.g:
 			return ls.g.get_cookie_as_dict (self.url)
 		raise SystemError ("Cookie Storage Not Initiated")
+	
+	@property
+	def history (self):		
+		return self.request.get_history ()
 		
 	@property
 	def url (self):		
@@ -252,7 +259,10 @@ class Response:
 	
 	@property
 	def content (self):
-		return self.raw.read ()
+		try:
+			return self.raw.read ()
+		except AttributeError:
+			return b''	
 	
 	@property
 	def binary (self):

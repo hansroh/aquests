@@ -7,16 +7,29 @@ import struct
 import base64
 import json
 try: 
-	from urllib.parse import urlparse, quote
+	from urllib.parse import urlparse, quote, urljoin
 except ImportError:
 	from urllib import quote
-	from urlparse import urlparse
+	from urlparse import urlparse, urljoin
 				
 from aquests.lib import producers, strutil
 
+class HistoricalResponse:
+	def __init__ (self, response):
+		self.status_code = response.status_code
+		self.reason = response.reason
+		self.url = response.url
+		self.headers = response.headers
+		self.content = response.content
+	
+	def __repr__ (self):
+		return "<Response [%d]>" % self.status_code
+
+	
 class XMLRPCRequest:	
 	user_agent = "Mozilla/5.0 (compatible; Aquests/%s.%s)" % aquests.version_info [:2]
 	initial_http_version = "1.1"
+	allow_redirects = True
 			
 	def __init__ (self, uri, method, params = (), headers = None, auth = None, logger = None, meta = {}, http_version = None):
 		# mount point generalizing, otherwise some servers reponse 301
@@ -29,6 +42,7 @@ class XMLRPCRequest:
 		self.http_version = http_version
 		self.content_length = 0
 		self.address, self.path = self.split (uri)
+		self._history = []
 		self.__xmlrpc_serialized = False
 		self.headers = {
 			"Accept": "*/*",
@@ -42,6 +56,36 @@ class XMLRPCRequest:
 					continue					
 				self.headers [k] = v			
 		self.payload = self.serialize ()
+	
+	def add_history (self, response):
+		self._history.append (HistoricalResponse (response))
+	
+	def get_history (self):	
+		return self._history
+	
+	def _relocate (self, response):
+		if len (self._history) > 5:
+			raise RuntimeError ("Maximum Redirects Reached")
+						
+		if response.status_code in (301, 302):
+			if self.get_method () in ("POST", "PUT"):			
+				self.payload = b""
+				self.set_content_length (0)
+				self.remove_header ('content-type')
+				self.remove_header ('content-length')
+				self.remove_header ('transfer-encoding')
+				self.remove_header ('content-encoding')
+			self.method = "GET"
+		self.uri = urljoin (self.uri, response.get_header ('location'))
+		self.address, self.path = self.split (self.uri)
+		self.add_history (response)
+		response.request = None # cut back ref.
+		return self
+			
+	def relocate (self, response):
+		if response.status_code in (301, 302):
+			raise TypeError ("XMLRPC Cannot Be Moved")
+		return self._relocate (response)
 		
 	def set_content_length (self, length):
 		self.content_length = length
@@ -121,6 +165,17 @@ class XMLRPCRequest:
 		return self.payload
 	get_data = get_payload	
 	
+	def remove_header (self, key):
+		if not self.headers:	
+			return
+		k = k.lower ()
+		deletable = None
+		for n, v in self.headers.items ():
+			if n.lower () == k:
+				deletable = n
+		if deletable:
+			del self.headers [n]		
+		
 	def get_header (self, k, with_key = False):
 		if self.headers:
 			k = k.lower ()
@@ -137,9 +192,11 @@ class XMLRPCRequest:
 		self.build_header ()
 		return list (self.headers.items ())
 
-
 	
 class HTTPRequest (XMLRPCRequest):		
+	def relocate (self, response):
+		return self._relocate (response)
+		
 	def get_method (self):
 		return self.method.upper ()
 	
@@ -224,6 +281,9 @@ class HTTPMultipartRequest (HTTPRequest):
 		if type (self.params) is bytes:
 			self.find_boundary ()
 	
+	def relocate (self, response):
+		XMLRPCRequest.relocate (self, response)
+		
 	def get_cache_key (self):
 		return None
 		

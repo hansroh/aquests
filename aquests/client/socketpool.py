@@ -200,7 +200,7 @@ class SocketPool:
 				
 	def get (self, uri):	
 		scheme, server, script, params, qs, fragment = urlparse (uri)
-		serverkey = "%s://%s" % (scheme, server)		
+		serverkey = "%s://%s" % (scheme, server)	
 		return self._get (serverkey, server, scheme)
 		
 	def cleanup (self):

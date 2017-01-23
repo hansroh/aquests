@@ -37,8 +37,10 @@ def gen_token (secret_key, claim, alg = "HS256"):
 
 
 if __name__ == "__main__":
-	sk = b"your_secret_key_for_JWT_authorization"
+	sk = b"8fa06210-e109-11e6-934f-001b216d6e71"
 	token = gen_token (sk, {'user': 'Hans Roh', 'roles': ['user']}, "HS256")
+	
+	# eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJyb2xlcyI6IFsidXNlciJdLCAidXNlciI6ICJIYW5zIFJvaCJ9.ls7R30APuI9QkeI0nVa0YOV3fBo2SlFg0ESzdyPzuv0
 	print (token)
 	print (get_claim (sk, token))
 	

@@ -21,6 +21,12 @@ class FakeAsynConnect:
 	def __init__ (self, logger):
 		self.logger = logger
 	
+	def get_proto (self):
+		return "h2"
+		
+	def is_proxy (self):
+		return False
+		
 	def handle_close (self, *args, **karg):
 		pass
 		
@@ -135,8 +141,8 @@ class RequestHandler (base_request_handler.RequestHandler):
 	def handle_request (self, handler):
 		self.request = handler.request
 		stream_id = self.get_new_stream_id ()		
-		self.add_request (stream_id, handler)
-		self.asyncon.set_active (False)
+		self.add_request (stream_id, handler)		
+		self.asyncon.set_active (False)		
 		
 		headers, content_encoded = handler.get_request_header ("2.0", False)
 		payload = handler.get_request_payload ()
@@ -280,10 +286,13 @@ class RequestHandler (base_request_handler.RequestHandler):
 				else:		
 					self.increment_flow_control_window ((2 ** 31 - 1) - iws)
 				
-			elif isinstance(event, StreamEnded):				
+			elif isinstance(event, StreamEnded):
 				h = self.get_handler (event.stream_id)
 				if h:
 					self.remove_handler (event.stream_id)
-					#print ('@@@@@@@@@@', event.stream_id, list (self.requests.keys()))
-					h.callback (h)
+					if h.handle_redirect () or h.handled_http_authorization ():
+						pass
+					else:						
+						h.callback (h)
+						
 		self.send_data ()

@@ -53,6 +53,7 @@ responses = {
 		708: "No Data Recieved",
 		709: "Invalid Content",
 		710: "Channel Closed",	
+		711: "Redirect Error",
 		720: "HTTP2 Connection Closed",
 		721: "HTTP2 Stream Reset"
 }

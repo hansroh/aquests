@@ -253,6 +253,7 @@ Below things are available only on DBO responses.
 Below things aren't available on DBO responses.
 
 - url: requested url
+- history: redirected history by http code 301, 302, 307 and 308 like *[<Response [302]>, <Response [302]>]*
 - version: HTTP protocol version
 - headers: Response headers
 - text: charset encoded string (unicode)
@@ -284,7 +285,8 @@ Configuration Parameters
     timeout = 10, 
     cookie = False,
     force_http1 = False, 
-    http2_constreams = 1
+    http2_constreams = 1,
+    allow_redirects = True
   )
   
 - workers: number of fetching workers, it'not threads
@@ -294,6 +296,7 @@ Configuration Parameters
 - cookie: enable/disable using cookie for request
 - force_http1: enforce http 1.1 not 2.0
 - http2_constreams: if you making requests to single http2 server, how many concurrent streams per channel. BE CAREFUL, it might be useful for generating traffic load for testing your http2 web servers. and if your server doesn't provide http2, your workers will be increased to number of http2_constreams times than you really want.
+- allow_redirects: if set True, in case HTTP status code is in 301, 302, 307, 308 then redirect automatically
 
 
 List of Methods
@@ -617,7 +620,7 @@ Note: stub's methods and parameters are defined by database engines. Please read
 
 History
 =========
-
+- 0.6: enter beta status, add configure option: allow_redirects, new response.history
 - 0.5.2: remove ready_producer_fifo, this will be used only serverside
 - 0.5.1: change from list to deque on producer_fifo
 - 0.4.33: force_http1 applied to https
