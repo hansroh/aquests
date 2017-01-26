@@ -1,5 +1,5 @@
 from . import response, request
-from aquests.protocols.http import request_handler
+from aquests.protocols.http import request_handler, http_auth
 from aquests.protocols.http.response import FailedResponse
 from aquests.client import asynconnect
 from aquests.lib import strutil
@@ -17,7 +17,7 @@ try:
 except ImportError:
 	from io import BytesIO
 from . import OPCODE_CLOSE, OPCODE_TEXT, PAYLOAD_LEN, FIN, OPCODE, MASKED
-	
+
 class RequestHandler (request_handler.RequestHandler):
 	def __init__ (self, asyncon, request, callback, *args, **karg):
 		request_handler.RequestHandler.__init__ (self, asyncon, request, callback)
@@ -42,7 +42,7 @@ class RequestHandler (request_handler.RequestHandler):
 				self.asyncon.push (buf)
 		else:	
 			self.asyncon.set_terminator (2)
-			self.asyncon.push (self.request.get_message ())
+			self.asyncon.push (self.request.get_payload ())
 		self.asyncon.begin_tran (self)
 		
 	def get_request_buffer (self):
@@ -62,7 +62,7 @@ class RequestHandler (request_handler.RequestHandler):
 		hc ['Upgrade'] = 'websocket'
 		hc ['Cache-Control'] = 'no-cache'		
 		
-		auth_header = self.get_http_auth_header ()
+		auth_header = http_auth.authorizer.make_http_auth_header (self.request, self.asyncon.is_proxy ())
 		if auth_header:
 			hc ["Authorization"] = auth_header
 		
@@ -78,11 +78,13 @@ class RequestHandler (request_handler.RequestHandler):
 			# possibly retry or close_case with error
 			request_handler.RequestHandler.connection_closed (self, why, msg)
 		else:
-			self.response = response.Response (self.request, why, msg, -1, -1)
+			if self.response is None:
+				self.response = response.Response (self.request, why, msg)
+			self.opcode = -1
+			self.add_message ('')													
 			self.close_case_with_end_tran ()
 	
-	def collect_incoming_data (self, data):
-		#print ("+++++++", data, self._handshaking)
+	def collect_incoming_data (self, data):		
 		if self._handshaking:
 			request_handler.RequestHandler.collect_incoming_data (self, data)
 		elif self.masks or (not self.has_masks and self.payload_length):
@@ -108,9 +110,15 @@ class RequestHandler (request_handler.RequestHandler):
 			self._handshaking = False
 			self.asyncon.upgraded = True											
 
-			self.asyncon.push (self.request.get_message ())
+			self.asyncon.push (self.request.get_payload ())
 			self.asyncon.set_terminator (2)
-						
+	
+	def add_message (self, data):
+		if self.response is None:
+			self.response = response.Response (self.request, 200, "OK", self.opcode, data)
+		else:
+			self.response.add_message (self.opcode, data)
+								
 	def found_terminator (self):
 		if self._handshaking:
 			request_handler.RequestHandler.found_terminator (self)
@@ -128,8 +136,8 @@ class RequestHandler (request_handler.RequestHandler):
 				# text
 				data = data.decode('utf-8')
 			
-			self.response = response.Response (self.request, 200, "OK", self.opcode, data)
-			self.asyncon.set_terminator (2)			
+			self.add_message (data)
+			self.asyncon.set_terminator (2)
 			self.close_case_with_end_tran ()
 						
 		elif self.payload_length:
@@ -152,7 +160,7 @@ class RequestHandler (request_handler.RequestHandler):
 			fin    = b1 & FIN
 			self.opcode = b1 & OPCODE
 			if self.opcode == OPCODE_CLOSE:				
-				self.response = response.Response (self.request, 200, "OK", self.opcode, "")
+				self.add_message ("")
 				self.asyncon.disconnect ()
 				self.close_case_with_end_tran ()
 				return
@@ -163,10 +171,10 @@ class RequestHandler (request_handler.RequestHandler):
 			
 			payload_length = b2 & PAYLOAD_LEN
 			if payload_length == 0:
-				self.response = response.Response (self.request, 200, "OK", self.opcode, "")
+				self.add_message ("")
 				self.opcode = None
 				self.has_masks = True
-				self.asyncon.set_terminator (2)				
+				self.asyncon.set_terminator (2)
 				self.close_case_with_end_tran ()
 				return
 			
@@ -183,5 +191,4 @@ class RequestHandler (request_handler.RequestHandler):
 
 		else:
 			raise AssertionError ("Web socket frame decode error")
-					
-		
+	

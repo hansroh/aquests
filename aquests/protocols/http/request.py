@@ -11,8 +11,8 @@ try:
 except ImportError:
 	from urllib import quote
 	from urlparse import urlparse, urljoin
-				
-from aquests.lib import producers, strutil
+from aquests.lib import strutil
+from .producer import multipart_producer
 
 class HistoricalResponse:
 	def __init__ (self, response):
@@ -162,7 +162,18 @@ class XMLRPCRequest:
 		return self.auth
 		
 	def get_payload (self):
-		return self.payload
+		# check if producer payload
+		try:
+			self.payload.closed
+		except AttributeError:
+			return self.payload
+		
+		# if producer closed, use cached payload
+		if self.payload.closed:
+			return self.payload.get_payload ()
+		else:
+			return self.payload
+			
 	get_data = get_payload	
 	
 	def remove_header (self, key):
@@ -298,11 +309,11 @@ class HTTPMultipartRequest (HTTPRequest):
 		if b [:2] != b"--":
 			raise ValueError("invalid multipart/form-data")
 		self.boundary = b [2:s]
-		
+			
 	def serialize (self):
 		self.headers ["Content-Type"] = "multipart/form-data; boundary=" + self.boundary
 		if type (self.params) is dict:
-			p = producers.multipart_producer (self.params, self.boundary)
+			p = multipart_producer (self.params, self.boundary)
 			cl = p.get_content_length ()
 			self.headers ["Content-Length"] = cl
 			self.set_content_length (cl)

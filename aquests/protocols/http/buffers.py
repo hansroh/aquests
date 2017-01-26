@@ -123,30 +123,6 @@ class bytes_buffer:
 	def no_cache (self):
 		self.cache = 0
 		self.cdata = []
-
-
-class grpc_buffer (bytes_buffer):
-	def build_data (self):
-		msgs = []
-		fp = self.fp
-		fp.seek (0)
-		
-		byte = fp.read (1)
-		while byte:
-			iscompressed = struct.unpack ("<B", byte) [0]
-			length = struct.unpack ("<i", fp.read (4)) [0]
-			msg = fp.read (length)
-			msgs.append (msg)
-			byte = fp.read (1)
-		return tuple (msgs)
-	
-	def close (self):
-		if self.cdata:
-			return self.cdata
-		res = self.build_data ()
-		if self.cache:
-			self.cdata = res
-		return res
 		
 def getfakeparser (target_class, cache = False):
 	target = target_class (cache)

@@ -191,11 +191,39 @@ For requesting with basic/digest authorization:
 
 .. code:: python
 
-  s = was.rpc (url, auth = (username, password))
-  rs = s.get_prime_number_gt (10000)
-  result = rs.getwait (2)
-
+  stub = aquests.rpc (url, auth = (username, password))
+  stub.get_prime_number_gt (10000)
+  aquests.fetchall ()
+  
 If you provide both (username, password), aquests try basic/digest authorization. But if just (username,) aquests handle username as bearer token like API Key.
+
+
+Redirection
+------------
+
+For automatically redireting by http status 301, 302, 307, 308:
+
+.. code:: python
+  
+  def finish_request (response):
+    print (response.history)
+    
+  aquests.configure (callback = finish_request)
+  aquests.get ('http://pypi.python.org')
+  aquests.fetchall ()
+  
+response.history is like,
+
+.. code:: python
+
+  [<Response [301]>, <Response [302]>]
+
+Also for disabling redirect,
+
+.. code:: python
+
+  aquests.configure (callback = finish_request, allow_redirects = False)
+  
 
 Enabling Cookie
 ------------------
@@ -244,13 +272,17 @@ Response has these attributes and method:
 - raise_for_status (): raise exception when HTTP status code >= 300 or DBO command excution failure
 - reraise (): shortcut for raise_for_status ()
 
+Below thing is available only on Websocket response.
+
+- opcode: websocket opcode of received message
+
 Below things are available only on DBO responses.
 
 - server: database server address
 - dbname: database object name
 - params: database command parameters
 
-Below things aren't available on DBO responses.
+Below things aren't available on DBO and Websocket responses.
 
 - url: requested url
 - history: redirected history by http code 301, 302, 307 and 308 like *[<Response [302]>, <Response [302]>]*
@@ -385,7 +417,17 @@ Websocket
   aquests.ws ("wss://127.0.0.1:5000/websocket/echo", "Hello World")
   aquests.fetchall ()
 
-If you want to specify message type.
+Response is like this,
+  
+- response.status_code: 200
+- response.reason: "OK"
+- response.content: (1, "Hello World") # (opcode, message)
+- response.opcode: 1 # OPCODE_TEXT
+- response.data: "Hello World"
+
+Note: Sometimes status_code is 200, opcode is -1. It is NOT official websocket spec. but means websocket is successfully connected but disconnected before receving a message by some reasons.
+
+If you want to send specify message type.
 
 .. code-block:: python
   
@@ -393,7 +435,7 @@ If you want to specify message type.
     
   aquests.ws ("ws://127.0.0.1:5000/websocket/echo", (OPCODE_BINARY, b"Hello World"))
   aquests.fetchall ()
-  
+
 
 XML-RPC
 ----------
@@ -620,7 +662,16 @@ Note: stub's methods and parameters are defined by database engines. Please read
 
 History
 =========
-- 0.6: enter beta status, add configure option: allow_redirects, new response.history
+
+- 0.6.1: fix websocket text data encoding
+
+- 0.6: 
+  
+  * add configure option: allow_redirects
+  * new response.history
+  * fix 30x redirection
+  * fix 401 unauthorized
+  
 - 0.5.2: remove ready_producer_fifo, this will be used only serverside
 - 0.5.1: change from list to deque on producer_fifo
 - 0.4.33: force_http1 applied to https

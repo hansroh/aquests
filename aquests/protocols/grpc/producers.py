@@ -3,25 +3,16 @@ from collections import Iterable
 import struct
 
 class grpc_producer:
-	def __init__ (self, msg = None):
+	def __init__ (self, message = None):
 		self.closed = False
 		self.compressor = compressors.GZipCompressor ()
-		self.message = msg
-		self.serialized = b""
+		self.message = message
+		self.serialized = []
 		self.content_length = 0
 		
-	def content_length (self):
-		if self.content_length:
+	def get_content_length (self):
+		if self.closed:
 			return self.content_length
-		
-		content_length = 0	
-		while 1:
-			d = self.more ()
-			if not d:
-				break
-			self.serialized += d
-			content_length += len (d)
-		self.content_length = 0
 		
 	def send (self, msg):
 		self.message.send (msg)
@@ -32,13 +23,15 @@ class grpc_producer:
 		if len (serialized) > 2048:
 			serialized = self.compressor.compress (serialized) + self.compressor.flush ()
 			compressed = 1						
-		return struct.pack ("!B", compressed) + struct.pack ("!I", len (serialized)) + serialized
-				
-	def more (self):	
-		if self.content_length:
-			self.close ()
-			return self.serialized
-				
+		s = struct.pack ("!B", compressed) + struct.pack ("!I", len (serialized)) + serialized
+		self.serialized.append (s)
+		self.content_length += len (s)
+		return s
+	
+	def get_payload (self):			
+		return b"".join (self.serialized)
+		
+	def more (self):
 		if self.closed and not self.message:
 			return b""
 		
@@ -51,7 +44,7 @@ class grpc_producer:
 			msg = next (self.message)			
 			return self.serialize (msg)
 		except StopIteration:
-			self.close ()			
+			self.close ()
 			return b""
 		
 	def close (self):	

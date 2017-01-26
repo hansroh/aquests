@@ -1,17 +1,36 @@
 from aquests.protocols.http import response
 
 class Response (response.Response):
-	def __init__ (self, request, code, msg, opcode, data = None):
+	def __init__ (self, request, code, msg, opcode = None, data = None):
 		self.request = request
 		self.code = code
 		self.msg = msg
-		self.__data = data
-		self.version = "1.1"
-		self.opcode = opcode
-	
+		self.__data = []
+		if opcode:
+			self.__data.append ((opcode, data))		
+		self.version = "1.1"		
+		
+	def add_message (opcode, data = None):
+		self.__data.append ((opcode, data))
+		
+	@property
+	def content (self):
+		if not self.__data:
+			return None
+		return self.__data [0]
+		
 	@property
 	def data (self):
-		return self.__data
+		if not self.__data:
+			return None
+		return self.content [0][1]
+	
+	@property
+	def opcode (self):
+		if not self.__data:
+			return None
+		return self.content [0][0]
+	
 	
 	@property
 	def headers (self):

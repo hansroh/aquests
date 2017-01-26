@@ -5,6 +5,7 @@ import time
 import json
 import struct
 from aquests.protocols.grpc import discover
+from aquests.protocols.grpc.buffers import grpc_buffer
 from . import buffers, treebuilder
 from . import localstorage as ls
 
@@ -105,7 +106,7 @@ class Response:
 		self.set_max_age ()
 		ct = self.get_header ("content-type", "")
 		if ct.startswith ('application/grpc'):
-			self.p, self.u = buffers.getfakeparser (buffers.grpc_buffer, cache = self.max_age)
+			self.p, self.u = buffers.getfakeparser (grpc_buffer, cache = self.max_age)
 		elif ct == 'text/xml' and self.request.xmlrpc_serialized ():
 			self.p = self.u = buffers.cachable_xmlrpc_buffer (self.max_age)
 			self.is_xmlrpc_return = True
