@@ -25,8 +25,6 @@ class AsynConnect (asynchat.async_chat):
 	ac_in_buffer_size = 65535
 	ac_out_buffer_size = 65535
 	zombie_timeout = 10
-	keep_alive_timeout = 10
-	network_delay_timeout = 10
 	request_count = 0
 	active = 0
 	proxy = False
@@ -184,14 +182,11 @@ class AsynConnect (asynchat.async_chat):
 		return self.request_count
 	
 	def add_channel (self, map = None):
-		self.zombie_timeout =  self.network_delay_timeout
 		self._fileno = self.socket.fileno ()
 		return asynchat.async_chat.add_channel (self, map)		
 		
 	def del_channel (self, map = None):
 		asynchat.async_chat.del_channel (self, map)
-		# make default and sometimes reset server'stimeout	
-		self.zombie_timeout =  self.keep_alive_timeout
 				
 	def create_socket (self, family, type):
 		self.family_and_type = family, type
@@ -273,19 +268,9 @@ class AsynConnect (asynchat.async_chat):
 	def close_if_over_keep_live (self):
 		if time.time () - self.event_time > self.zombie_timeout:
 			self.disconnect ()
-	
-	def set_zombie_timeout (self, timeout = 10):
+		
+	def set_timeout (self, timeout = 10):
 		self.zombie_timeout = timeout
-		
-	def set_timeout (self, a = 10, b = 10):
-		self.set_keep_alive_timeout (a)
-		self.set_network_delay_timeout (b)
-		
-	def set_network_delay_timeout (self, timeout = 10):
-		self.network_delay_timeout = timeout
-	
-	def set_keep_alive_timeout (self, timeout = 10):
-		self.keep_alive_timeout = timeout
 		
 	def handle_connect (self):
 		if hasattr (self.handler, "has_been_connected"):		

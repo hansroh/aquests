@@ -135,7 +135,7 @@ class DBConnect:
 	def connect (self, force = 0):
 		raise NotImplementedError("must be implemented in subclass")
 	
-	def set_zombie_timeout (self, timeout):
+	def set_timeout (self, timeout):
 		self.zombie_timeout = timeout
 
 	def handle_timeout (self):

@@ -81,7 +81,7 @@ class MyTest (unittest.TestCase):
 	
 	def test_9 (self):	
 		munreq = 3000				
-		aquests.configure (10, callback = self.increase, http2_constreams = 10)
+		aquests.configure (2, callback = self.increase, http2_constreams = 5)
 		for i in range (munreq):
 			aquests.get (SERVER)
 		aquests.fetchall ()
