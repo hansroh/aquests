@@ -1,6 +1,8 @@
+from collections import deque
+
 class Queue:
 	def __init__ (self):
-		self.q = []
+		self.q = deque ()
 		self.__req_id = 0
 	
 	@property
@@ -13,7 +15,6 @@ class Queue:
 		
 	def get (self):
 		try:
-			return self.q.pop (0)
+			return self.q.popleft ()
 		except IndexError:
 			return None
-			
