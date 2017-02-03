@@ -105,7 +105,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 			self.uri,
 			http_version,
 			"\r\n".join (self.header)
-		)).encode ("utf8")
+		)).encode ("utf8")		
 		return req
 		
 	def get_request_payload (self):
@@ -209,18 +209,18 @@ class RequestHandler (base_request_handler.RequestHandler):
 				return True
 		return False
 	
-	def handle_redirect (self):
+	def handle_redirect (self):		
 		if not self.ALLOW_REDIRECTS:
 			return 0
-
-		if self.response.status_code in (301, 302, 307, 308):
-			#print ('+++', self.response.status_code, self.response.get_header ('location'))
+		
+		if self.response.status_code in (301, 302, 307, 308):			
 			try:
 				self.request = self.response.request.relocate (self.response)
-			except:				
+			except:
 				self.response.code, self.response.msg = 711, respcodes.get (711)
 				return 0
-			self.asyncon.end_tran ()									
+			
+			self.asyncon.end_tran ()												
 			self.asyncon = socketpool.get (self.request.uri)
 			if not self.asyncon.isconnected (): 
 				# domain's changed
@@ -265,7 +265,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 			self.asyncon.disconnect ()			
 		self.close_case_with_end_tran ()
 				
-	def connection_closed (self, why, msg):
+	def connection_closed (self, why, msg):		
 		if self.response and self.expect_disconnect:
 			self.close_case ()
 			return
@@ -319,9 +319,9 @@ class RequestHandler (base_request_handler.RequestHandler):
 			elif self.asyncon.isconnected ():
 				upgrade = False
 			for data in self.get_request_buffer ("1.1", upgrade):
-				self.asyncon.push (data)	
+				self.asyncon.push (data)				
 		if self._ssl and self.FORCE_HTTP_11 and self.request.initial_http_version != "2.0":
-			self.asyncon.negotiate_http2 (False)		
+			self.asyncon.negotiate_http2 (False)
 		self.asyncon.begin_tran (self)
 	
 	def will_be_close (self):

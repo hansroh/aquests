@@ -203,7 +203,11 @@ class Response:
 	
 	def __nonzero__ (self):
 		return self.status_code < 300 and self.data and True or False
-		
+	
+	@property
+	def meta (self):
+		return self.request.meta
+			
 	@property
 	def cookies (self):
 		if ls.g:

@@ -122,7 +122,6 @@ class buffer_list_producer:
 	# i.e., data == string.join (buffers, '')
 	
 	def __init__ (self, buffers):
-
 		self.index = 0
 		self.buffers = buffers
 
@@ -265,13 +264,12 @@ class hooked_producer (globbing_producer):
 		self.function = function
 		self.bytes = 0
 		self.bind_ready ()
-
+		
 	def more (self):
-		#print "hooked_producer.more ()"
 		if self.producer:
-			result = self.producer.more()
-			if not result:
-				self.producer = None
+			result = self.producer.more()			
+			if not result:				
+				self.producer = None				
 				self.function (self.bytes)
 			else:
 				self.bytes = self.bytes + len(result)

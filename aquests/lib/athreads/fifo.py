@@ -17,20 +17,20 @@ class await_fifo:
 	def __len__ (self):
 		if self.l:
 			if not hasattr (self.l [0], 'ready'):
-				return 1
+				return len (self.l)
 			if not self.l [0].ready ():
 				item = self.l.popleft ()
 				self.r.append (item)
 		
 		if self.l:
-			return 1
+			return len (self.l)
 	
 		if self.r:
 			for i in range (len (self.r)):				
 				if self.r [0].ready ():
 					self.l.append (self.r.popleft ())
 					return 1	
-				self.r.rotate (1)				
+				self.r.rotate (1)
 		
 		if self.has_None and not self.l and not self.r:
 			# for return None
@@ -41,13 +41,10 @@ class await_fifo:
 		return 0
 			
 	def __getitem__(self, index):
-		return self.l [index]			
+		return self.l [index]
 				
 	def __setitem__(self, index, item):
-		if index == 0:
-			self.l.appendleft (item)
-		else:
-			self.l.append (item)
+		self.l [index] = item
 		
 	def __delitem__ (self, index):
 		del self.l [index]
@@ -71,7 +68,7 @@ class await_fifo:
 		if self.has_None:
 			return # deny adding			
 		if hasattr (item, 'ready'):
-			return self.r.append (item)		
+			return self.r.append (item)
 		self.insert_into (self.l, index, item)
 		
 	def clear (self):
