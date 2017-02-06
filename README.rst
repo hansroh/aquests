@@ -663,6 +663,8 @@ Note: stub's methods and parameters are defined by database engines. Please read
 History
 =========
 
+- 0.6.4.2: license changed from BSD to MIT
+
 - 0.6.4.1: fix await_fifo bug
 
 - 0.6.3: fix lifetime,  tmap

@@ -20,7 +20,7 @@ if sys.argv[-1] == 'publish':
 	sys.exit()
 
 classifiers = [
-  'License :: OSI Approved :: BSD License',
+  'License :: OSI Approved :: MIT License',
   'Development Status :: 4 - Beta',
   'Topic :: Internet :: WWW/HTTP',
   'Topic :: Database :: Front-Ends',
@@ -88,7 +88,7 @@ setup(
 	packages=packages,
 	package_dir=package_dir,
 	package_data = package_data,
-	license='BSD',
+	license='MIT',
 	platforms = ["posix", "nt"],
 	download_url = "https://pypi.python.org/pypi/aquests",
 	install_requires = install_requires,
