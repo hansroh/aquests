@@ -1,4 +1,5 @@
 from aquests.lib.attrdict import AttrDict
+from aquests.lib.cbutil import tuple_cb
 
 class Request:
 	def __init__ (self, dbtype, server, dbname, method, params, callback = None, meta = {}):
@@ -41,7 +42,10 @@ class Request:
 	@property
 	def reason (self):
 		return self.msg
-			
+	
+	def handle_callback (self):
+		tuple_cb (self, self.callback)
+					
 	def handle_result (self, description, expt_class, expt_str, data):
 		self.expt_class, self.expt_str = expt_class, expt_str
 		if expt_class:
@@ -49,7 +53,7 @@ class Request:
 
 		self.description = description
 		self.__content = data
-		self.callback (self)
+		self.handle_callback ()
 	
 	@property
 	def content (self):

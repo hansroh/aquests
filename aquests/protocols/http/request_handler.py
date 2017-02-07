@@ -8,6 +8,7 @@ import os
 from hyperframe.frame import SettingsFrame
 from aquests.protocols.http2 import H2_PROTOCOLS
 from aquests.client import socketpool
+from aquests.lib.cbutil import tuple_cb
 
 class RequestHandler (base_request_handler.RequestHandler):
 	FORCE_HTTP_11 = False
@@ -284,11 +285,13 @@ class RequestHandler (base_request_handler.RequestHandler):
 		self.asyncon.end_tran ()
 		self.close_case ()
 		
+	def handle_callback (self):
+		tuple_cb (self, self.callback)		
+			
 	def close_case (self):
 		if self.asyncon:
 			self.asyncon.handler = None # unlink back ref.
-		if self.callback:
-			self.callback (self)
+		self.handle_callback ()
 	
 	def switch_to_http2 (self):
 		if self.http2_handler is None:

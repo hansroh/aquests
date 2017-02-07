@@ -185,8 +185,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 			requests = list (self.requests.items ())
 		for stream_id, h in requests:
 			h.response = http_response.FailedResponse (720, respcodes.get (720), h.request)
-			if h.callback:
-				h.callback (h)
+			h.handle_callback ()
 		with self._llock:
 			self.requests = {}
 
@@ -263,8 +262,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 					h = self.get_handler (event.stream_id)
 					if h:
 						h.response = http_response.FailedResponse (721, respcodes.get (721), h.request)
-						if h.callback:
-							h.callback (h)						
+						h.handle_callback ()
 						self.remove_handler (event.stream_id)
 					
 			elif isinstance(event, ConnectionTerminated):
@@ -293,6 +291,6 @@ class RequestHandler (base_request_handler.RequestHandler):
 					if h.handle_redirect () or h.handled_http_authorization ():
 						pass
 					else:						
-						h.callback (h)
+						h.handle_callback ()
 						
 		self.send_data ()
