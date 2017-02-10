@@ -51,26 +51,32 @@ class AsynConnect (asynchat.async_chat):
 	def close (self):
 		if self._closed:
 			return
-			
+		
 		if self.socket:
 			# self.socket is still None, when DNS not found
 			asynchat.async_chat.close (self)
-		
+			self._fileno = None
+			
 		# re-init asychat
 		self.ac_in_buffer = b''
 		self.incoming = []
 		self.producer_fifo.clear()		
 		self._proto = None
 		
-		if self.handler and self.errcode:		
-			self.handler.connection_closed (self.errcode, self.errmsg)
+		keep_active = False
+		if self.handler and self.errcode:					
+			try:
+				keep_active = self.handler.connection_closed (self.errcode, self.errmsg)
+			except:
+				self.trace ()					
 		
-		self.set_active (False)
-		self.handler = None
-		self._closed = True
-		
+		if not keep_active:
+			self.set_active (False)
+			self.handler = None
+			self._closed = True
+
 		if not self.proxy_client:
-			self.logger ("[info] .....socket %s:%d has been closed" % self.address)
+			self.logger ("[info] .....socket %s:%d has been closed" % self.address)		
 		
 	def end_tran (self):
 		self.del_channel ()
@@ -145,6 +151,7 @@ class AsynConnect (asynchat.async_chat):
 	def is_channel_in_map (self, map = None):
 		if map is None:
 			map = self._map
+		print ('~~~~~~', map)	
 		return self._fileno in map
 		
 	def set_active (self, flag, nolock = False):
@@ -180,20 +187,27 @@ class AsynConnect (asynchat.async_chat):
 		
 	def get_request_count (self):	
 		return self.request_count
-	
-	def add_channel (self, map = None):
-		self._fileno = self.socket.fileno ()
-		return asynchat.async_chat.add_channel (self, map)		
 		
 	def del_channel (self, map = None):
-		asynchat.async_chat.del_channel (self, map)
-				
-	def create_socket (self, family, type):
+		fd = self._fileno
+		if map is None:
+			map = self._map
+		if fd in map:
+			del map[fd]
+            			
+	def create_socket (self, family, type):		
 		self.family_and_type = family, type
 		sock = socket.socket (family, type)
 		sock.setblocking (0)
 		self.set_socket (sock)
 	
+	"""
+	def set_socket (self, sock):
+		if self._fileno:
+			self.close ()
+		asynchat.async_chat.set_socket (self, sock)
+	"""
+			
 	def connect (self):
 		if adns.query:
 			adns.query (self.address [0], "A", callback = self.continue_connect)
@@ -225,13 +239,18 @@ class AsynConnect (asynchat.async_chat):
 		except:	
 			self.handle_error ()
 	
-	def recv (self, buffer_size):		
+	def recv (self, buffer_size):
 		self.set_event_time ()
 		try:
-			data = self.socket.recv (buffer_size)
-			#print ("+", len (data), end = ' ')
+			data = self.socket.recv (buffer_size)			
 			if not data:
 				self.handle_close (700, "Connection closed unexpectedly in recv")
+				"""
+				print ('+++', self._fileno,  self.socket and self.socket.fileno() or -1, '::')
+				try: self._map [self._fileno]
+				except KeyError: pass
+				else: raise TypeError					
+				"""
 				return b''
 			else:
 				return data		
@@ -346,7 +365,7 @@ class AsynConnect (asynchat.async_chat):
 		self.handle_close (0, "")
 	
 	def reconnect (self):
-		self.disconnect ()
+		self.disconnect ()		
 		self.connect ()
 	
 	def set_proxy (self, flag = True):
@@ -470,7 +489,7 @@ class AsynSSLProxyConnect (AsynSSLConnect, AsynConnect):
 		else:	
 			AsynConnect.handle_connect_event (self)
 	
-	def recv (self, buffer_size):		
+	def recv (self, buffer_size):	
 		if self._handshaked or self._handshaking:
 			return AsynSSLConnect.recv (self, buffer_size)				
 		else:

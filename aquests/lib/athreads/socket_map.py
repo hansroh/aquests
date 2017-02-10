@@ -9,9 +9,14 @@ class thread_safe_socket_map (dict):
 		with self.lock:
 			dict.__setitem__ (self, k, v)		
 	
+	def __contains__ (self, k):	
+		with self.lock:
+			v = dict.__contains__ (self, k)
+		return v
+		
 	def __len__ (self):	
 		with self.lock:
-			v = dict.__len__ (self)		
+			v = dict.__len__ (self)
 		return v
 	
 	def __nonzero__(self):

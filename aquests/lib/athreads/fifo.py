@@ -14,7 +14,7 @@ class await_fifo:
 	def working (self):
 		return (self.has_None or self.l or self.r) and 1 or 0
 	
-	def __len__ (self):
+	def __len__ (self):	
 		if self.l:
 			if not hasattr (self.l [0], 'ready'):
 				return len (self.l)
@@ -74,6 +74,7 @@ class await_fifo:
 	def clear (self):
 		self.l.clear ()
 		self.r.clear ()
+		self.has_None = False
 	
 	
 class await_ts_fifo (await_fifo):

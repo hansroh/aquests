@@ -16,6 +16,7 @@ _last_maintern = 0
 _maintern_interval = 3.0
 _killed_zombies = 0
 _select_errors = 0
+_poll_count = 0
 	
 class Maintern:
 	def __init__ (self):
@@ -138,7 +139,7 @@ def poll_fun_wrap (timeout, map):
 		poll_fun (timeout, map)
 	
 	except select.error as why:
-		# WSAENOTSOCK		
+		# WSAENOTSOCK
 		remove_notsocks (map)
 	
 	except ValueError:		
