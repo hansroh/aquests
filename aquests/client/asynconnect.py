@@ -66,25 +66,23 @@ class AsynConnect (asynchat.async_chat):
 			
 		if not self.handler:
 			# return to the pool
-			self.set_active (False)			
-		
-		elif not self.errcode:
+			return self.set_active (False)		
+		if not self.errcode:
 			# disconnect intentionally
-			pass
-		
-		else:
-			handler, self.handller = self.handler, None
-			keep_active = False			
-			try:
-				keep_active = handler.connection_closed (self.errcode, self.errmsg)
-			except:
-				self.trace ()
-			# DO NOT Change any props, because may be request has been restarted
-			if not keep_active:
-				self.set_active (False)
-			
-		if not self.proxy_client:
-			self.logger ("[info] .....socket %s:%d has been closed" % self.address)		
+			return
+
+		handler, self.handller = self.handler, None
+		keep_active = False			
+		try: keep_active = handler.connection_closed (self.errcode, self.errmsg)
+		except: self.trace ()
+		if not keep_active:
+			self.set_active (False)
+			#if not self.proxy_client:
+			self.logger (
+				".....socket %s has been closed (err: %d)" % ("%s:%d" % self.address, self.errcode),
+				"info"
+			)		
+		# DO NOT Change any props, because may be request has been restarted	
 		
 	def end_tran (self):
 		self.del_channel ()
@@ -158,8 +156,7 @@ class AsynConnect (asynchat.async_chat):
 	
 	def is_channel_in_map (self, map = None):
 		if map is None:
-			map = self._map
-		print ('~~~~~~', map)	
+			map = self._map		
 		return self._fileno in map
 		
 	def set_active (self, flag, nolock = False):
@@ -208,13 +205,6 @@ class AsynConnect (asynchat.async_chat):
 		sock = socket.socket (family, type)
 		sock.setblocking (0)
 		self.set_socket (sock)
-	
-	"""
-	def set_socket (self, sock):
-		if self._fileno:
-			self.close ()
-		asynchat.async_chat.set_socket (self, sock)
-	"""
 			
 	def connect (self):
 		if adns.query:
@@ -253,12 +243,6 @@ class AsynConnect (asynchat.async_chat):
 			data = self.socket.recv (buffer_size)			
 			if not data:
 				self.handle_close (700, "Connection closed unexpectedly in recv")
-				"""
-				print ('+++', self._fileno,  self.socket and self.socket.fileno() or -1, '::')
-				try: self._map [self._fileno]
-				except KeyError: pass
-				else: raise TypeError					
-				"""
 				return b''
 			else:
 				return data		
@@ -488,9 +472,6 @@ class AsynSSLConnect (AsynConnect):
 
 
 class AsynSSLProxyConnect (AsynSSLConnect, AsynConnect):
-	ac_out_buffer_size = 65536
-	ac_in_buffer_size = 65536
-	
 	def handle_connect_event (self):
 		if self.established:
 			AsynSSLConnect.handle_connect_event (self)
