@@ -63,19 +63,26 @@ class AsynConnect (asynchat.async_chat):
 		self.producer_fifo.clear()		
 		self._proto = None
 		self._closed = True
-		handler, self.handler = self.handler, None		
+			
+		if not self.handler:
+			# return to the pool
+			self.set_active (False)			
 		
-		keep_active = False
-		if handler and self.errcode:					
+		elif not self.errcode:
+			# disconnect intentionally
+			pass
+		
+		else:
+			handler, self.handller = self.handler, None
+			keep_active = False			
 			try:
 				keep_active = handler.connection_closed (self.errcode, self.errmsg)
 			except:
-				self.trace ()		
-		
-		# DO NOT Change any props, because may be request has been restarted
-		if not keep_active:
-			self.set_active (False)		
-		
+				self.trace ()
+			# DO NOT Change any props, because may be request has been restarted
+			if not keep_active:
+				self.set_active (False)
+			
 		if not self.proxy_client:
 			self.logger ("[info] .....socket %s:%d has been closed" % self.address)		
 		
