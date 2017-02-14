@@ -54,6 +54,7 @@ responses = {
 		709: "Invalid Content",
 		710: "Channel Closed",	
 		711: "Redirect Error",
+		712: "Controlled Shutdown",
 		720: "HTTP2 Connection Closed",
 		721: "HTTP2 Stream Reset"
 }

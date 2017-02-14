@@ -15,6 +15,7 @@ from aquests.protocols.http2 import H2_PROTOCOLS
 from aquests.lib.athreads.fifo import await_fifo
 from aquests.lib.ssl_ import resolve_cert_reqs, resolve_ssl_version, create_urllib3_context
 from collections import deque
+from aquests.protocols.http import respcodes
 
 DEBUG = False
 	
@@ -79,7 +80,7 @@ class AsynConnect (asynchat.async_chat):
 			self.set_active (False)
 			#if not self.proxy_client:
 			self.logger (
-				".....socket %s has been closed (err: %d)" % ("%s:%d" % self.address, self.errcode),
+				".....socket %s has been closed (reason: %d)" % ("%s:%d" % self.address, self.errcode),
 				"info"
 			)		
 		# DO NOT Change any props, because may be request has been restarted	
@@ -150,7 +151,7 @@ class AsynConnect (asynchat.async_chat):
 		if self.isactive () or (self.handler and self.handler.working ()):
 			return 1
 		else:				
-			self.handle_close ()
+			self.handle_close (712, "Controlled Shutdown")
 			self.__no_more_request = False
 			return 0
 	
@@ -216,7 +217,7 @@ class AsynConnect (asynchat.async_chat):
 	def continue_connect (self, answer = None):
 		if not answer:
 			self.log ("DNS not found - %s" % self.address [0], "error")
-			return self.handle_close (704, "DNS Not Found")
+			return self.handle_close (704)
 		
 		self.initialize_connection ()
 		self.create_socket (socket.AF_INET, socket.SOCK_STREAM)
@@ -232,7 +233,7 @@ class AsynConnect (asynchat.async_chat):
 					if ip:
 						asynchat.async_chat.connect (self, (ip, self.address [1]))																		
 				else:
-					self.handle_close (704, "DNS Not Found")
+					self.handle_close (704)
 					
 		except:	
 			self.handle_error ()
@@ -289,21 +290,21 @@ class AsynConnect (asynchat.async_chat):
 			
 	def handle_expt (self):
 		self.logger ("socket panic", "fail")
-		self.handle_close (703, "Socket Panic")
+		self.handle_close (703)
 	
 	def handle_error (self):
 		self.trace ()
-		self.handle_close(701, "Exception")
+		self.handle_close(701)
 	
 	def handle_timeout (self):
 		self.log ("socket timeout", "fail")
-		self.handle_close (702, "Zombie Timeout")
+		self.handle_close (702)
 		
 	def handle_expt_event(self):
 		err = self.socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
 		if err != 0:
 			self.log ("Socket Error %d Occurred" % err, "warn")
-			self.handle_close (706, "Socket %d Error" % err)
+			self.handle_close (703, "Socket %d Error" % err)
 		else:
 			self.handle_expt ()
 	
@@ -334,8 +335,12 @@ class AsynConnect (asynchat.async_chat):
 		self.close ()
 		
 	def handle_close (self, code = 700, msg = "Disconnected by Server"):
+		if code == 0: msg = ""
 		self.errcode = code
-		self.errmsg = msg
+		if msg:
+			self.errmsg = msg
+		else:
+			self.errmsg = respcodes.get (code)
 		self.close ()
 							
 	def collect_incoming_data (self, data):
@@ -354,7 +359,7 @@ class AsynConnect (asynchat.async_chat):
 	
 	def disconnect (self):
 		# no error
-		self.handle_close (0, "")
+		self.handle_close (0)
 	
 	def reconnect (self):
 		self.disconnect ()		
@@ -368,7 +373,7 @@ class AsynConnect (asynchat.async_chat):
 						
 	def begin_tran (self, handler):
 		if self.__no_more_request:
-			return self.handle_close (705, "Entered Shutdown Process")
+			return self.handle_close (705)
 		self.errcode = 0
 		self.errmsg = ""
 		
