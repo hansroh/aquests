@@ -428,7 +428,7 @@ if __name__ == "__main__":
 	
 	log = logger.screen_logger ()
 	m = composer.Composer ("SMTP TEST", "@gmail.com", "@gmail.com")
-	m.add_text ("Hello World<div><img src='cid:A'></div>", "text/html")
+	m.add_content ("Hello World<div><img src='cid:A'></div>", "text/html")
 	#m.add_attachment (r"1.png", cid="A")
 	
 	for i in range (1):

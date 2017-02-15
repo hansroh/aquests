@@ -58,8 +58,11 @@ class Composer:
 				
 	def encode (self, data):
 		return encode_base64 (data)
-		
+	
 	def add_text (self, data, mimetype, charset = 'utf8'):
+		self.add_content (data, mimetype, charset)
+			
+	def add_content (self, data, mimetype, charset = 'utf8'):
 		msg = (
 			"Content-type: %s; \r\n\tcharset=\"%s\"\r\n"
 			"Content-Transfer-Encoding: base64\r\n"
@@ -191,7 +194,7 @@ Thanks.
 	"""
 	m = Composer ("e-Mail Test", '"Tester"<hansroh@lufex.com>', '"Hans Roh"<hansroh@gmail.com>')
 	m.set_smtp ("smtp.gmail.com:465", "eunheemax@gmail.com", "!kms2000", True)
-	m.add_text (data, "text/html", "utf8")
+	m.add_content (data, "text/html", "utf8")
 	m.add_attachment (r"d:/download/setup.py", cid="AAA")
 	m.save (r"d:/download")
 	
