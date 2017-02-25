@@ -1,5 +1,5 @@
 from . import request_handler
-from aquests.protocols.http import tunnel_handler
+from ..http import tunnel_handler
 
 class ProxyTunnelHandler (request_handler.RequestHandler, tunnel_handler.ProxyTunnelHandler):
 	def handle_request (self):	

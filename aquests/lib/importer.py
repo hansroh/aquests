@@ -1,5 +1,5 @@
 import sys, os
-from aquests.lib import pathtool
+from . import pathtool
 import importlib
 
 try: _reloader = importlib.reload

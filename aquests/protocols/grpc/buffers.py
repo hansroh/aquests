@@ -1,4 +1,4 @@
-from aquests.protocols.http import buffers
+from ..http import buffers
 import struct
 
 class grpc_buffer (buffers.bytes_buffer):

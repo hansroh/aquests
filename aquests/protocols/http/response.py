@@ -1,11 +1,11 @@
 import re
-from aquests.protocols.http import http_date
-from aquests.lib import compressors
+from . import http_date
+from ...lib import compressors
 import time
 import json
 import struct
-from aquests.protocols.grpc import discover
-from aquests.protocols.grpc.buffers import grpc_buffer
+from ..grpc import discover
+from ..grpc.buffers import grpc_buffer
 from . import buffers, treebuilder
 from . import localstorage as ls
 

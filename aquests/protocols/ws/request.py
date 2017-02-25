@@ -1,5 +1,5 @@
-from aquests.protocols.http import request
-from aquests.lib import strutil
+from ..http import request
+from ...lib import strutil
 from .producer import ws_producer
 import struct
 import os

@@ -1,6 +1,6 @@
 import asyncore, asynchat
 import re, socket, sys
-from aquests.client.asynlib import asyncon
+from ..client.asynlib import asyncon
 import collections
 
 # get port number from pasv response

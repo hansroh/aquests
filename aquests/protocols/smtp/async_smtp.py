@@ -47,7 +47,7 @@ except ImportError:
 	from email.utils import parseaddr
 from email.base64mime import body_encode as encode_base64
 from . import composer
-from aquests.lib import producers
+from ...lib import producers
 
 OLDSTYLE_AUTH = re.compile(r"auth=(.*)", re.I)
 FEATURE = re.compile (r'(?P<feature>[A-Za-z0-9][A-Za-z0-9\-]*)')

@@ -1,4 +1,4 @@
-from aquests.lib import compressors
+from ...lib import compressors
 from collections import Iterable
 import struct
 

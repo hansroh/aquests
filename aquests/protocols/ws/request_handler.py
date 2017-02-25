@@ -1,8 +1,8 @@
 from . import response, request
-from aquests.protocols.http import request_handler, http_auth
-from aquests.protocols.http.response import FailedResponse
-from aquests.client import asynconnect
-from aquests.lib import strutil
+from ..http import request_handler, http_auth
+from ..http.response import FailedResponse
+from ...client import asynconnect
+from ...lib import strutil
 
 try:
 	from urllib.parse import urlparse

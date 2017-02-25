@@ -1,4 +1,4 @@
-from aquests.protocols.dns import asyndns
+from ..protocols.dns import asyndns
 import time
 
 class DNSCache:

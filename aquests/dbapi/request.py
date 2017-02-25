@@ -1,5 +1,5 @@
-from aquests.lib.attrdict import AttrDict
-from aquests.lib.cbutil import tuple_cb
+from ..lib.attrdict import AttrDict
+from ..lib.cbutil import tuple_cb
 
 class Request:
 	def __init__ (self, dbtype, server, dbname, method, params, callback = None, meta = {}):

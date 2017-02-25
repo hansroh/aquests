@@ -1,7 +1,7 @@
 import threading
 import time
 from . import asynpsycopg2, asynredis, synsqlite3, asynmongo
-from aquests.client import socketpool
+from ..client import socketpool
 from . import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
 
 class DBPool (socketpool.SocketPool):

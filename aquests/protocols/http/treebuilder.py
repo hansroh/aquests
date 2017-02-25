@@ -12,7 +12,7 @@ import re
 import traceback
 from copy import deepcopy
 import sys
-from aquests.lib import strutil
+from ...lib import strutil
 
 TABSSPACE = re.compile(r'[\s\t]+')
 SIMPLIFIED_CHILD_CSS = re.compile (r"\s*([<\[])(\-?)([0-9]+)[>\]]")

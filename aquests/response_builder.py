@@ -1,4 +1,4 @@
-from aquests.lib.attrdict import AttrDict
+from .lib.attrdict import AttrDict
 
 class HTTPResponse:
 	def __init__ (self, handler):

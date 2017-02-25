@@ -1,15 +1,15 @@
-from aquests.protocols.http import base_request_handler
+from ...protocols.http import base_request_handler
 from h2.connection import H2Connection, GoAwayFrame
 from h2.exceptions import ProtocolError, NoSuchStreamError, StreamClosedError, FlowControlError
 from h2.events import DataReceived, ResponseReceived, StreamEnded, ConnectionTerminated, StreamReset, WindowUpdated, RemoteSettingsChanged
 from h2.errors import PROTOCOL_ERROR, FLOW_CONTROL_ERROR, NO_ERROR
 import h2.settings
-from aquests.lib import producers
+from ...lib import producers
 from .producers import h2data_producer, h2header_producer
-from aquests.protocols.http import respcodes
-from aquests.protocols.http import response as http_response
+from ..http import respcodes
+from ..http import response as http_response
 
-from aquests.client import asynconnect
+from ...client import asynconnect
 import threading
 try:
 	from cStringIO import StringIO as BytesIO

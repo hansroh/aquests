@@ -1,6 +1,6 @@
 import struct
 from .producers import grpc_producer
-from aquests.protocols.http.request import XMLRPCRequest
+from ..http.request import XMLRPCRequest
 
 class GRPCRequest (XMLRPCRequest):
 	initial_http_version = "2.0"

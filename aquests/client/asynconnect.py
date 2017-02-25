@@ -11,11 +11,11 @@ if os.name == "nt":
 import select
 import threading
 from . import adns
-from aquests.protocols.http2 import H2_PROTOCOLS
-from aquests.lib.athreads.fifo import await_fifo
-from aquests.lib.ssl_ import resolve_cert_reqs, resolve_ssl_version, create_urllib3_context
+from ..protocols.http2 import H2_PROTOCOLS
+from ..lib.athreads.fifo import await_fifo
+from ..lib.ssl_ import resolve_cert_reqs, resolve_ssl_version, create_urllib3_context
 from collections import deque
-from aquests.protocols.http import respcodes
+from ..protocols.http import respcodes
 
 DEBUG = False
 	

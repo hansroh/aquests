@@ -1,5 +1,5 @@
 from . import request_handler as http_request_handler
-from aquests.protocols.http import response
+from . import response
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (compatible; Skitaibot/0.1a)"	
 

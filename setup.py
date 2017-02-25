@@ -47,6 +47,7 @@ packages = [
 	'aquests',
 	'aquests.client',
 	'aquests.dbapi',	
+	'aquests.protocols',
 	'aquests.protocols.dns',
 	'aquests.protocols.dns.pydns',
 	'aquests.protocols.http',	

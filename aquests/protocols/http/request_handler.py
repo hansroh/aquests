@@ -1,14 +1,14 @@
 from . import response as http_response
-from aquests.protocols.http2 import request_handler as http2_request_handler
+from ..http2 import request_handler as http2_request_handler
 from . import base_request_handler, http_auth, respcodes
-from aquests.client import asynconnect
+from ...client import asynconnect
 import base64
 from hashlib import md5
 import os
 from hyperframe.frame import SettingsFrame
-from aquests.protocols.http2 import H2_PROTOCOLS
-from aquests.client import socketpool
-from aquests.lib.cbutil import tuple_cb
+from ..http2 import H2_PROTOCOLS
+from ...client import socketpool
+from ...lib.cbutil import tuple_cb
 
 class RequestHandler (base_request_handler.RequestHandler):
 	FORCE_HTTP_11 = False

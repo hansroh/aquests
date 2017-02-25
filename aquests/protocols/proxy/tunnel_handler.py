@@ -1,6 +1,6 @@
-from aquests.protocols.http import tunnel_handler
-from aquests.protocols.ws import request_handler as ws_request_handler
-from aquests.protocols.ws import tunnel_handler as ws_tunnel_handler
+from ..http import tunnel_handler
+from ..ws import request_handler as ws_request_handler
+from ..ws import tunnel_handler as ws_tunnel_handler
 
 class SSLProxyTunnelHandler (tunnel_handler.SSLProxyTunnelHandler):
 	def get_handshaking_buffer (self):	

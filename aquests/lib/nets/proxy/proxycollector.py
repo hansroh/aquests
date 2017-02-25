@@ -1,13 +1,13 @@
 import urllib.request, urllib.parse, urllib.error
 import re
 import time
-from aquests.client.http import ClientCookie
-from aquests.lib import timeoutsocket, confparse
-from aquests.lib import logger as loggerfactory
+from ...client.http import ClientCookie
+from ...lib import timeoutsocket, confparse
+from ...lib import logger as loggerfactory
 import tempfile
 import os
 import random
-from aquests.lib import pathtool
+from ...lib import pathtool
 from . import __init__
 import math
 

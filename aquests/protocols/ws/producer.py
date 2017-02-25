@@ -1,6 +1,6 @@
 from collections import Iterable
-from aquests.protocols.grpc.producers import grpc_producer
-from aquests.lib import strutil
+from ..grpc.producers import grpc_producer
+from ...lib import strutil
 from . import OPCODE_TEXT, OPCODE_BINARY
 import struct
 import os

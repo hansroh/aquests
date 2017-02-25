@@ -1,4 +1,4 @@
-from aquests.protocols.http import response
+from ..http import response
 
 class Response (response.Response):
 	def __init__ (self, request, code, msg, opcode = None, data = None):

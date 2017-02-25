@@ -1,4 +1,4 @@
-from aquests.lib import producers, compressors
+from ..lib import producers, compressors
 import struct
 	
 def get_messages (fp):

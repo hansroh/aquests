@@ -1,6 +1,6 @@
 import asyncore
-from aquests.client.http import httprequest
-from aquests.client.asynlib import asyncon
+from ..client.http import httprequest
+from ..client.asynlib import asyncon
 from . import asyncftp
 from . import response
 

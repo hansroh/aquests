@@ -1,4 +1,4 @@
-from aquests.lib import confparse
+from . import confparse
 import os
 import time
 import threading

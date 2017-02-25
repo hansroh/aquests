@@ -11,7 +11,7 @@ try:
 except ImportError:
 	from urllib import quote
 	from urlparse import urlparse, urljoin
-from aquests.lib import strutil
+from ...lib import strutil
 from .producer import multipart_producer
 
 class HistoricalResponse:

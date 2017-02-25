@@ -1,5 +1,5 @@
 import mimetypes
-from aquests.client.http import response
+from ..client.http import response
 
 class Unacceptable (Exception): pass
 class FilenameError (Exception): pass
