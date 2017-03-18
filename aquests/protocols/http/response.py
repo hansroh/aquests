@@ -143,7 +143,7 @@ class Response:
 		for each in v2:
 			if not each: continue
 			each = each.strip ()
-			print (each)
+			#print (each)
 			try:
 				a, b = each.split ("=", 1)
 			except ValueError:
@@ -282,7 +282,7 @@ class Response:
 		self.__encoding = value
 	
 	@property
-	def dom (self):
+	def lxml (self):
 		if treebuilder.HAS_SKILLSET:
 			return treebuilder.html (self.raw, self.request.uri, self.encoding)
 			
