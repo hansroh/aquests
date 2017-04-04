@@ -8,6 +8,8 @@ from ..grpc import discover
 from ..grpc.buffers import grpc_buffer
 from . import buffers, treebuilder
 from . import localstorage as ls
+from hashlib import md5
+from urllib.parse import urlparse, quote_plus	, unquote_plus
 
 try:
 	from cStringIO import StringIO as BytesIO
@@ -18,11 +20,28 @@ class HTTPRepsonseError (Exception):
 	pass
 
 RESPONSE = re.compile ('HTTP/([0-9.]+) ([0-9]{3})\s?(.*)')
+DEFAULT_PORT_MAP = {'http': 80, 'https': 443, 'ws': 80, 'wss': 443}
+	
 def crack_response (data):
 	global RESPONSE
 	[ version, code, msg ] = RESPONSE.findall(data)[0]
 	return version, int(code), msg
 
+def sort_args (data):
+	args = {}
+	for arg in data.split ("&"):
+		try: k, v = arg.split ("=")
+		except: continue
+		if v:
+			args [k] = v
+	args = list(args.items ())
+	args.sort ()
+	argslist = []
+	for k, v in args:
+		argslist.append ("%s=%s" % (k, v))		
+	argslist.sort ()		
+	return "&".join (argslist)
+		
 
 class Response:
 	SIZE_LIMIT = 2**19
@@ -324,6 +343,38 @@ class Response:
 		self.__data_cache = result	
 		return result
 	
+	@property
+	def uuid (self, include_data = True):	
+		scheme, netloc, script, params, qs, fragment = urlparse (self.request.uri)
+		address, port = self.request.address
+			
+		sig = [
+			self.request.method,
+			address.startswith ("www.") and address [4:] or address, 
+			str (port),
+			script
+		]		
+		if params:
+			sig.append (params)
+		if qs:
+			sig.append (sort_args (qs))
+			
+		if include_data and self.request.payload:
+			if self.request.get_header ('content') == "application/x-www-form-urlencoded":
+				sig.append (sort_args (self.request.payload))
+			else:
+				sig.append (self.request.payload)
+		return md5 (":".join (sig).encode ("utf8")).hexdigest ()
+				
+	@property
+	def rfc (self):	
+		scheme, netloc, script, params, qs, fragment = urlparse (self.request.uri)
+		address, port = self.request.address
+		if DEFAULT_PORT_MAP [scheme] == port:
+			return '%s://%s%s' % (scheme, address, self.request.path)
+		else:
+			self.uinfo.rfc = '%s://%s:%d%s' % (scheme, address, port, self.request.path)	
+		
 
 class FailedResponse (Response):
 	def __init__ (self, errcode, msg, request = None):

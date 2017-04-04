@@ -8,6 +8,8 @@ try:
 	import lxml.html	
 except ImportError:
 	HAS_SKILLSET = False
+import warnings
+warnings.filterwarnings("ignore")
 
 def remove_control_characters (html):
 	def str_to_int(s, default, base=10):
@@ -20,7 +22,7 @@ def remove_control_characters (html):
 
 	html = re.sub(r"&#(\d+);?", lambda c: str_to_int(c.group(1), c.group(0)), html)
 	html = re.sub(r"&#[xX]([0-9a-fA-F]+);?", lambda c: str_to_int(c.group(1), c.group(0), base=16), html)
-	html = re.sub(r"[\x00-\x08\x0b\x0e-\x1f\x7f]", "", html)	
+	html = re.sub(r"[\x00-\x08\x0b\x0e-\x1f\x7f]", "", html)		
 	return html
 	
 def remove_non_asc (html):	
@@ -56,21 +58,22 @@ def to_str (body, encoding = None):
 				return html.decode ("iso8859-1")
 			except UnicodeDecodeError:
 				return remove_non_asc (html).decode ("utf8")
-		
-	if encoding:
-		try:
-			body = body.decode (encoding)
-		except (UnicodeDecodeError, LookupError):
-			inline_encoding = get_charset (body)
-			if inline_encoding and encoding != inline_encoding:				
-				try:
-					body = body.decode (inline_encoding)
-				except (UnicodeDecodeError, LookupError):
-					body = try_generic_encoding (body)			
-			else:
-				body = try_generic_encoding (body)	
-	else:
-		body = try_generic_encoding (body)
+	
+	if type (body) is bytes:	
+		if encoding:
+			try:
+				body = body.decode (encoding)
+			except (UnicodeDecodeError, LookupError):
+				inline_encoding = get_charset (body)
+				if inline_encoding and encoding != inline_encoding:				
+					try:
+						body = body.decode (inline_encoding)
+					except (UnicodeDecodeError, LookupError):
+						body = try_generic_encoding (body)			
+				else:
+					body = try_generic_encoding (body)
+		else:
+			body = try_generic_encoding (body)
 	
 	return remove_control_characters (body)
 	

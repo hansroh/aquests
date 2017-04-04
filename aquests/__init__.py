@@ -1,6 +1,6 @@
 # 2016. 1. 10 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.6.9"
+__version__ = "0.6.10"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 
 from . import lifetime, queue, request_builder, response_builder, stubproxy
@@ -65,8 +65,10 @@ _timeout = 10
 
 	
 def configure (
-	workers = 1, logger = None, 
-	callback = None, timeout = 10, 
+	workers = 1, 
+	logger = None, 
+	callback = None, 
+	timeout = 10, 
 	cookie = False, 
 	force_http1 = False,
 	http2_constreams = 1,

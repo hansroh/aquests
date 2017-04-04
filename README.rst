@@ -663,6 +663,8 @@ Note: stub's methods and parameters are defined by database engines. Please read
 History
 =========
 
+- 0.6.10: add response.lxml
+
 - 0.6.8: add protocols.__init__.py
 
 - 0.6.7: change socket closing log message
