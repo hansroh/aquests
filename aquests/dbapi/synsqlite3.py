@@ -28,6 +28,9 @@ class SynConnect (asynpsycopg2.AsynConnect, dbconnect.DBConnect):
 		self.connected = False	
 		dbconnect.DBConnect.close (self)
 	
+	def del_channel (self, map=None):
+		pass
+				
 	def close_case (self):
 		asynpsycopg2.AsynConnect.close_case (self)
 				
