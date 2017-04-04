@@ -15,6 +15,7 @@ from .protocols import http2
 from .dbapi import request as dbo_request
 import os
 import timeit
+import time, math
 
 try:
 	from urllib.parse import urlparse
@@ -209,7 +210,14 @@ def fetchall ():
 	dbpool.cleanup ()
 	
 	_logger.log ("* %d tasks during %1.5f sec, %1.2f tasks/sec" % (_que.req_id, _duration, _que.req_id / _duration))
-	
+
+def suspend (timeout):
+	a, b = math.modf (timeout)
+	for i in range (int (b)):		
+		socketpool.noop ()
+		time.sleep (1)
+	time.sleep (a)
+		
 	
 #----------------------------------------------------
 # REST CALL

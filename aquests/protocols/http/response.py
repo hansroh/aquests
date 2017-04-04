@@ -9,7 +9,7 @@ from ..grpc.buffers import grpc_buffer
 from . import buffers, treebuilder
 from . import localstorage as ls
 from hashlib import md5
-from urllib.parse import urlparse, quote_plus	, unquote_plus
+from urllib.parse import urlparse, urljoin
 
 try:
 	from cStringIO import StringIO as BytesIO
@@ -41,8 +41,40 @@ def sort_args (data):
 		argslist.append ("%s=%s" % (k, v))		
 	argslist.sort ()		
 	return "&".join (argslist)
-		
 
+def make_uuid (uri, method = "get", data = "", include_data = True):
+		if uri.find ("://") == -1:
+			return None
+		method = method.lower ()
+					
+		scheme, address, script, params, qs, fragment = urlparse (uri)
+		
+		if not script: script = "/"
+		path = script
+		if params: path += ";" + params
+		if qs: path += "?" + sort_args (qs)
+		
+		try: 
+			host, port = address.split (":", 1)
+			port = int (port)
+		except ValueError:
+			host = address
+			if scheme in ("http", "ws"):
+				port = 80
+			else:
+				port = 443	
+			
+		sig = [
+			method,
+			host.startswith ("www.") and host [4:] or host, 
+			str (port),
+			path
+		]
+		if include_data and data:			
+			sig.append (sort_args (data))		
+		return md5 (":".join (sig).encode ("utf8")).hexdigest ()
+		
+		
 class Response:
 	SIZE_LIMIT = 2**19
 	
@@ -220,6 +252,12 @@ class Response:
 			if line [:12].lower() == 'set-cookie: ':
 				ls.g.set_cookie_from_string (self.url, line [12:])
 	
+	def resolve (self, url):
+		return urljoin (url, self.url)
+	
+	def is_same (self, *args, **karg):
+		return make_uuid (*args, **karg) == self.uuid
+		
 	def __nonzero__ (self):
 		return self.status_code < 300 and self.data and True or False
 	
@@ -345,26 +383,7 @@ class Response:
 	
 	@property
 	def uuid (self, include_data = True):	
-		scheme, netloc, script, params, qs, fragment = urlparse (self.request.uri)
-		address, port = self.request.address
-			
-		sig = [
-			self.request.method,
-			address.startswith ("www.") and address [4:] or address, 
-			str (port),
-			script
-		]		
-		if params:
-			sig.append (params)
-		if qs:
-			sig.append (sort_args (qs))
-			
-		if include_data and self.request.payload:
-			if self.request.get_header ('content') == "application/x-www-form-urlencoded":
-				sig.append (sort_args (self.request.payload))
-			else:
-				sig.append (self.request.payload)
-		return md5 (":".join (sig).encode ("utf8")).hexdigest ()
+		return make_uuid (self.url, self.request.method, self.request.payload, include_data)		
 				
 	@property
 	def rfc (self):	

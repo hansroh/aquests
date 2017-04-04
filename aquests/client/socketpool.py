@@ -202,7 +202,13 @@ class SocketPool:
 		scheme, server, script, params, qs, fragment = urlparse (uri)
 		serverkey = "%s://%s" % (scheme, server)	
 		return self._get (serverkey, server, scheme)
-		
+	
+	def noop (self):
+		with self.lock:
+			for server in list(self.__socketfarm.keys ()):					
+				for asyncon in list(self.__socketfarm [server].values ()):
+					asyncon.set_event_time ()
+			
 	def cleanup (self):
 		self.lock.acquire ()
 		try:
@@ -231,3 +237,7 @@ def get (uri):
 		
 def cleanup ():	
 	pool.cleanup ()
+
+def noop ():
+	pool.noop ()
+	
