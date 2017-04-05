@@ -16,7 +16,7 @@ try:
 except ImportError:
 	from io import BytesIO
 
-class HTTPRepsonseError (Exception): 
+class HTTPRepsonseError (Exception):
 	pass
 
 RESPONSE = re.compile ('HTTP/([0-9.]+) ([0-9]{3})\s?(.*)')
@@ -42,38 +42,55 @@ def sort_args (data):
 	argslist.sort ()		
 	return "&".join (argslist)
 
-def make_uuid (uri, method = "get", data = "", include_data = True):
-		if uri.find ("://") == -1:
-			return None
-		method = method.lower ()
-					
-		scheme, address, script, params, qs, fragment = urlparse (uri)
-		
-		if not script: script = "/"
-		path = script
-		if params: path += ";" + params
-		if qs: path += "?" + sort_args (qs)
-		
-		try: 
-			host, port = address.split (":", 1)
-			port = int (port)
-		except ValueError:
-			host = address
-			if scheme in ("http", "ws"):
-				port = 80
-			else:
-				port = 443	
+def parse_address (scheme, address):
+	try: 
+		host, port = address.split (":", 1)
+		port = int (port)
+	except ValueError:
+		host = address
+		if scheme in ("http", "ws"):
+			port = 80
+		else:
+			port = 443	
+	return host, port
 			
-		sig = [
-			method,
-			host.startswith ("www.") and host [4:] or host, 
-			str (port),
-			path
-		]
-		if include_data and data:			
-			sig.append (sort_args (data))		
-		return md5 (":".join (sig).encode ("utf8")).hexdigest ()
+def make_rfc (uri):
+	scheme, address, script, params, qs, fragment = urlparse (uri)
+	host, port = parse_address (scheme, address)
+	if not script: 
+		script = "/"
+	path = script
+	if params:
+		path += ";"	+ params
+	if qs:
+		path += "?"	+ qs
+	if DEFAULT_PORT_MAP [scheme] == port:
+		return '%s://%s%s' % (scheme, address, path)
+	else:
+		return '%s://%s:%d%s' % (scheme, address, port, path)	
 		
+def make_uuid (uri, method = "get", data = "", include_data = True):
+	if uri.find ("://") == -1:
+		return None
+	method = method.lower ()
+	scheme, address, script, params, qs, fragment = urlparse (uri)
+	
+	if not script: 
+		script = "/"
+	host, port = parse_address (scheme, address)		
+	sig = [
+		method,
+		host.startswith ("www.") and host [4:] or host, 
+		str (port),
+		script,
+		params
+	]
+	if qs:
+		sig.append (sort_args (qs))
+	if include_data and data:			
+		sig.append (sort_args (data))
+	return md5 (":".join (sig).encode ("utf8")).hexdigest ()
+	
 		
 class Response:
 	SIZE_LIMIT = 2**19
@@ -387,13 +404,8 @@ class Response:
 				
 	@property
 	def rfc (self):	
-		scheme, netloc, script, params, qs, fragment = urlparse (self.request.uri)
-		address, port = self.request.address
-		if DEFAULT_PORT_MAP [scheme] == port:
-			return '%s://%s%s' % (scheme, address, self.request.path)
-		else:
-			self.uinfo.rfc = '%s://%s:%d%s' % (scheme, address, port, self.request.path)	
-		
+		return make_rfc (self.url)
+
 
 class FailedResponse (Response):
 	def __init__ (self, errcode, msg, request = None):

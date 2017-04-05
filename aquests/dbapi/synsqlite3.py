@@ -63,4 +63,3 @@ class SynConnect (asynpsycopg2.AsynConnect, dbconnect.DBConnect):
 			if tranaction: self.conn.commit ()
 			self.has_result = True		
 			self.close_case ()
-		
