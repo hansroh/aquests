@@ -11,7 +11,7 @@ try:
 except ImportError:
 	from urllib import quote
 	from urlparse import urlparse, urljoin
-from ...lib import strutil
+from ...lib import strutil, attrdict
 from .producer import multipart_producer
 
 class HistoricalResponse:
@@ -44,10 +44,9 @@ class XMLRPCRequest:
 		self.address, self.path = self.split (uri)
 		self._history = []
 		self.__xmlrpc_serialized = False
-		self.headers = {
-			"Accept": "*/*",
-			"Accept-Encoding": "gzip"
-		}
+		self.headers = attrdict.NocaseDict ()
+		self.headers ["Accept"] = "*/*"
+		self.headers ["Accept-Encoding"] = "gzip"		
 		if headers:
 			for k, v in headers.items ():
 				n = k.lower ()

@@ -1,6 +1,6 @@
 import re
 from . import http_date
-from ...lib import compressors
+from ...lib import compressors, attrdict
 import time
 import json
 import struct
@@ -320,7 +320,7 @@ class Response:
 	def headers (self):
 		if self.__headerdict:
 			return self.__headerdict
-		headerdict = {}
+		headerdict = attrdict.NocaseDict ()
 		for line in self.header:
 			k, v = line.split (": ", 1)
 			if k in headerdict:
@@ -330,7 +330,7 @@ class Response:
 			else:		
 				headerdict [k] = v
 		self.__headerdict = headerdict	
-		return headerdict		
+		return headerdict
 	
 	@property
 	def raw (self):
