@@ -663,6 +663,8 @@ Note: stub's methods and parameters are defined by database engines. Please read
 History
 =========
 
+- 0.6.13: fix response.json ()
+
 - 0.6.11 
 
   - request & response.headers is NocaseDict
