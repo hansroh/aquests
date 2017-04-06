@@ -663,6 +663,13 @@ Note: stub's methods and parameters are defined by database engines. Please read
 History
 =========
 
+- 0.6.11 
+
+  - request & response.headers is NocaseDict
+  - fix sqlite bugs, add response.uuid & rfc
+  - fix sqlite.del_channel
+  - add auqests.suspend
+
 - 0.6.10: add response.lxml
 
 - 0.6.8: add protocols.__init__.py

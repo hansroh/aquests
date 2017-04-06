@@ -21,7 +21,7 @@ if sys.argv[-1] == 'publish':
 
 classifiers = [
   'License :: OSI Approved :: MIT License',
-  'Development Status :: 4 - Beta',
+  'Development Status :: 3 - Alpha',
   'Topic :: Internet :: WWW/HTTP',
   'Topic :: Database :: Front-Ends',
 	'Environment :: Console',	

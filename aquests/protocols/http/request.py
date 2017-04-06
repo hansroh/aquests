@@ -187,7 +187,7 @@ class XMLRPCRequest:
 			del self.headers [n]		
 		
 	def get_header (self, k, with_key = False):
-		if self.headers:
+		if self.headers:			
 			k = k.lower ()
 			for n, v in self.headers.items ():
 				if n.lower () == k:

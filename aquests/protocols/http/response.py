@@ -87,7 +87,7 @@ def make_uuid (uri, method = "get", data = "", include_data = True):
 	]
 	if qs:
 		sig.append (sort_args (qs))
-	if include_data and data:			
+	if include_data and data:
 		sig.append (sort_args (data))
 	return md5 (":".join (sig).encode ("utf8")).hexdigest ()
 	
@@ -250,7 +250,7 @@ class Response:
 			raise SystemError ("Cookie Storage Not Initiated")
 		
 	def json (self):
-		return json.loads (self.raw.read ())
+		return json.loads (self.raw.read ().decode ("utf8"))
 	
 	def raise_for_status (self):
 		if self.status_code >= 300:
@@ -400,7 +400,9 @@ class Response:
 	
 	@property
 	def uuid (self, include_data = True):	
-		return make_uuid (self.url, self.request.method, self.request.payload, include_data)		
+		ct = self.request.get_header ('content-type')
+		data = ct and ct.startswith ('application/x-www-form-urlencoded') and self.request.payload.decode ('utf8') or None
+		return make_uuid (self.url, self.request.method, data, include_data)		
 				
 	@property
 	def rfc (self):	

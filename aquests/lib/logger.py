@@ -249,7 +249,7 @@ class multi_logger (base_logger):
 	
 	def rotate (self):
 		for logger in self.loggers:
-			hasattr (logger, 'rotate') and logger.rotate ()	
+			hasattr (logger, 'rotate') and logger.rotate ()
 			
 	def log (self, line, type="info", name=""):
 		if self.filter and type not in self.filter:

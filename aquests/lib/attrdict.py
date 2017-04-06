@@ -4,12 +4,6 @@ class AttrDict (dict):
 		super(AttrDict, self).__init__(*args, **kwargs)
 		self.__dict__ = self
 	
-	def __getattr__ (self, name):	
-		try:
-			return super(AttrDict, self).__getitem__(name)		
-		except KeyError:	
-			return super(AttrDict, self).__getitem__(name.replace ("_", "-"))		
-		
 
 class CaseInsensitiveKey(object):
 	def __init__(self, key):
@@ -23,6 +17,10 @@ class CaseInsensitiveKey(object):
 	
 	def __str__(self):
 		return self.key
+	
+	def __getattr__ (self, name):
+		return getattr (self.key, name)
+		
 
 class NocaseDict(dict):
 	def __setitem__(self, key, value):
