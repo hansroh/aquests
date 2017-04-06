@@ -318,7 +318,8 @@ Configuration Parameters
     cookie = False,
     force_http1 = False, 
     http2_constreams = 1,
-    allow_redirects = True
+    allow_redirects = True,
+    qrandom = True
   )
   
 - workers: number of fetching workers, it'not threads
@@ -329,6 +330,7 @@ Configuration Parameters
 - force_http1: enforce http 1.1 not 2.0
 - http2_constreams: if you making requests to single http2 server, how many concurrent streams per channel. BE CAREFUL, it might be useful for generating traffic load for testing your http2 web servers. and if your server doesn't provide http2, your workers will be increased to number of http2_constreams times than you really want.
 - allow_redirects: if set True, in case HTTP status code is in 301, 302, 307, 308 then redirect automatically
+- qrandom: requests will be selected by random, this is useful for load distributing to request multiple hosts.
 
 
 List of Methods
@@ -662,6 +664,8 @@ Note: stub's methods and parameters are defined by database engines. Please read
 
 History
 =========
+
+- 0.6.14: add qrandom option for aquests.configure
 
 - 0.6.13: fix response.json ()
 

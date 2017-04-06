@@ -15,13 +15,12 @@ from .protocols import http2
 from .dbapi import request as dbo_request
 import os
 import timeit
-import time, math
+import time, math, random
 
 try:
 	from urllib.parse import urlparse
 except ImportError:
 	from urlparse import urlparse	
-
 
 def cb_gateway_demo (response):
 	global _logger 
@@ -51,7 +50,8 @@ def cb_gateway_demo (response):
 	)	
 	#print (response.headers)	
 	#print (response.data)
-	
+
+	      		
 _request_total = 0			
 _finished_total = 0		
 _initialized = False
@@ -60,10 +60,9 @@ _cb_gateway = cb_gateway_demo
 _concurrent = 1
 _workers = 1
 _currents = 0
-_que = queue.Queue ()
+_que = None
 _dns_query_req = {}
 _timeout = 10
-
 	
 def configure (
 	workers = 1, 
@@ -73,14 +72,20 @@ def configure (
 	cookie = False, 
 	force_http1 = False,
 	http2_constreams = 1,
-	allow_redirects = True
+	allow_redirects = True,
+	qrandom = True
 ):
-	global _logger, _cb_gateway, _concurrent, _initialized, _timeout, _workers
+	global _logger, _cb_gateway, _concurrent, _initialized, _timeout, _workers, _que
 	
 	if logger is None:
 		logger = logger_f.screen_logger ()
 	_logger = logger
 	
+	if qrandom:
+		_que = queue.RandomQueue ()
+	else:
+		_que = queue.Queue ()
+		
 	request_handler.RequestHandler.FORCE_HTTP_11 = force_http1
 	request_handler.RequestHandler.ALLOW_REDIRECTS = allow_redirects
 	http2.MAX_HTTP2_CONCURRENT_STREAMS = max (http2_constreams, 3)		
