@@ -1,6 +1,6 @@
 # 2016. 1. 10 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.6.13"
+__version__ = "0.6.14"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 
 from . import lifetime, queue, request_builder, response_builder, stubproxy
@@ -175,7 +175,7 @@ def _req ():
 	else:	
 		method, url, params, auth, headers, meta, proxy = args
 		asyncon = socketpool.get (url)		
-		if _method == "ws":
+		if _method in ("ws", "wss"):
 			req, handler_class = request_builder.make_ws (_method, url, params, auth, headers, meta, proxy, _logger)		
 			handler = handler_class (asyncon, req, _request_finished)
 			
@@ -278,6 +278,10 @@ def upload (*args, **karg):
 def ws (*args, **karg):
 	_add ('ws', *args, **karg)	
 
+def wss (*args, **karg):
+	_add ('wss', *args, **karg)	
+	
+	
 #----------------------------------------------------
 # XMLRPC, gRPC
 #----------------------------------------------------

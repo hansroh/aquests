@@ -9,7 +9,8 @@ from ..grpc.buffers import grpc_buffer
 from . import buffers, treebuilder
 from . import localstorage as ls
 from hashlib import md5
-from urllib.parse import urlparse, urljoin
+from urllib.parse import urljoin
+from . import urlinfo
 
 try:
 	from cStringIO import StringIO as BytesIO
@@ -53,44 +54,7 @@ def parse_address (scheme, address):
 		else:
 			port = 443	
 	return host, port
-			
-def make_rfc (uri):
-	scheme, address, script, params, qs, fragment = urlparse (uri)
-	host, port = parse_address (scheme, address)
-	if not script: 
-		script = "/"
-	path = script
-	if params:
-		path += ";"	+ params
-	if qs:
-		path += "?"	+ qs
-	if DEFAULT_PORT_MAP [scheme] == port:
-		return '%s://%s%s' % (scheme, address, path)
-	else:
-		return '%s://%s:%d%s' % (scheme, address, port, path)	
-		
-def make_uuid (uri, method = "get", data = "", include_data = True):
-	if uri.find ("://") == -1:
-		return None
-	method = method.lower ()
-	scheme, address, script, params, qs, fragment = urlparse (uri)
-	
-	if not script: 
-		script = "/"
-	host, port = parse_address (scheme, address)		
-	sig = [
-		method,
-		host.startswith ("www.") and host [4:] or host, 
-		str (port),
-		script,
-		params
-	]
-	if qs:
-		sig.append (sort_args (qs))
-	if include_data and data:
-		sig.append (sort_args (data))
-	return md5 (":".join (sig).encode ("utf8")).hexdigest ()
-	
+
 		
 class Response:
 	SIZE_LIMIT = 2**19
@@ -402,12 +366,16 @@ class Response:
 	def uuid (self, include_data = True):	
 		ct = self.request.get_header ('content-type')
 		data = ct and ct.startswith ('application/x-www-form-urlencoded') and self.request.payload.decode ('utf8') or None
-		return make_uuid (self.url, self.request.method, data, include_data)		
-				
+		return urlinfo.uuid (self.url, self.request.method, data, include_data)		
+	
 	@property
-	def rfc (self):	
-		return make_rfc (self.url)
-
+	def usid (self):	
+		return urlinfo.usid (self.url, self.request.method)		
+	
+	@property
+	def uinf (self):
+		return urlinfo.uinf (self.url)
+	
 
 class FailedResponse (Response):
 	def __init__ (self, errcode, msg, request = None):
