@@ -14,8 +14,8 @@ def make_ws (_method, url, params, auth, headers, meta, proxy, logger):
 			handler_class = tunnel_handler.WSProxyTunnelHandler
 	else:		
 		handler_class = ws_request_handler.RequestHandler
-	return req, handler_class
-
+	req.handler = handler_class	
+	return req
 
 content_types = {
 	'xml': "text/xml",
@@ -68,9 +68,10 @@ def make_http (_method, url, params, auth, headers, meta, proxy, logger):
 				req = http_request.HTTPMultipartRequest (url, "POST", params, headers, auth, logger, meta)
 			else:
 				req = http_request.HTTPRequest (url, _method.upper (), params, headers, auth, logger, meta)	
-			
-	return req, handler_class
+	
+	req.handler = handler_class		
+	return req
 
-def make_dbo (_method, server, dbmethod, params, dbname, meta, logger):
-	return dbo_request.Request (_method [1:], server, dbname, dbmethod, params, None, meta)
+def make_dbo (_method, server, dbmethod, params, dbname, auth, meta, logger):
+	return dbo_request.Request (_method [1:], server, dbname, auth, dbmethod, params, None, meta)
 	

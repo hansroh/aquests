@@ -62,7 +62,7 @@ class XMLRPCRequest:
 	def get_history (self):	
 		return self._history
 	
-	def _relocate (self, response):
+	def _relocate (self, response, newloc):
 		if len (self._history) > 5:
 			raise RuntimeError ("Maximum Redirects Reached")
 						
@@ -75,16 +75,19 @@ class XMLRPCRequest:
 				self.remove_header ('transfer-encoding')
 				self.remove_header ('content-encoding')
 			self.method = "GET"
-		self.uri = urljoin (self.uri, response.get_header ('location'))
+		
+		if not newloc:
+			newloc = response.get_header ('location')
+		self.uri = urljoin (self.uri, newloc)
 		self.address, self.path = self.split (self.uri)
 		self.add_history (response)
 		response.request = None # cut back ref.
 		return self
 			
-	def relocate (self, response):
+	def relocate (self, response, newloc = None):
 		if response.status_code in (301, 302):
 			raise TypeError ("XMLRPC Cannot Be Moved")
-		return self._relocate (response)
+		return self._relocate (response, newloc)
 		
 	def set_content_length (self, length):
 		self.content_length = length
@@ -204,8 +207,8 @@ class XMLRPCRequest:
 
 	
 class HTTPRequest (XMLRPCRequest):		
-	def relocate (self, response):
-		return self._relocate (response)
+	def relocate (self, response, newloc = None):
+		return self._relocate (response, newloc)
 		
 	def get_method (self):
 		return self.method.upper ()

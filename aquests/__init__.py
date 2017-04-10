@@ -133,15 +133,14 @@ def _request_finished (handler):
 	response.logger = _logger
 	_cb_gateway (response)
 	_next ()
-
-def _add (method, url, params = None, auth = None, headers = {}, meta = {}, proxy = None):
+		
+def _add (method, url, params = None, auth = None, headers = {}, meta = {}, proxy = None):	
 	def dns_result (answer = None):
 		pass
-		
-	global _que, _initialized, _dns_query_req			
 	
+	global _que, _initialized, _dns_query_req				
 	if not _initialized:		
-		configure ()		
+		configure ()
 	if not meta: meta = {}
 	meta ['req_id'] = _que.req_id
 	meta ['req_method'] = method
@@ -151,7 +150,6 @@ def _add (method, url, params = None, auth = None, headers = {}, meta = {}, prox
 		_dns_query_req [host] = None
 		adns.query (host, "A", callback = dns_result)	
 	_que.add ((method, url, params, auth, headers, meta, proxy))
-
 
 def _req ():
 	global _que, _logger, _finished_total, _currents, _request_total
@@ -163,25 +161,41 @@ def _req ():
 		return
 	
 	_currents += 1
-	_request_total += 1
-	_method = args [0].lower ()
-	if _method in ("postgresql", "redis", "mongodb", "sqlite3"):
-		method, server, (dbmethod, params), dbname, auth, meta = args
-		asyncon = dbpool.get (server, dbname, auth, "*" + _method)
-		req = request_builder.make_dbo (_method, server, dbmethod, params, dbname, meta, _logger)
+	_request_total += 1	
+	
+	_is_request = False
+	_is_db = False
+	_method = None
+	
+	if type (args) is not tuple:
+		req = args
+		_is_request = True
+		_is_db = hasattr (req, 'dbtype')		
+	else:
+		_is_request = False
+		_method = args [0].lower ()
+		
+	if _is_db or _method in ("postgresql", "redis", "mongodb", "sqlite3"):
+		if not _is_request:
+			method, server, (dbmethod, params), dbname, auth, meta = args
+			asyncon = dbpool.get (server, dbname, auth, "*" + _method)
+			req = request_builder.make_dbo (_method, server, dbmethod, params, dbname, auth, meta, _logger)
+		else:
+			asyncon = dbpool.get (req.server, req.dbname, req.auth, "*" + req.dbtype)				
 		req.set_callback (_request_finished)
 		asyncon.execute (req)
 		
 	else:	
-		method, url, params, auth, headers, meta, proxy = args
-		asyncon = socketpool.get (url)		
-		if _method in ("ws", "wss"):
-			req, handler_class = request_builder.make_ws (_method, url, params, auth, headers, meta, proxy, _logger)		
-			handler = handler_class (asyncon, req, _request_finished)
-			
+		if not _is_request:
+			method, url, params, auth, headers, meta, proxy = args
+			asyncon = socketpool.get (url)		
+			if _method in ("ws", "wss"):
+				req = request_builder.make_ws (_method, url, params, auth, headers, meta, proxy, _logger)
+			else:
+				req = request_builder.make_http (_method, url, params, auth, headers, meta, proxy, _logger)			
 		else:
-			req, handler_class = request_builder.make_http (_method, url, params, auth, headers, meta, proxy, _logger)
-			handler = handler_class (asyncon, req, _request_finished)
+			asyncon = socketpool.get (req.uri)
+		handler = req.handler (asyncon, req, _request_finished)
 		if asyncon.get_proto () and asyncon.isconnected ():			
 			asyncon.handler.handle_request (handler)
 		else:
@@ -223,7 +237,15 @@ def suspend (timeout):
 		time.sleep (1)
 	time.sleep (a)
 		
-	
+
+#----------------------------------------------------
+# Reuqest Object
+#----------------------------------------------------	
+
+def add (request):
+	global _que	
+	_que.add (request)
+		
 #----------------------------------------------------
 # REST CALL
 #----------------------------------------------------	

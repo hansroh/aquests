@@ -27,34 +27,6 @@ def crack_response (data):
 	global RESPONSE
 	[ version, code, msg ] = RESPONSE.findall(data)[0]
 	return version, int(code), msg
-
-def sort_args (data):
-	args = {}
-	for arg in data.split ("&"):
-		try: k, v = arg.split ("=")
-		except: continue
-		if v:
-			args [k] = v
-	args = list(args.items ())
-	args.sort ()
-	argslist = []
-	for k, v in args:
-		argslist.append ("%s=%s" % (k, v))		
-	argslist.sort ()		
-	return "&".join (argslist)
-
-def parse_address (scheme, address):
-	try: 
-		host, port = address.split (":", 1)
-		port = int (port)
-	except ValueError:
-		host = address
-		if scheme in ("http", "ws"):
-			port = 80
-		else:
-			port = 443	
-	return host, port
-
 		
 class Response:
 	SIZE_LIMIT = 2**19
@@ -76,6 +48,8 @@ class Response:
 		self.__headerdict = None
 		self.__encoding = None
 		self.__data_cache = None
+		self.__uinf = None
+		self.__lxml = None
 		self.save_cookies ()
 	
 	def __repr__ (self):
@@ -237,7 +211,7 @@ class Response:
 		return urljoin (url, self.url)
 	
 	def is_same (self, *args, **karg):
-		return make_uuid (*args, **karg) == self.uuid
+		return urlinfo.uuid (*args, **karg) == self.uuid
 		
 	def __nonzero__ (self):
 		return self.status_code < 300 and self.data and True or False
@@ -321,8 +295,11 @@ class Response:
 	
 	@property
 	def lxml (self):
+		if self.__lxml:
+			return self.__lxml			
 		if treebuilder.HAS_SKILLSET:
-			return treebuilder.html (self.raw, self.request.uri, self.encoding)
+			self.__lxml = treebuilder.html (self.raw, self.request.uri, self.encoding)
+			return self.__lxml
 			
 	@property
 	def data (self):
@@ -374,7 +351,10 @@ class Response:
 	
 	@property
 	def uinf (self):
-		return urlinfo.uinf (self.url)
+		if self.__uinf:
+			return self.__uinf
+		self.__uinf = urlinfo.uinf (self.url)
+		return self.__uinf
 	
 
 class FailedResponse (Response):

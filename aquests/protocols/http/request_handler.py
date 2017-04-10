@@ -210,13 +210,16 @@ class RequestHandler (base_request_handler.RequestHandler):
 				return True
 		return False
 	
-	def handle_redirect (self):		
+	def handle_redirect (self, newloc = None):
 		if not self.ALLOW_REDIRECTS:
 			return 0
 		
-		if self.response.status_code in (301, 302, 307, 308):			
+		if newloc or self.response.status_code in (301, 302, 307, 308):			
+			if not newloc:
+				newloc = self.response.get_header ('location')
+			
 			try:
-				self.request = self.response.request.relocate (self.response)
+				self.request = self.response.request.relocate (self.response, newloc)
 			except:
 				self.response.code, self.response.msg = 711, respcodes.get (711)
 				return 0

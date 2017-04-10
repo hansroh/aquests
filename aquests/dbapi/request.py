@@ -2,11 +2,12 @@ from ..lib.attrdict import AttrDict
 from ..lib.cbutil import tuple_cb
 
 class Request:
-	def __init__ (self, dbtype, server, dbname, method, params, callback = None, meta = {}):
+	def __init__ (self, dbtype, server, dbname, auth, method, params, callback = None, meta = {}):
 		self.server = server
 		self.dbname = dbname
+		self.auth = auth
 		self.method = method
-		self.params = params
+		self.params = params		
 		self.meta = meta
 		self.dbtype = dbtype
 		self.callback = callback

@@ -6,6 +6,33 @@ import re
 DEFAULT_PORT_MAP = {'http': 80, 'https': 443, 'ws': 80, 'wss': 443}
 NON_IP_COMPONENT = re.compile ("[^.0-9]")
 
+def sort_args (data):
+	args = {}
+	for arg in data.split ("&"):
+		try: k, v = arg.split ("=")
+		except: continue
+		if v:
+			args [k] = v
+	args = list(args.items ())
+	args.sort ()
+	argslist = []
+	for k, v in args:
+		argslist.append ("%s=%s" % (k, v))		
+	argslist.sort ()		
+	return "&".join (argslist)
+
+def parse_address (scheme, address):
+	try: 
+		host, port = address.split (":", 1)
+		port = int (port)
+	except ValueError:
+		host = address
+		if scheme in ("http", "ws"):
+			port = 80
+		else:
+			port = 443	
+	return host, port
+	
 def uuid (uri, method = "get", data = "", include_data = True):
 	# url id
 	if uri.find ("://") == -1:
@@ -35,10 +62,10 @@ def usid (uri, method = "get"):
 	return make_uuid (uri, method, "", False)
 
 def uinf (url):
-	return Url (url)
+	return UrlInfo (url)
 
 	
-class Url:	
+class UrlInfo:	
 	def __init__ (self, url):
 		self.url = url
 		self._parse ()
@@ -82,7 +109,7 @@ class Url:
 		try: self.port = int (self.port)
 		except: self.port = 80
 		
-		if DEFAULT_PORT_MAP [scheme] == port:
+		if DEFAULT_PORT_MAP [self.scheme] == self.port:
 			self.rfc = '%s://%s%s' % (self.scheme, self.netloc, self.uri)
 		else:
 			self.rfc = '%s://%s:%d%s' % (self.scheme, self.netloc, self.port, self.uri)
