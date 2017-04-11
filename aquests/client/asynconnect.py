@@ -334,13 +334,13 @@ class AsynConnect (asynchat.async_chat):
 		self.handler = None
 		self.close ()
 		
-	def handle_close (self, code = 700, msg = "Disconnected by Server"):
+	def handle_close (self, code = 700, msg = ""):
 		if code == 0: msg = ""
 		self.errcode = code
 		if msg:
 			self.errmsg = msg
 		else:
-			self.errmsg = respcodes.get (code)
+			self.errmsg = respcodes.get (code, "Undefined Error")			
 		self.close ()
 							
 	def collect_incoming_data (self, data):

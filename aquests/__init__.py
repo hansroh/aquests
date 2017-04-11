@@ -117,6 +117,7 @@ def _next ():
 	if lifetime._shutdown_phase:
 		return
 	
+	print ('======', _currents,  _que.qsize ())
 	if _currents == 1 and not _que.qsize ():
 		if lifetime._shutdown_phase == 0:
 			lifetime.shutdown (0, 7)

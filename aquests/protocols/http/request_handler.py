@@ -277,12 +277,12 @@ class RequestHandler (base_request_handler.RequestHandler):
 		# possibly disconnected cause of keep-alive timeout				
 		if why == 700 and self.response is None and self.retry_count == 0:
 			self.retry_count = 1
-			self.handle_request ()			
+			self.handle_request ()
 			return True
 		
 		self.response = http_response.FailedResponse (why, msg, self.request)
 		if hasattr (self.asyncon, "begin_tran"):
-			self.close_case ()		
+			self.close_case ()
 	
 	def close_case_with_end_tran (self):
 		self.asyncon.end_tran ()

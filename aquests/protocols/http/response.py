@@ -298,7 +298,7 @@ class Response:
 		if self.__lxml:
 			return self.__lxml			
 		if treebuilder.HAS_SKILLSET:
-			self.__lxml = treebuilder.html (self.raw, self.request.uri, self.encoding)
+			self.__lxml = treebuilder.html (self.content, self.request.uri, self.encoding)
 			return self.__lxml
 			
 	@property
