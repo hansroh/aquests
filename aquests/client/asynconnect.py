@@ -292,9 +292,9 @@ class AsynConnect (asynchat.async_chat):
 		self.logger ("socket panic", "fail")
 		self.handle_close (703)
 	
-	def handle_error (self):
+	def handle_error (self, code = 701):
 		self.trace ()
-		self.handle_close(701)
+		self.handle_close(code)
 	
 	def handle_timeout (self):
 		self.log ("socket timeout", "fail")
@@ -406,7 +406,8 @@ class AsynSSLConnect (AsynConnect):
 		if not self._handshaking:
 			err = self.socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
 			if err != 0:
-				raise socket.error(err, _strerror(err))								
+				raise socket.error(err, _strerror(err))
+				
 			ssl_context = create_urllib3_context(ssl_version=resolve_ssl_version(None), cert_reqs=resolve_cert_reqs(None))
 			if self.ac_negotiate_http2:
 				try: ssl_context.set_alpn_protocols (H2_PROTOCOLS)
@@ -420,7 +421,7 @@ class AsynSSLConnect (AsynConnect):
 			if why.args [0] in (ssl.SSL_ERROR_WANT_READ, ssl.SSL_ERROR_WANT_WRITE):
 				return False
 			raise ssl.SSLError(why)
-		
+			
 		try: self._proto = self.socket.selected_alpn_protocol()
 		except (AttributeError, NotImplementedError): 
 			try: self._proto = self.socket.selected_npn_protocol()
@@ -429,9 +430,14 @@ class AsynSSLConnect (AsynConnect):
 		self._handshaked = True
 		return True
 							
-	def handle_connect_event (self):	
-		if not self._handshaked and not self.handshake ():
+	def handle_connect_event (self):
+		try:
+			if not self._handshaked and not self.handshake ():
+				return
+		except:
+			self.handle_error (713)
 			return
+					
 		# handshaking done
 		self.handle_connect()
 		self.connected = True

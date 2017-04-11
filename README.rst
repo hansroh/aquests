@@ -665,6 +665,12 @@ Note: stub's methods and parameters are defined by database engines. Please read
 History
 =========
 
+- 0.7: 
+
+  - redefine workers, workers mean nummber of connections
+  - fix finish_request, and shutdown entering
+  - fix FailedResponse's contents
+
 - 0.6.14: add qrandom option for aquests.configure
 
 - 0.6.13: fix response.json ()

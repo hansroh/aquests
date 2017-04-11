@@ -1,6 +1,6 @@
 # 2016. 1. 10 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.6.14"
+__version__ = "0.7b2"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 
 from . import lifetime, queue, request_builder, response_builder, stubproxy
@@ -14,6 +14,7 @@ from .protocols.http import request_handler
 from .protocols import http2
 from .dbapi import request as dbo_request
 import os
+import asyncore
 import timeit
 import time, math, random
 
@@ -108,17 +109,21 @@ def configure (
 	adns.init (_logger)
 	lifetime.init (_timeout / 2.) # maintern interval
 	_initialized = True
-	
 
 def _next ():
-	global _currents, _concurrent, _finished_total
+	global _currents, _concurrent, _finished_total, _que
 	
 	_finished_total += 1
 	if lifetime._shutdown_phase:
 		return
-				
-	#print ('===========', _concurrent, _currents)
-	for i in range (_concurrent - _currents):
+	
+	if _currents == 1 and not _que.qsize ():
+		if lifetime._shutdown_phase == 0:
+			lifetime.shutdown (0, 7)
+		return
+	
+	print ('++++++', _concurrent, _currents, len (asyncore.socket_map), _que.qsize ())	
+	for i in range (min (_concurrent - min (_currents, len (asyncore.socket_map)), _que.qsize ())):
 		_req ()
 			
 def _request_finished (handler):
@@ -131,7 +136,10 @@ def _request_finished (handler):
 		response = response_builder.HTTPResponse (handler)
 		
 	response.logger = _logger
-	_cb_gateway (response)
+	try:
+		_cb_gateway (response)
+	except:	
+		_logger.trace ()
 	_next ()
 		
 def _add (method, url, params = None, auth = None, headers = {}, meta = {}, proxy = None):	
@@ -155,13 +163,8 @@ def _req ():
 	global _que, _logger, _finished_total, _currents, _request_total
 	
 	args = _que.get ()
-	if args is None:
-		if lifetime._shutdown_phase == 0:		
-			lifetime.shutdown (0, 7)
-		return
-	
 	_currents += 1
-	_request_total += 1	
+	_request_total += 1
 	
 	_is_request = False
 	_is_db = False
@@ -220,7 +223,7 @@ def fetchall ():
 		configure ()
 	
 	_fetch_started = timeit.default_timer ()
-	for i in range (_workers):
+	for i in range (min (_workers, _que.qsize ())):
 		_req ()		
 		
 	lifetime.loop (os.name == "nt" and 1.0 or _timeout / 2.0)

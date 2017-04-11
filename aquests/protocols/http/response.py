@@ -45,10 +45,10 @@ class Response:
 		self.max_age = 0
 		self.decompressor = None
 		self.is_xmlrpc_return = False
+		self._uinf = None
 		self.__headerdict = None
 		self.__encoding = None
 		self.__data_cache = None
-		self.__uinf = None
 		self.__lxml = None
 		self.save_cookies ()
 	
@@ -124,7 +124,7 @@ class Response:
 			
 	def collect_incoming_data (self, data):		
 		if self.size == 0:
-			self.init_buffer ()		
+			self.init_buffer ()
 		self.size += len (data)
 		
 		if self.decompressor:
@@ -208,7 +208,7 @@ class Response:
 				ls.g.set_cookie_from_string (self.url, line [12:])
 	
 	def resolve (self, url):
-		return urljoin (url, self.url)
+		return urljoin (self.url, url)
 	
 	def is_same (self, *args, **karg):
 		return urlinfo.uuid (*args, **karg) == self.uuid
@@ -351,12 +351,11 @@ class Response:
 	
 	@property
 	def uinf (self):
-		if self.__uinf:
-			return self.__uinf
-		self.__uinf = urlinfo.uinf (self.url)
-		return self.__uinf
+		if self._uinf:
+			return self._uinf
+		self._uinf = urlinfo.uinf (self.url)
+		return self._uinf
 	
-
 class FailedResponse (Response):
 	def __init__ (self, errcode, msg, request = None):
 		self.version, self.code, self.msg, self.header = "1.0", errcode, msg, []
@@ -364,6 +363,8 @@ class FailedResponse (Response):
 		self.buffer = None
 		self.got_all_data = True
 		self.max_age = 0
+		self._uinf = None
+		self._header_cache = {}
 	
 	@property
 	def data (self):
@@ -371,8 +372,15 @@ class FailedResponse (Response):
 	
 	@property
 	def content (self):
-		return None
-			
+		return b''
+	
+	@property
+	def text (self):
+		return ''
+	
+	def json (self):
+		raise ValueError ('Response Failed')
+				
 	def collect_incoming_data (self, data):
 		raise IOError("This Is Failed Response")
 	

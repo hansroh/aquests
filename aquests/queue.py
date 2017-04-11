@@ -7,6 +7,9 @@ class Queue:
 		self._req_id = 0
 		self._consumed = 0
 	
+	def qsize (self):
+		return len (self.q)
+		
 	@property
 	def req_id (self):
 		return self._req_id
