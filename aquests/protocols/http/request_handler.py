@@ -218,12 +218,14 @@ class RequestHandler (base_request_handler.RequestHandler):
 				newloc = self.response.get_header ('location')
 			
 			try:
-				self.request = self.response.request.relocate (self.response, newloc)
+				self.request.relocate (self.response, newloc)
 			except:
 				self.response.code, self.response.msg = 711, respcodes.get (711)
 				return 0
 			
-			self.asyncon.end_tran ()												
+			old_uri = self.request.uri
+			self.log ("auto redirected %s %s %s -> %s" % (self.response.status_code, self.response.reason, old_uri, self.request.uri), "info")
+			self.asyncon.end_tran ()
 			self.asyncon = socketpool.get (self.request.uri)
 			if not self.asyncon.isconnected (): 
 				# domain's changed
@@ -236,6 +238,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 			self.response = None
 			self.handle_request ()
 			return 1
+			
 		return 0	
 	
 	def handled_http_authorization (self):

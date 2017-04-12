@@ -90,7 +90,7 @@ class AsynConnect (asynchat.async_chat):
 				"info"
 			)		
 		# DO NOT Change any props, because may be request has been restarted	
-		
+	
 	def end_tran (self):
 		if DEBUG:
 			self.logger ('end_tran {rid:%s} %s' % (self.handler.request.meta ['req_id'], self.handler.request.uri), 'debug')
@@ -216,6 +216,8 @@ class AsynConnect (asynchat.async_chat):
 		self.set_socket (sock)
 			
 	def connect (self):
+		if DEBUG:
+			self.logger ('query DNS {rid:%s} %s' % (self.handler.request.meta ['req_id'], self.handler.request.uri), 'debug')
 		if adns.query:
 			adns.query (self.address [0], "A", callback = self.continue_connect)
 		else:
@@ -229,6 +231,9 @@ class AsynConnect (asynchat.async_chat):
 		res = adns.get (self.address [0], "A")
 		if res:
 			ipaddr = res [-1]["data"]
+		
+		if DEBUG:
+			self.logger ('got DNS {rid:%s} %s %s' % (self.handler.request.meta ['req_id'], res, self.handler.request.uri), 'debug')
 		
 		if not ipaddr:
 			return self.handle_close (704)

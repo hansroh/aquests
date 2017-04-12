@@ -49,20 +49,16 @@ class async_dns (asyncore.dispatcher_with_send):
 		return "<async_dns: %s>" % self.qname
 				
 	def trace (self):
-		self.logger.trace ()
+		self.logger.trace (self.qname)
 	
 	def log_info (self, line, level = 'info'):
-		self.log ("[%s] %s" % (level, line))
+		self.log ("[%s:%s] %s" % (self.qname, level, line))
 	
 	def log (self, line):
-		self.logger (line)	
+		self.logger (line)
 	
 	def create_socket (self, family, type):
-		if hasattr (socket, "_no_timeoutsocket"):
-			sock_class = socket._no_timeoutsocket
-		else:
-			sock_class = socket.socket
-			
+		sock_class = socket.socket			
 		self.family_and_type = family, type
 		self.socket = sock_class (family, type)
 		self.socket.setblocking (0)
@@ -75,6 +71,8 @@ class async_dns (asyncore.dispatcher_with_send):
 		self.close ()
 	
 	def handle_timeout (self):
+		if self.debug_level: 
+			self.log_info ('DNS query timeout', 'error')
 		self.handle_close ()
 					
 	def handle_connect (self):	
@@ -162,7 +160,7 @@ class Request:
 			
 	def processReply (self, server, request, args, data):
 		exception = 0
-		not_found = [{"name": args ['name'].decode ('utf8'), "data": None, "typename": args ["qtype"], 'ttl': 60}]
+		not_found = [{"name": args ['name'].decode ('utf8'), "data": None, "typename": args ["qtype"], 'ttl': 300}]
 			
 		try:
 			if not data:
