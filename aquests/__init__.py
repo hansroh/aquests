@@ -1,6 +1,6 @@
 # 2016. 1. 10 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.7b2"
+__version__ = "0.7b3"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 
 from . import lifetime, queue, request_builder, response_builder, stubproxy
@@ -18,7 +18,7 @@ import asyncore
 import timeit
 import time, math, random
 
-DEBUG = 1
+DEBUG = 0
 
 try:
 	from urllib.parse import urlparse
@@ -155,15 +155,17 @@ def _request_finished (handler):
 	
 	_currents.pop (response.meta ['req_id'])
 	response.logger = _logger
+	
+	callback = response.meta ['req_callback'] or _cb_gateway
 	try:
-		_cb_gateway (response)
+		callback (response)
 	except:	
 		_logger.trace ()
 	_next ()
 
 
 _dns_reqs = 0
-def _add (method, url, params = None, auth = None, headers = {}, meta = {}, proxy = None):	
+def _add (method, url, params = None, auth = None, headers = {}, callback = None, meta = {}, proxy = None):	
 	global _que, _initialized, _dns_query_req, _dns_reqs
 	
 	def dns_result (answer = None):
@@ -175,6 +177,7 @@ def _add (method, url, params = None, auth = None, headers = {}, meta = {}, prox
 	if not meta: meta = {}
 	meta ['req_id'] = _que.req_id
 	meta ['req_method'] = method
+	meta ['req_callback'] = callback
 	host = urlparse (url) [1].split (":")[0]
 	# DNS query for caching and massive 
 	if _dns_reqs < 10 and host not in _dns_query_req:
@@ -335,8 +338,8 @@ def wss (*args, **karg):
 #----------------------------------------------------
 # XMLRPC, gRPC
 #----------------------------------------------------
-def _addrpc (method, rpcmethod, params, url, auth = None, headers = {}, meta = {}, proxy = None):	
-	_add (method, url, (rpcmethod, params), auth, headers, meta, proxy)
+def _addrpc (method, rpcmethod, params, url, auth = None, headers = {}, callback = None, meta = {}, proxy = None):	
+	_add (method, url, (rpcmethod, params), auth, headers, callback, meta, proxy)
 	
 def rpc	(*args, **karg):
 	return stubproxy.Proxy ('rpc', _addrpc, *args, **karg)
@@ -347,7 +350,7 @@ def grpc	(*args, **karg):
 #----------------------------------------------------
 # DBO QEURY
 #----------------------------------------------------
-def _adddbo (method, dbmethod, params, server, dbname = None, auth = None, meta = {}):
+def _adddbo (method, dbmethod, params, server, dbname = None, auth = None, callback = None, meta = {}):
 	global _que
 	
 	if not _initialized:
@@ -355,6 +358,8 @@ def _adddbo (method, dbmethod, params, server, dbname = None, auth = None, meta 
 	if not meta: meta = {}	
 	meta ['req_id'] = _que.req_id
 	meta ['req_method'] = method
+	meta ['req_callback'] = callback
+	
 	_que.add ((method, server, (dbmethod, params), dbname, auth, meta))
 	
 def postgresql (*args, **karg):

@@ -17,7 +17,7 @@ from ..lib.ssl_ import resolve_cert_reqs, resolve_ssl_version, create_urllib3_co
 from collections import deque
 from ..protocols.http import respcodes
 
-DEBUG = 1
+DEBUG = 0
 	
 class SocketPanic (Exception): pass
 class TimeOut (Exception): pass
@@ -249,13 +249,13 @@ class AsynConnect (asynchat.async_chat):
 			self.handle_error (714)
 	
 	def recv (self, buffer_size):
-		self.set_event_time ()
 		try:
 			data = self.socket.recv (buffer_size)			
 			if not data:
 				self.handle_close (700, "Connection closed unexpectedly in recv")
 				return b''
 			else:
+				self.set_event_time ()
 				return data		
 		except socket.error as why:
 			if why.errno in asyncore._DISCONNECTED:
@@ -265,10 +265,13 @@ class AsynConnect (asynchat.async_chat):
 				raise
 	
 	def send (self, data):
-		self.set_event_time ()
 		#print ("====SEND", data)
 		try:
-			return self.socket.send (data)
+			numsent = self.socket.send (data)
+			if numsent:
+				self.set_event_time ()
+			return numsent	
+			
 		except socket.error as why:
 			if why.errno == EWOULDBLOCK:
 				return 0				
@@ -455,13 +458,13 @@ class AsynSSLConnect (AsynConnect):
 		self.connected = True
 		
 	def recv (self, buffer_size):
-		self.set_event_time ()
 		try:
 			data = self.socket.recv (buffer_size)			
 			if not data:				
 				self.handle_close (700, "Connection closed unexpectedly")
 				return b''
 			else:				
+				self.set_event_time ()
 				return data
 			
 		except ssl.SSLError as why:
@@ -480,9 +483,11 @@ class AsynSSLConnect (AsynConnect):
 				raise
 
 	def send (self, data):
-		self.set_event_time ()
 		try:
-			return self.socket.send (data)			
+			numsent = self.socket.send (data)			
+			if numsent:
+				self.set_event_time ()
+			return numsent	
 
 		except ssl.SSLError as why:
 			if why.errno == ssl.SSL_ERROR_WANT_WRITE:

@@ -150,7 +150,7 @@ Set/Get Request Meta Information
   aquests.get ("http://127.0.0.1:5000/", meta = {'job_name': 'test1'})  
   aquests.get ("http://127.0.0.1:5000/", meta = {'job_name': 'test2'})
 
-Note: meta ['req_id'] and meta ['req_method'] are automatically added by aquests.
+Note: meta ['req_id'], meta ['req_method'] and meta ['req_callback'] are reserved keys and automatically added by aquests. You SHOULDN'T use theses keys and actually it is better do not use key starts with 'req_'.
 
 
 Timeout Setting
@@ -324,7 +324,7 @@ Configuration Parameters
   
 - workers: number of fetching workers, it'not threads
 - logger: logger shoukd have 2 method - log (msg, type = 'info') and trace () for exception logging. if not provided, aquests uses aquests.ib.logger.screen_logger
-- callback: function has receiving response arg
+- callback: global default callback function has receiving response arg
 - timeout: request timeout seconds
 - cookie: enable/disable using cookie for request
 - force_http1: enforce http 1.1 not 2.0
@@ -335,6 +335,7 @@ Configuration Parameters
 
 List of Methods
 ==================
+
 
 GET, DELETE and etc.
 ---------------------
@@ -610,6 +611,7 @@ For get, post*, put*, upload, delete, options, trace parameters are the same.
 - params: None or dictionary, if it provide with get method, it will be attached on tail of url with '?'
 - headers: None or dictionary
 - auth: None or tuple (username, password)
+- callback: substitude defaul callback
 - meta: dictionary
 
 For Websocket,
@@ -630,6 +632,7 @@ For Websocket,
     
 - headers: None or dictionary
 - auth: None or tuple (username, password)
+- callback: substitude defaul callback
 - meta: dictionary
 
 For rpc, grpc stub creation:
@@ -642,6 +645,7 @@ For rpc, grpc stub creation:
 - url: request url string
 - headers: None or dictionary
 - auth: None or tuple (username, password)
+- callback: substitude defaul callback
 - meta: dictionary
 
 Note: stub's methods and parameters are defined by RPC service providers
@@ -657,6 +661,7 @@ For postgresql, mongodb, redis dbo creation:
 - server: address:port formated string
 - dbname: None or string
 - auth: None or tuple (username, password)
+- callback: substitude defaul callback
 - meta: dictionary
 
 Note: stub's methods and parameters are defined by database engines. Please read above related chapters But SQL based postgresql has only 1 method and parameters - execute(sql) or do(sql) just for your convinience.
@@ -666,7 +671,9 @@ History
 =========
 
 - 0.7: 
-
+  
+  - add callback arg for each request
+  - fix redirect, improve asyndns, error codes related network error
   - redefine workers, workers mean nummber of connections
   - fix finish_request, and shutdown entering
   - fix FailedResponse's contents
