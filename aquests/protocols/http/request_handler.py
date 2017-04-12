@@ -156,17 +156,12 @@ class RequestHandler (base_request_handler.RequestHandler):
 						
 		else:
 			self.expect_disconnect = False
-			try:
-				self.create_response ()
-			except:					
-				# I don't know why handle exception here.
-				# If not, recv data continuously T.T
-				self.asyncon.handle_error ()
+			if not self.create_response ():
 				return
 					
 			# 100 Continue etc. try recv continued header
 			if self.response is None:
-				return				
+				return
 			
 			if self.used_chunk ():
 				self.wrap_in_chunk = True
@@ -190,25 +185,29 @@ class RequestHandler (base_request_handler.RequestHandler):
 		try:
 			self.response = http_response.Response (self.request, buffer.decode ("utf8"))
 		except:
-			self.log ("response header error: `%s`" % repr (buffer [:80]), "error")
-			self.asyncon.handle_close (708, "Response Header Error")
+			#self.log ("response header error: `%s`" % repr (buffer [:80]), "error")
+			self.asyncon.handle_error (715)			
+			return 0
 		else:	
-			self.is_continue_response ()
+			try:
+				self.handle_response_code ()
+			except:				
+				self.response = None
+				self.asyncon.handle_error (716)
+				return 0
+		return 1		
 		
-	def is_continue_response (self):	
+	def handle_response_code (self):	
 		# default header never has "Expect: 100-continue"
 		# ignore, wait next message	
 		if self.response.code == 100:
 			self.asyncon.set_terminator (b"\r\n\r\n")
 			self.response = None
-			return True
-		elif self.response.code == 101:	# swiching protocol
-			if self.response.get_header ("Upgrade") == "h2c":
-				self.asyncon._proto = "h2c"
-				self.response = None
-				self.switch_to_http2 ()
-				return True
-		return False
+			
+		elif self.response.code == 101 and self.response.get_header ("Upgrade") == "h2c":	# swiching protocol		
+			self.asyncon._proto = "h2c"
+			self.response = None
+			self.switch_to_http2 ()			
 	
 	def handle_redirect (self, newloc = None):
 		if not self.ALLOW_REDIRECTS:

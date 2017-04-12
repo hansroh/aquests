@@ -9,17 +9,20 @@ class DNSCache:
 		self.hits = 0
 
 	def set (self, answers):
-		if answers:		
-			name = answers [0] ["name"]
-			answer = answers [-1]			
-			for each in answers:
-				name = each ["name"]
-				if name not in self.cache:
-					self.cache [name] = {}			
-				if "ttl" in answer:
-					answer ["valid"]	= time.time () + answer ["ttl"]
-				self.cache [name][answer ["typename"]] = [answer]
+		if not answers:	
+			return
+
+		name = answers [0] ["name"]
+		answer = answers [-1]
 			
+		for each in answers:
+			name = each ["name"]
+			if name not in self.cache:
+				self.cache [name] = {}
+			if "ttl" in answer:
+				answer ["valid"]	= time.time () + answer ["ttl"]
+			self.cache [name][answer ["typename"]] = [answer]
+		
 	def expire (self, host):
 		try: del self.cache [host]
 		except KeyError: pass		
@@ -34,7 +37,7 @@ class DNSCache:
 			now = time.time ()
 			if check_ttl and answer ["valid"] < now:				
 				# use max 5 minutes seconds for other querees
-				answer ['valid'] = now + 300 
+				answer ['valid'] = now + 300
 				# nut new query will be started
 				return []
 			else:
@@ -63,7 +66,9 @@ class DNSCache:
 			self.dns.req (host, qtype = qtype, protocol = "tcp", callback = [self.set, callback])
 		except:
 			self.logger.trace (host)
-			callback ([])
+			hit = [{"name": host, "data": None, "typename": qtype, 'ttl': 60}]
+			self.set (hit)
+			callback (hit)
 
 
 query = None

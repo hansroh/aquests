@@ -46,7 +46,7 @@ class async_dns (asyncore.dispatcher_with_send):
 			self.handle_error ()
 	
 	def __repr__ (self):
-		return "<async_dns: %s>" % self.args ["name"]
+		return "<async_dns: %s>" % self.qname
 				
 	def trace (self):
 		self.logger.trace ()
@@ -106,7 +106,7 @@ class Request:
 		if type (server) is bytes:
 			server = [server]
 		
-		defaults ["server"] += server
+		defaults ["server"] += server		
 		self.logger = logger
 		self.debug_level = debug_level		
 		
@@ -133,6 +133,7 @@ class Request:
 		opcode = args ['opcode']
 		rd = args ['rd']
 		server = args ['server'][:]
+		#server = ['127.0.0.1:6000']
 		
 		if type(args['qtype']) in (bytes, str):
 			try:
@@ -159,9 +160,10 @@ class Request:
 		server = [(x, args ["port"]) for x in server]
 		async_dns (server, request, args, self.processReply, self.logger, self.debug_level)
 			
-	def processReply(self, server, request, args, data):		
+	def processReply (self, server, request, args, data):
 		exception = 0
-		
+		not_found = [{"name": args ['name'].decode ('utf8'), "data": None, "typename": args ["qtype"], 'ttl': 60}]
+			
 		try:
 			if not data:
 				raise Base.DNSError('%s, no working nameservers found' % args ['name'])
@@ -173,7 +175,7 @@ class Request:
 				count = Lib.unpack16bit(header)		
 				reply = data [2: 2 + count]					
 				if len (reply) != count:
-					raise Base.DNSError('%s, incomplete reply' % args ['name'])						
+					raise Base.DNSError('%s, incomplete reply' % args ['name'])
 			
 			else:
 				reply = data
@@ -187,7 +189,7 @@ class Request:
 				reply = None
 		
 		if reply is None:		
-			answers = []
+			answers = not_found
 			
 		else:
 			try:	
@@ -195,11 +197,13 @@ class Request:
 				r = Lib.DnsResult(u, args)
 				r.args = args
 				answers = r.answers
-				
 			except:
-				if self.debug_level: self.logger.trace ()
-				answers = []	
-
+				self.logger.trace ()
+				answers = not_found
+		
+		if not answers:
+			answers = not_found
+			
 		callback = args.get ("callback", None)
 		if callback:
 			if type (callback) != type ([]):

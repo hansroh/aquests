@@ -18,6 +18,8 @@ import asyncore
 import timeit
 import time, math, random
 
+DEBUG = 1
+
 try:
 	from urllib.parse import urlparse
 except ImportError:
@@ -60,7 +62,7 @@ _logger = None
 _cb_gateway = cb_gateway_demo
 _concurrent = 1
 _workers = 1
-_currents = 0
+_currents = {}
 _que = None
 _dns_query_req = {}
 _timeout = 10
@@ -110,44 +112,64 @@ def configure (
 	lifetime.init (_timeout / 2.) # maintern interval
 	_initialized = True
 
+_under_next = 0
 def _next ():
-	global _currents, _concurrent, _finished_total, _que
+	global _currents, _concurrent, _finished_total, _que, _under_next
 	
 	_finished_total += 1
+	
+	# preventing recursive _next
+	if _under_next:
+		return
+	
 	if lifetime._shutdown_phase:
 		return
 	
-	print ('======', _currents,  _que.qsize ())
-	if _currents == 1 and not _que.qsize ():
+	if not _currents and not _que.qsize ():		
 		if lifetime._shutdown_phase == 0:
 			lifetime.shutdown (0, 7)
 		return
 	
-	print ('++++++', _concurrent, _currents, len (asyncore.socket_map), _que.qsize ())	
-	for i in range (min (_concurrent - min (_currents, len (asyncore.socket_map)), _que.qsize ())):
+	if DEBUG:
+		x = list (_currents.keys ())
+		x.sort ()
+		for c in x:
+			_currents [c][0] += 1
+			if _currents [c][0] > 100:
+				print ('===== STALLED {rid:%s, count:%d} %s' % (c, _currents [c][0], _currents [c][1]))		
+				#print (asyncore.socket_map)
+		print ('++++++', _concurrent, len (_currents), len (asyncore.socket_map), _que.qsize ())		
+	
+	_under_next = 1	
+	for i in range (min (_concurrent - min (len (_currents), len (asyncore.socket_map)), _que.qsize ())):
 		_req ()
+	_under_next = 0
 			
 def _request_finished (handler):
 	global _cb_gateway, _currents, _concurrent, _finished_total, _logger
 	
-	_currents -= 1
 	if isinstance (handler, dbo_request.Request):
 		response = handler
 	else:
 		response = response_builder.HTTPResponse (handler)
-		
+	
+	_currents.pop (response.meta ['req_id'])
 	response.logger = _logger
 	try:
 		_cb_gateway (response)
 	except:	
 		_logger.trace ()
 	_next ()
-		
+
+
+_dns_reqs = 0
 def _add (method, url, params = None, auth = None, headers = {}, meta = {}, proxy = None):	
-	def dns_result (answer = None):
-		pass
+	global _que, _initialized, _dns_query_req, _dns_reqs
 	
-	global _que, _initialized, _dns_query_req				
+	def dns_result (answer = None):
+		global _dns_reqs
+		_dns_reqs -= 1
+	
 	if not _initialized:		
 		configure ()
 	if not meta: meta = {}
@@ -155,16 +177,16 @@ def _add (method, url, params = None, auth = None, headers = {}, meta = {}, prox
 	meta ['req_method'] = method
 	host = urlparse (url) [1].split (":")[0]
 	# DNS query for caching and massive 
-	if host not in _dns_query_req:
+	if _dns_reqs < 10 and host not in _dns_query_req:
 		_dns_query_req [host] = None
-		adns.query (host, "A", callback = dns_result)	
+		_dns_reqs += 1
+		adns.query (host, "A", callback = dns_result)
 	_que.add ((method, url, params, auth, headers, meta, proxy))
 
 def _req ():
 	global _que, _logger, _finished_total, _currents, _request_total
 	
-	args = _que.get ()
-	_currents += 1
+	args = _que.get ()	
 	_request_total += 1
 	
 	_is_request = False
@@ -186,6 +208,7 @@ def _req ():
 			req = request_builder.make_dbo (_method, server, dbmethod, params, dbname, auth, meta, _logger)
 		else:
 			asyncon = dbpool.get (req.server, req.dbname, req.auth, "*" + req.dbtype)				
+		_currents [meta ['req_id']] = [0, req.server]
 		req.set_callback (_request_finished)
 		asyncon.execute (req)
 		
@@ -199,11 +222,12 @@ def _req ():
 				req = request_builder.make_http (_method, url, params, auth, headers, meta, proxy, _logger)			
 		else:
 			asyncon = socketpool.get (req.uri)
+		_currents [meta ['req_id']] = [0, req.uri]
 		handler = req.handler (asyncon, req, _request_finished)
 		if asyncon.get_proto () and asyncon.isconnected ():			
 			asyncon.handler.handle_request (handler)
 		else:
-			handler.handle_request ()
+			handler.handle_request ()	
 		
 def countreq ():
 	global _request_total

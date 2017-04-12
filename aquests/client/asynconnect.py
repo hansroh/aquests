@@ -17,7 +17,7 @@ from ..lib.ssl_ import resolve_cert_reqs, resolve_ssl_version, create_urllib3_co
 from collections import deque
 from ..protocols.http import respcodes
 
-DEBUG = False
+DEBUG = 1
 	
 class SocketPanic (Exception): pass
 class TimeOut (Exception): pass
@@ -49,6 +49,9 @@ class AsynConnect (asynchat.async_chat):
 		self.producer_fifo = self.fifo_class ()
 		asyncore.dispatcher.__init__(self)
 	
+	def __repr__ (self):
+		return "<AsynConnect %s:%d>" % self.address
+		
 	def close (self):
 		if self._closed:
 			return
@@ -65,7 +68,7 @@ class AsynConnect (asynchat.async_chat):
 		self._proto = None
 		self._closed = True
 			
-		if not self.handler:
+		if not self.handler:			
 			# return to the pool
 			return self.set_active (False)		
 		if not self.errcode:
@@ -74,8 +77,11 @@ class AsynConnect (asynchat.async_chat):
 
 		handler, self.handller = self.handler, None
 		keep_active = False			
-		try: keep_active = handler.connection_closed (self.errcode, self.errmsg)
-		except: self.trace ()
+		try: 
+			keep_active = handler.connection_closed (self.errcode, self.errmsg)
+		except: 
+			self.trace ()
+			
 		if not keep_active:
 			self.set_active (False)
 			#if not self.proxy_client:
@@ -86,6 +92,8 @@ class AsynConnect (asynchat.async_chat):
 		# DO NOT Change any props, because may be request has been restarted	
 		
 	def end_tran (self):
+		if DEBUG:
+			self.logger ('end_tran {rid:%s} %s' % (self.handler.request.meta ['req_id'], self.handler.request.uri), 'debug')
 		self.del_channel ()
 		self.handler = None
 		self.set_active (False)
@@ -214,29 +222,26 @@ class AsynConnect (asynchat.async_chat):
 			# no adns query
 			self.continue_connect (True)
 		
-	def continue_connect (self, answer = None):
-		if not answer:
-			self.log ("DNS not found - %s" % self.address [0], "error")
+	def continue_connect (self, answer = None):		
+		self.initialize_connection ()
+		
+		ipaddr = None
+		res = adns.get (self.address [0], "A")
+		if res:
+			ipaddr = res [-1]["data"]
+		
+		if not ipaddr:
 			return self.handle_close (704)
 		
-		self.initialize_connection ()
-		self.create_socket (socket.AF_INET, socket.SOCK_STREAM)
-		
+		self.create_socket (socket.AF_INET, socket.SOCK_STREAM)		
 		try:
 			if not adns.query:				
-				asynchat.async_chat.connect (self, self.address)
-				
+				asynchat.async_chat.connect (self, self.address)				
 			else:	
-				res = adns.get (self.address [0], "A")	
-				if res:
-					ip = res [-1]["data"]
-					if ip:
-						asynchat.async_chat.connect (self, (ip, self.address [1]))																		
-				else:
-					self.handle_close (704)
-					
+				asynchat.async_chat.connect (self, (ipaddr, self.address [1]))
+									
 		except:	
-			self.handle_error ()
+			self.handle_error (714)
 	
 	def recv (self, buffer_size):
 		self.set_event_time ()
@@ -289,7 +294,7 @@ class AsynConnect (asynchat.async_chat):
 			self.handler.has_been_connected ()
 			
 	def handle_expt (self):
-		self.logger ("socket panic", "fail")
+		#self.logger ("socket panic", "fail")
 		self.handle_close (703)
 	
 	def handle_error (self, code = 701):
@@ -297,13 +302,13 @@ class AsynConnect (asynchat.async_chat):
 		self.handle_close(code)
 	
 	def handle_timeout (self):
-		self.log ("socket timeout", "fail")
+		#self.log ("socket timeout", "fail")
 		self.handle_close (702)
 		
 	def handle_expt_event(self):
 		err = self.socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
 		if err != 0:
-			self.log ("Socket Error %d Occurred" % err, "warn")
+			#self.log ("Socket Error %d Occurred" % err, "warn")
 			self.handle_close (703, "Socket %d Error" % err)
 		else:
 			self.handle_expt ()
@@ -378,6 +383,8 @@ class AsynConnect (asynchat.async_chat):
 		self.errmsg = ""
 		
 		self.handler = handler
+		if DEBUG:
+			self.logger ('begin_tran {rid:%s} %s' % (self.handler.request.meta ['req_id'], self.handler.request.uri), 'debug')
 		self.set_event_time ()
 		self.proxy_client = False
 		

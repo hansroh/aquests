@@ -56,6 +56,9 @@ responses = {
 		711: "Redirect Error",
 		712: "Controlled Shutdown",
 		713: "SSL Handshake Failure",
+		714: "Connection Failure",
+		715: "Response Header Error",
+		716: "Protocol Switching Failure",
 		720: "HTTP2 Connection Closed",
 		721: "HTTP2 Stream Reset"
 }
