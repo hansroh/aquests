@@ -216,15 +216,14 @@ class RequestHandler (base_request_handler.RequestHandler):
 		if newloc or self.response.status_code in (301, 302, 307, 308):			
 			if not newloc:
 				newloc = self.response.get_header ('location')
-			
+			oldloc = self.request.uri				
 			try:
 				self.request.relocate (self.response, newloc)
 			except:
 				self.response.code, self.response.msg = 711, respcodes.get (711)
 				return 0
 			
-			old_uri = self.request.uri
-			self.log ("auto redirected %s %s %s -> %s" % (self.response.status_code, self.response.reason, old_uri, self.request.uri), "info")
+			self.log ("auto redirected %s %s %s -> %s" % (self.response.status_code, self.response.reason, oldloc, self.request.uri), "info")
 			self.asyncon.end_tran ()
 			self.asyncon = socketpool.get (self.request.uri)
 			if not self.asyncon.isconnected (): 
