@@ -93,7 +93,7 @@ class AsynConnect (asynchat.async_chat):
 	
 	def end_tran (self):
 		if DEBUG:
-			self.logger ('end_tran {rid:%s} %s' % (self.handler.request.meta ['req_id'], self.handler.request.uri), 'debug')
+			self.logger ('end_tran {rid:%s} %s' % (self.handler.request.meta.get ('req_id', -1), self.handler.request.uri), 'debug')
 		self.del_channel ()
 		self.handler = None
 		self.set_active (False)
@@ -217,7 +217,7 @@ class AsynConnect (asynchat.async_chat):
 			
 	def connect (self):
 		if DEBUG:
-			self.logger ('query DNS {rid:%s} %s' % (self.handler.request.meta ['req_id'], self.handler.request.uri), 'debug')
+			self.logger ('query DNS {rid:%s} %s' % (self.handler.request.meta.get ('req_id', -1), self.handler.request.uri), 'debug')
 		if adns.query:
 			adns.query (self.address [0], "A", callback = self.continue_connect)
 		else:
@@ -233,7 +233,7 @@ class AsynConnect (asynchat.async_chat):
 			ipaddr = res [-1]["data"]
 		
 		if DEBUG:
-			self.logger ('got DNS {rid:%s} %s %s' % (self.handler.request.meta ['req_id'], res, self.handler.request.uri), 'debug')
+			self.logger ('got DNS {rid:%s} %s %s' % (self.handler.request.meta.get ('req_id', -1), res, self.handler.request.uri), 'debug')
 		
 		if not ipaddr:
 			return self.handle_close (704)
@@ -392,7 +392,7 @@ class AsynConnect (asynchat.async_chat):
 		
 		self.handler = handler
 		if DEBUG:
-			self.logger ('begin_tran {rid:%s} %s' % (self.handler.request.meta ['req_id'], self.handler.request.uri), 'debug')
+			self.logger ('begin_tran {rid:%s} %s' % (self.handler.request.meta.get ('req_id', -1), self.handler.request.uri), 'debug')
 		self.set_event_time ()
 		self.proxy_client = False
 		
