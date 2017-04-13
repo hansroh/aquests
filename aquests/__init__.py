@@ -163,29 +163,6 @@ def _request_finished (handler):
 		_logger.trace ()
 	_next ()
 
-
-_dns_reqs = 0
-def _add (method, url, params = None, auth = None, headers = {}, callback = None, meta = {}, proxy = None):	
-	global _que, _initialized, _dns_query_req, _dns_reqs
-	
-	def dns_result (answer = None):
-		global _dns_reqs
-		_dns_reqs -= 1
-	
-	if not _initialized:		
-		configure ()
-	if not meta: meta = {}
-	meta ['req_id'] = _que.req_id
-	meta ['req_method'] = method
-	meta ['req_callback'] = callback
-	host = urlparse (url) [1].split (":")[0]
-	# DNS query for caching and massive 
-	if _dns_reqs < 10 and host not in _dns_query_req:
-		_dns_query_req [host] = None
-		_dns_reqs += 1
-		adns.query (host, "A", callback = dns_result)
-	_que.add ((method, url, params, auth, headers, meta, proxy))
-
 def _req ():
 	global _que, _logger, _finished_total, _currents, _request_total
 	
@@ -269,10 +246,33 @@ def suspend (timeout):
 	time.sleep (a)
 		
 
-#----------------------------------------------------
-# Reuqest Object
-#----------------------------------------------------	
+_dns_reqs = 0
+def _add (method, url, params = None, auth = None, headers = {}, callback = None, meta = {}, proxy = None):	
+	global _que, _initialized, _dns_query_req, _dns_reqs
+	
+	def dns_result (answer = None):
+		global _dns_reqs		
+		_dns_reqs -= 1
+	
+	if not _initialized:		
+		configure ()
+	if not meta: meta = {}
+	meta ['req_id'] = _que.req_id
+	meta ['req_method'] = method
+	meta ['req_callback'] = callback
+	host = urlparse (url) [1].split (":")[0]
+	# DNS query for caching and massive 
+	if _dns_reqs < 10 and host not in _dns_query_req:
+		_dns_query_req [host] = None
+		_dns_reqs += 1
+		adns.query (host, "A", callback = dns_result)		
+		if not lifetime._polling:
+			lifetime.poll_fun_wrap (0.1)
+	_que.add ((method, url, params, auth, headers, meta, proxy))
 
+#----------------------------------------------------
+# Add Reuqest (protocols.*.request) Object
+#----------------------------------------------------	
 def add (request):
 	global _que	
 	_que.add (request)

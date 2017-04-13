@@ -17,6 +17,7 @@ _maintern_interval = 3.0
 _killed_zombies = 0
 _select_errors = 0
 _poll_count = 0
+_polling = 0
 	
 class Maintern:
 	def __init__ (self):
@@ -89,6 +90,7 @@ def loop (timeout = 30.0):
 	global _shutdown_phase
 	global _shutdown_timeout
 	global _exit_code
+	global _polling
 	global maintern
 	
 	if maintern is None:
@@ -97,14 +99,17 @@ def loop (timeout = 30.0):
 	_shutdown_phase = 0
 	_shutdown_timeout = 30
 	_exit_code = 0	
-
+	_polling = 1
+	
 	try: 
 		lifetime_loop(timeout)
 	except KeyboardInterrupt:
 		graceful_shutdown_loop()
 	else:
-		graceful_shutdown_loop()	
-
+		graceful_shutdown_loop()
+	
+	_polling = 0
+	
 if hasattr(select, 'poll'):
 	poll_fun = asyncore.poll2
 else:
@@ -134,7 +139,10 @@ def remove_notsocks (map):
 	return killed
 	
 
-def poll_fun_wrap (timeout, map):
+def poll_fun_wrap (timeout, map = None):
+	if map is None:
+		map = asyncore.socket_map
+		
 	try:		
 		poll_fun (timeout, map)
 	
