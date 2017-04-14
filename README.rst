@@ -672,6 +672,7 @@ History
 
 - 0.7: 
   
+  - fix redirecting and reauthorizing
   - dns query instacnt loop before being called fetchall ()
   - add callback arg for each request
   - fix redirect, improve asyndns, error codes related network error

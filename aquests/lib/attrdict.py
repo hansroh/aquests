@@ -18,6 +18,9 @@ class CaseInsensitiveKey(object):
 	def __str__(self):
 		return self.key
 	
+	def __repr__(self):
+		return self.key	
+	
 	def __getattr__ (self, name):
 		return getattr (self.key, name)
 		
