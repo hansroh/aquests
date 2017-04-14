@@ -12,11 +12,8 @@ class DNSCache:
 		if not answers:	
 			return
 
-		name = answers [0] ["name"]
-		answer = answers [-1]
-			
-		for each in answers:
-			name = each ["name"]
+		for answer in answers:
+			name = answer ["name"].lower ()
 			if name not in self.cache:
 				self.cache [name] = {}
 			if "ttl" in answer:
@@ -28,6 +25,7 @@ class DNSCache:
 		except KeyError: pass		
 
 	def get (self, host, qtype = "A", check_ttl = False):
+		host = host.lower ()
 		try: answers = self.cache [host][qtype]
 		except KeyError: return []
 		answer = answers [0]

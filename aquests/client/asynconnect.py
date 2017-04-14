@@ -225,10 +225,10 @@ class AsynConnect (asynchat.async_chat):
 			self.continue_connect (True)
 		
 	def continue_connect (self, answer = None):		
-		self.initialize_connection ()
-		
+		self.initialize_connection ()		
 		ipaddr = None
 		res = adns.get (self.address [0], "A")
+		
 		if res:
 			ipaddr = res [-1]["data"]
 		
