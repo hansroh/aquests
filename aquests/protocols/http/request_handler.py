@@ -18,14 +18,13 @@ class RequestHandler (base_request_handler.RequestHandler):
 		self.asyncon = asyncon
 		self.wrap_in_chunk = False
 		self.end_of_data = False
-		self.expect_disconnect = False		
+		self.expect_disconnect = False
 		
 		self.request = request
 		self.callback = callback
 		base_request_handler.RequestHandler.__init__ (self, request.logger)
 		self.connection = connection				
 		
-		self.expect_disconnect = False
 		self.retry_count = 0
 		self.reauth_count = 0
 		self.http2_handler = None
@@ -185,7 +184,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 		try:
 			self.response = http_response.Response (self.request, buffer.decode ("utf8"))
 		except:
-			#self.log ("response header error: `%s`" % repr (buffer [:80]), "error")
+			self.log ("response header error: `%s`" % repr (buffer [:80]), "error")
 			self.asyncon.handle_error (715)			
 			return 0
 		else:	
@@ -233,9 +232,8 @@ class RequestHandler (base_request_handler.RequestHandler):
 				self.request.get_method (),
 				self.asyncon.is_proxy () and self.request.uri or self.request.path
 			)
-			self._ssl = isinstance (self.asyncon, asynconnect.AsynSSLConnect)
-			self.response = None
-			self.handle_request ()
+			self._ssl = isinstance (self.asyncon, asynconnect.AsynSSLConnect)			
+			self.handle_rerequest ()
 			return 1
 			
 		return 0	
@@ -254,8 +252,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 			self.trace ()			
 			return 0 # abort
 		else:
-			self.response = None
-			self.handle_request ()
+			self.handle_rerequest ()
 			return 1		
 		return 0 #pass
 	
@@ -278,7 +275,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 		# possibly disconnected cause of keep-alive timeout				
 		if why == 700 and self.response is None and self.retry_count == 0:
 			self.retry_count = 1
-			self.handle_request ()
+			self.handle_rerequest ()
 			return True
 		
 		self.response = http_response.FailedResponse (why, msg, self.request)
@@ -312,7 +309,14 @@ class RequestHandler (base_request_handler.RequestHandler):
 			else:
 				for data in self.get_request_buffer ("1.1", False):
 					self.asyncon.push (data)
-					
+	
+	def handle_rerequest (self):
+		# init for redirexting or reauth
+		self.response = None
+		self.end_of_data = False
+		self.buffer = b''
+		self.handle_request ()
+						
 	def handle_request (self):
 		if self.asyncon.isconnected () and self.asyncon.get_proto ():			
 			return self.switch_to_http2 ()

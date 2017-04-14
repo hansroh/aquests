@@ -150,7 +150,7 @@ Set/Get Request Meta Information
   aquests.get ("http://127.0.0.1:5000/", meta = {'job_name': 'test1'})  
   aquests.get ("http://127.0.0.1:5000/", meta = {'job_name': 'test2'})
 
-Note: meta ['req_id'], meta ['req_method'] and meta ['req_callback'] are reserved keys and automatically added by aquests. You SHOULDN'T use theses keys and actually it is better do not use key starts with 'req_'.
+Note: meta ['req_id'], meta ['req_method'] and meta ['req_callback'] are reserved keys and automatically added by aquests. You SHOULDN'T use theses keys and actually it is better do not use key starts with 'req\_'.
 
 
 Timeout Setting
@@ -672,6 +672,7 @@ History
 
 - 0.7: 
   
+  - dns query instacnt loop before being called fetchall ()
   - add callback arg for each request
   - fix redirect, improve asyndns, error codes related network error
   - redefine workers, workers mean nummber of connections

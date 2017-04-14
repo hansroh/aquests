@@ -1,6 +1,6 @@
 # 2016. 1. 10 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.7b5"
+__version__ = "0.7b7"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 
 from . import lifetime, queue, request_builder, response_builder, stubproxy
@@ -213,6 +213,10 @@ def countreq ():
 	global _request_total
 	return 	_request_total
 
+def qsize ():	
+	global _que
+	return _que.qsize ()
+
 def countfin ():	
 	global _finished_total
 	return _finished_total
@@ -267,7 +271,8 @@ def _add (method, url, params = None, auth = None, headers = {}, callback = None
 		_dns_reqs += 1
 		adns.query (host, "A", callback = dns_result)		
 		if not lifetime._polling:
-			lifetime.poll_fun_wrap (0.1)
+			for i in range (2): 
+				lifetime.poll_fun_wrap (0.1)
 	_que.add ((method, url, params, auth, headers, meta, proxy))
 	
 #----------------------------------------------------

@@ -103,7 +103,7 @@ class UrlInfo:
 			try:
 				self.netloc, self.port = self.netloc, DEFAULT_PORT_MAP [self.scheme]
 			except KeyError:
-				raise ValueError ("Unknown URL Scheme")
+				self.netloc, self.port = self.netloc, 80
 		
 		self.netloc = self.netloc.lower ()
 		try: self.port = int (self.port)
