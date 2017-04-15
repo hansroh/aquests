@@ -670,6 +670,8 @@ Note: stub's methods and parameters are defined by database engines. Please read
 History
 =========
 
+- 0.7.1: fix dns cache case sensitivity
+
 - 0.7: 
   
   - fix redirecting and reauthorizing

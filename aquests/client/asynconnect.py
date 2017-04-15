@@ -225,19 +225,15 @@ class AsynConnect (asynchat.async_chat):
 			self.continue_connect (True)
 		
 	def continue_connect (self, answer = None):		
-		self.initialize_connection ()		
-		ipaddr = None
-		res = adns.get (self.address [0], "A")
-		
-		if res:
-			ipaddr = res [-1]["data"]
-		
+		answer = answer or adns.get (self.address [0], "A")		
+		ipaddr = answer and answer [-1]["data"] or None
 		if DEBUG:
 			self.logger ('got DNS {rid:%s} %s %s' % (self.handler.request.meta.get ('req_id', -1), res, self.handler.request.uri), 'debug')
 		
 		if not ipaddr:
 			return self.handle_close (704)
 		
+		self.initialize_connection ()
 		self.create_socket (socket.AF_INET, socket.SOCK_STREAM)		
 		try:
 			if not adns.query:				

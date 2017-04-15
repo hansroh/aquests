@@ -222,7 +222,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 				self.response.code, self.response.msg = 711, respcodes.get (711)
 				return 0
 			
-			self.log ("auto redirected %s %s %s -> %s" % (self.response.status_code, self.response.reason, oldloc, self.request.uri), "info")
+			#self.log ("auto redirected %s %s %s" % (self.response.status_code, self.response.reason, oldloc), "info")
 			self.asyncon.end_tran ()
 			self.asyncon = socketpool.get (self.request.uri)
 			if not self.asyncon.isconnected (): 
