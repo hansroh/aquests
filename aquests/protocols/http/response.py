@@ -208,7 +208,7 @@ class Response:
 				ls.g.set_cookie_from_string (self.url, line [12:])
 	
 	def resolve (self, url):
-		return urljoin (self.url, url)
+		return urljoin (self.url, url.strip ())
 	
 	def is_same (self, *args, **karg):
 		return urlinfo.uuid (*args, **karg) == self.uuid
@@ -355,6 +355,7 @@ class Response:
 			return self._uinf
 		self._uinf = urlinfo.uinf (self.url)
 		return self._uinf
+	
 	
 class FailedResponse (Response):
 	def __init__ (self, errcode, msg, request = None):

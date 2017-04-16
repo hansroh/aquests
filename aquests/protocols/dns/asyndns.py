@@ -38,7 +38,6 @@ class async_dns (asyncore.dispatcher_with_send):
 		
 		asyncore.dispatcher_with_send.__init__ (self)		
 		self.create_socket (socket.AF_INET, socket.SOCK_STREAM)				
-		self.ac_out_buffer = self.request
 				
 		try:
 			self.connect (self.addr)
@@ -52,7 +51,7 @@ class async_dns (asyncore.dispatcher_with_send):
 		self.logger.trace (self.qname)
 	
 	def log_info (self, line, level = 'info'):
-		self.log ("[%s:%s] %s" % (self.qname, level, line))
+		self.log ("[%s:%s] %s" % (level, self.qname, line))
 	
 	def log (self, line):
 		self.logger (line)
@@ -72,14 +71,15 @@ class async_dns (asyncore.dispatcher_with_send):
 	
 	def handle_timeout (self):
 		if self.debug_level: 
-			self.log_info ('DNS query timeout', 'error')
+			self.log_info ('DNS query timeout %s' % self.callback, 'error')
 		self.handle_close ()
 					
 	def handle_connect (self):	
 		self.send (self.request)
 		
 	def handle_write (self):
-		self.socket.shutdown (1)
+		if not self.closed:
+			self.socket.shutdown (1)
 		
 	def handle_read (self):
 		data = self.recv (4096)
@@ -92,7 +92,7 @@ class async_dns (asyncore.dispatcher_with_send):
 		if self.closed:
 			return
 		self.closed = True	
-		asyncore.dispatcher_with_send.close (self)
+		asyncore.dispatcher_with_send.close (self)		
 		self.callback (self.servers, self.request, self.args, self.ac_in_buffer)
 			
 	def handle_close (self):
@@ -179,14 +179,14 @@ class Request:
 				reply = data
 			
 		except:
-			if server:				
+			if server:
 				async_dns (server, request, args, self.processReply, self.logger, self.debug_level)
 				return
 				
 			else:
 				reply = None
 		
-		if reply is None:		
+		if reply is None:
 			answers = not_found
 			
 		else:
@@ -203,6 +203,7 @@ class Request:
 			answers = not_found
 			
 		callback = args.get ("callback", None)
+		#self.logger ('DNS callback %s' % callback)
 		if callback:
 			if type (callback) != type ([]):
 				callback = [callback]

@@ -225,6 +225,10 @@ def countcli ():
 	global _currents
 	return _currents
 
+def concurrent ():
+	global _concurrent
+	return _concurrent
+
 def fetchall ():
 	global _workers, _logger, _que, _timeout
 	
@@ -266,13 +270,13 @@ def _add (method, url, params = None, auth = None, headers = {}, callback = None
 	meta ['req_callback'] = callback
 	host = urlparse (url) [1].split (":")[0]
 	# DNS query for caching and massive 
-	if _dns_reqs < 10 and host not in _dns_query_req:
+	
+	if not lifetime._polling and _dns_reqs < 10 and host not in _dns_query_req:	
 		_dns_query_req [host] = None
 		_dns_reqs += 1
-		adns.query (host, "A", callback = dns_result)		
-		if not lifetime._polling:
-			for i in range (2): 
-				lifetime.poll_fun_wrap (0.1)
+		adns.query (host, "A", callback = dns_result)
+		for i in range (2): 
+			lifetime.poll_fun_wrap (0.1)
 	_que.add ((method, url, params, auth, headers, meta, proxy))
 	
 #----------------------------------------------------

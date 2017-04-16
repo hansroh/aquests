@@ -8,7 +8,7 @@ class DNSCache:
 		self.cache = {}
 		self.hits = 0
 
-	def set (self, answers):
+	def set (self, answers):		
 		if not answers:	
 			return
 

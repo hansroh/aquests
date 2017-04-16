@@ -170,11 +170,12 @@ class RequestHandler (base_request_handler.RequestHandler):
 				try:
 					clen = self.get_content_length ()
 				except TypeError:
-					if self.will_be_close () or self.response.get_header ("content-type"):
-						clen = None
-						self.expect_disconnect = True
-					else:
-						clen = 0 # no transfer-encoding, no content-lenth
+					if self.will_be_close ():
+						self.expect_disconnect = True						
+						if self.response.get_header ("content-type"):
+							clen = None							
+						else:
+							clen = 0 # no transfer-encoding, no content-lenth	
 				if clen == 0:
 					return self.found_end_of_body ()
 				self.asyncon.set_terminator (clen)
@@ -185,16 +186,36 @@ class RequestHandler (base_request_handler.RequestHandler):
 			self.response = http_response.Response (self.request, buffer.decode ("utf8"))
 		except:
 			self.log ("response header error: `%s`" % repr (buffer [:80]), "error")
-			self.asyncon.handle_error (715)			
+			self.asyncon.handle_error (715)
 			return 0
 		else:	
 			try:
-				self.handle_response_code ()
+				self.handle_response_code ()				
 			except:				
 				self.response = None
 				self.asyncon.handle_error (716)
 				return 0
-		return 1		
+		
+		accepts = self.request.get_header ("accept", '')
+		if accepts in ("", "*/*"):
+			return 1		
+		
+		ct = self.response.get_header ("content-type", 'text/html').split (";")[0].strip ()
+		try: 
+			mct, sct = ct.split ("/")
+		except:
+			self.asyncon.handle_error (717)
+			return 0
+
+		for accept in accepts.split (","):
+			acctype = accept.split (";")[0].strip ()
+			try: mtype, stype = acctype.split ("/", 1)
+			except ValueError: continue
+			if mct in ("*", mtype) and sct in ("*", stype):
+				return 1
+		
+		self.asyncon.handle_close (718)
+		return 0
 		
 	def handle_response_code (self):	
 		# default header never has "Expect: 100-continue"
@@ -222,7 +243,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 				self.response.code, self.response.msg = 711, respcodes.get (711)
 				return 0
 			
-			#self.log ("auto redirected %s %s %s" % (self.response.status_code, self.response.reason, oldloc), "info")
+			self.log ("%s %s from %s" % (self.response.status_code, self.response.reason, oldloc), "info")
 			self.asyncon.end_tran ()
 			self.asyncon = socketpool.get (self.request.uri)
 			if not self.asyncon.isconnected (): 
@@ -256,9 +277,9 @@ class RequestHandler (base_request_handler.RequestHandler):
 			return 1		
 		return 0 #pass
 	
-	def found_end_of_body (self):	
+	def found_end_of_body (self):			
 		if self.response:
-			self.response.done ()
+			self.response.done ()		
 		if self.handle_redirect ():
 			return
 		if self.handled_http_authorization ():

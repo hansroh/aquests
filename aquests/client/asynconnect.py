@@ -64,7 +64,7 @@ class AsynConnect (asynchat.async_chat):
 		# re-init asychat
 		self.ac_in_buffer = b''
 		self.incoming = []
-		self.producer_fifo.clear()		
+		self.producer_fifo.clear()
 		self._proto = None
 		self._closed = True
 			
@@ -354,7 +354,7 @@ class AsynConnect (asynchat.async_chat):
 							
 	def collect_incoming_data (self, data):
 		if not self.handler:
-			self.logger ("recv data but no hander, droping data %d" % len (data), "warn")
+			self.logger ("recv data but no handler, droping data %d" % len (data), "warn")
 			self.disconnect ()
 			return
 		self.handler.collect_incoming_data (data)
@@ -454,6 +454,10 @@ class AsynSSLConnect (AsynConnect):
 		self.connected = True
 		
 	def recv (self, buffer_size):
+		if self._closed:
+			# usually handshaking failure, already handled exception
+			return
+			
 		try:
 			data = self.socket.recv (buffer_size)			
 			if not data:				
@@ -479,6 +483,10 @@ class AsynSSLConnect (AsynConnect):
 				raise
 
 	def send (self, data):
+		if self._closed:
+			# usually handshaking failure, already handled exception
+			return
+			
 		try:
 			numsent = self.socket.send (data)			
 			if numsent:
