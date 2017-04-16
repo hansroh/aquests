@@ -76,7 +76,7 @@ def configure (
 	force_http1 = False,
 	http2_constreams = 1,
 	allow_redirects = True,
-	qrandom = True
+	qrandom = False
 ):
 	global _logger, _cb_gateway, _concurrent, _initialized, _timeout, _workers, _que
 	
@@ -88,7 +88,7 @@ def configure (
 		_que = queue.RandomQueue ()
 	else:
 		_que = queue.Queue ()
-		
+
 	request_handler.RequestHandler.FORCE_HTTP_11 = force_http1
 	request_handler.RequestHandler.ALLOW_REDIRECTS = allow_redirects
 	http2.MAX_HTTP2_CONCURRENT_STREAMS = max (http2_constreams, 3)		
