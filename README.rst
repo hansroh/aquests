@@ -670,6 +670,8 @@ Note: stub's methods and parameters are defined by database engines. Please read
 History
 =========
 
+- 0.7.2: accept header validation with response content-type
+
 - 0.7.1: fix dns cache case sensitivity
 
 - 0.7: 

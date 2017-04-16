@@ -198,7 +198,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 		
 		accepts = self.request.get_header ("accept", '')
 		if accepts in ("", "*/*"):
-			return 1		
+			return 1
 		
 		ct = self.response.get_header ("content-type", 'text/html').split (";")[0].strip ()
 		try: 
@@ -211,7 +211,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 			acctype = accept.split (";")[0].strip ()
 			try: mtype, stype = acctype.split ("/", 1)
 			except ValueError: continue
-			if mct in ("*", mtype) and sct in ("*", stype):
+			if mtype in ("*", mct) and stype in ("*", sct):
 				return 1
 		
 		self.asyncon.handle_close (718)
