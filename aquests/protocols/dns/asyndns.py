@@ -162,10 +162,13 @@ class Request:
 			
 	def processReply (self, server, request, args, data, timeouted):
 		if timeouted:
-			not_found = []
+			# for retrying
+			answers = []
 			
 		else:	
-			not_found = [{'err': True, "name": args ['name'].decode ('utf8'), "data": None, "typename": args ["qtype"], 'ttl': 300}]			
+			# do not query for 5 minutes
+			not_found = [{'err': True, "name": args ['name'].decode ('utf8'), "data": None, "typename": args ["qtype"], 'ttl': 60}]
+				
 			try:
 				if not data:
 					raise Base.DNSError('%s, no working nameservers found' % args ['name'])
@@ -202,9 +205,6 @@ class Request:
 				except:
 					self.logger.trace ()
 					answers = not_found
-			
-		if not answers:
-			answers = not_found
 			
 		callback = args.get ("callback", None)
 		#self.logger ('DNS callback %s' % callback)

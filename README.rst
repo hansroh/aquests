@@ -670,6 +670,11 @@ Note: stub's methods and parameters are defined by database engines. Please read
 History
 =========
 
+- 0.7.3: 
+
+  - use google public DNS for default
+  -fix early termination in case of single worker
+
 - 0.7.2: 
   
   - accept header validation with response content-type

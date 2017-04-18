@@ -1,10 +1,11 @@
 # 2016. 1. 10 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.7.2.2"
+__version__ = "0.7.3"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 
 from . import lifetime, queue, request_builder, response_builder, stubproxy
 from .lib import logger as logger_f
+from .lib.athreads import trigger
 from .client import socketpool
 from .dbapi import dbpool
 from .client import adns
@@ -94,9 +95,13 @@ def configure (
 	http2.MAX_HTTP2_CONCURRENT_STREAMS = max (http2_constreams, 3)		
 	_workers = workers
 	_concurrent = workers
+	if _concurrent == 1:
+		# for preventing lifetime.loop break
+		trigger.start_trigger ()
+		
 	if not force_http1:
 		_concurrent = workers * http2_constreams
-			
+				
 	if callback:
 		_cb_gateway = callback
 	
@@ -112,39 +117,24 @@ def configure (
 	lifetime.init (_timeout / 2.) # maintern interval
 	_initialized = True
 
-_under_next = 0
 def _next ():
-	global _currents, _concurrent, _finished_total, _que, _under_next
+	global _currents, _concurrent, _finished_total, _que, _logger
 	
-	_finished_total += 1
-	
-	# preventing recursive _next
-	if _under_next:
-		return
-	
+	_finished_total += 1	
+	# preventing recursive _next	
 	if lifetime._shutdown_phase:
+		return	
+	if not qsize ():
+		if not _currents:
+			lifetime.shutdown (0, 30)
 		return
 	
-	if not _currents and not _que.qsize ():		
-		if lifetime._shutdown_phase == 0:
-			lifetime.shutdown (0, 7)
-		return
-	
-	if DEBUG:
-		x = list (_currents.keys ())
-		x.sort ()
-		for c in x:
-			_currents [c][0] += 1
-			if _currents [c][0] > 100:
-				print ('===== STALLED {rid:%s, count:%d} %s' % (c, _currents [c][0], _currents [c][1]))		
-				#print (asyncore.socket_map)
-		print ('++++++', _concurrent, len (_currents), len (asyncore.socket_map), _que.qsize ())		
-	
-	_under_next = 1	
-	for i in range (min (_concurrent - min (len (_currents), len (asyncore.socket_map)), _que.qsize ())):
-		_req ()
-	_under_next = 0
-			
+	while _concurrent >= min (len (_currents), mapsize ()) and qsize ():		
+		try:
+			_req ()
+		except:
+			_logger.trace ()
+
 def _request_finished (handler):
 	global _cb_gateway, _currents, _concurrent, _finished_total, _logger
 	
@@ -217,6 +207,9 @@ def qsize ():
 	global _que
 	return _que.qsize ()
 
+def mapsize ():
+	return len (asyncore.socket_map)
+	
 def countfin ():	
 	global _finished_total
 	return _finished_total
