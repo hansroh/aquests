@@ -62,6 +62,7 @@ class async_dns (asyncore.dispatcher_with_send):
 		self.socket = sock_class (family, type)
 		self.socket.setblocking (0)
 		self._fileno = self.socket.fileno ()
+		self._timeouted = 0
 		self.add_channel()
 		
 	def handle_error (self):
@@ -72,6 +73,7 @@ class async_dns (asyncore.dispatcher_with_send):
 	def handle_timeout (self):
 		if self.debug_level: 
 			self.log_info ('DNS query timeout %s' % self.callback, 'error')
+			self._timeouted = 1
 		self.handle_close ()
 					
 	def handle_connect (self):	
@@ -93,7 +95,7 @@ class async_dns (asyncore.dispatcher_with_send):
 			return
 		self.closed = True	
 		asyncore.dispatcher_with_send.close (self)		
-		self.callback (self.servers, self.request, self.args, self.ac_in_buffer)
+		self.callback (self.servers, self.request, self.args, self.ac_in_buffer, self._timeouted)
 			
 	def handle_close (self):
 		self.close ()
@@ -158,47 +160,49 @@ class Request:
 		server = [(x, args ["port"]) for x in server]
 		async_dns (server, request, args, self.processReply, self.logger, self.debug_level)
 			
-	def processReply (self, server, request, args, data):
-		exception = 0
-		not_found = [{"name": args ['name'].decode ('utf8'), "data": None, "typename": args ["qtype"], 'ttl': 300}]
+	def processReply (self, server, request, args, data, timeouted):
+		if timeouted:
+			not_found = []
 			
-		try:
-			if not data:
-				raise Base.DNSError('%s, no working nameservers found' % args ['name'])
-		
-			if args ["protocol"] == "tcp":
-				header = data [:2]
-				if len (header) < 2:
-					raise Base.DNSError('%s, EOF' % args ['name'])
-				count = Lib.unpack16bit(header)		
-				reply = data [2: 2 + count]					
-				if len (reply) != count:
-					raise Base.DNSError('%s, incomplete reply' % args ['name'])
+		else:	
+			not_found = [{'err': True, "name": args ['name'].decode ('utf8'), "data": None, "typename": args ["qtype"], 'ttl': 300}]			
+			try:
+				if not data:
+					raise Base.DNSError('%s, no working nameservers found' % args ['name'])
 			
-			else:
-				reply = data
+				if args ["protocol"] == "tcp":
+					header = data [:2]
+					if len (header) < 2:
+						raise Base.DNSError('%s, EOF' % args ['name'])
+					count = Lib.unpack16bit(header)		
+					reply = data [2: 2 + count]
+					if len (reply) != count:
+						raise Base.DNSError('%s, incomplete reply' % args ['name'])
+				
+				else:
+					reply = data
+				
+			except:					
+				if server:
+					async_dns (server, request, args, self.processReply, self.logger, self.debug_level)
+					return
+					
+				else:
+					reply = None
 			
-		except:
-			if server:
-				async_dns (server, request, args, self.processReply, self.logger, self.debug_level)
-				return
+			if reply is None:
+				answers = not_found
 				
 			else:
-				reply = None
-		
-		if reply is None:
-			answers = not_found
+				try:	
+					u = Lib.Munpacker(reply)
+					r = Lib.DnsResult(u, args)
+					r.args = args
+					answers = r.answers
+				except:
+					self.logger.trace ()
+					answers = not_found
 			
-		else:
-			try:	
-				u = Lib.Munpacker(reply)
-				r = Lib.DnsResult(u, args)
-				r.args = args
-				answers = r.answers
-			except:
-				self.logger.trace ()
-				answers = not_found
-		
 		if not answers:
 			answers = not_found
 			

@@ -1,6 +1,6 @@
 # 2016. 1. 10 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.7.2.1"
+__version__ = "0.7.2.2"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 
 from . import lifetime, queue, request_builder, response_builder, stubproxy
@@ -83,8 +83,8 @@ def configure (
 	if logger is None:
 		logger = logger_f.screen_logger ()
 	_logger = logger
-	
-	if qrandom:
+
+	if qrandom:		
 		_que = queue.RandomQueue ()
 	else:
 		_que = queue.Queue ()
@@ -259,7 +259,7 @@ def _add (method, url, params = None, auth = None, headers = {}, callback = None
 	global _que, _initialized, _dns_query_req, _dns_reqs
 	
 	def dns_result (answer = None):
-		global _dns_reqs		
+		global _dns_reqs	
 		_dns_reqs -= 1
 	
 	if not _initialized:		

@@ -41,10 +41,10 @@ class RandomQueue (Queue):
 		
 	def _add (self, req):
 		lq = len (self.q)
-		if lq == 0 or not self._consumed:
+		if lq == 0:
 			self.q.append (req)
-		else:	
-			self.q.insert(random.randrange (len (self.q)), req)
+		else:
+			self.q.insert(random.randrange (lq), req)
 	
 	def _get (self):		
 		return self.q.pop (0)

@@ -319,7 +319,7 @@ Configuration Parameters
     force_http1 = False, 
     http2_constreams = 1,
     allow_redirects = True,
-    qrandom = True
+    qrandom = False
   )
   
 - workers: number of fetching workers, it'not threads
@@ -670,7 +670,10 @@ Note: stub's methods and parameters are defined by database engines. Please read
 History
 =========
 
-- 0.7.2: accept header validation with response content-type
+- 0.7.2: 
+  
+  - accept header validation with response content-type
+  - change qrandom parameter's default value to False of aquests.configure ()
 
 - 0.7.1: fix dns cache case sensitivity
 

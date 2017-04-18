@@ -2,14 +2,15 @@ from ..protocols.dns import asyndns
 import time
 
 class DNSCache:
-	def __init__ (self, logger = None):		
+	def __init__ (self, logger = None, dns_servers = []):		
 		self.dns = asyndns.Request (logger)
 		self.logger = logger
+		self.dns_servers = dns_servers
 		self.cache = {}
 		self.hits = 0
 
-	def set (self, answers):		
-		if not answers:	
+	def set (self, answers):
+		if not answers:
 			return
 
 		for answer in answers:
@@ -24,7 +25,7 @@ class DNSCache:
 		try: del self.cache [host]
 		except KeyError: pass		
 
-	def get (self, host, qtype = "A", check_ttl = False):
+	def get (self, host, qtype = "A", check_ttl = False):		
 		host = host.lower ()
 		try: answers = self.cache [host][qtype]
 		except KeyError: return []
@@ -61,7 +62,7 @@ class DNSCache:
 			return callback ([{"name": host, "data": host, "typename": qtype}])
 		
 		try:
-			self.dns.req (host, qtype = qtype, protocol = "tcp", callback = [self.set, callback])
+			self.dns.req (host, server = self.dns_servers, qtype = qtype, protocol = "tcp", callback = [self.set, callback])
 		except:
 			self.logger.trace (host)
 			hit = [{"name": host, "data": None, "typename": qtype, 'ttl': 60}]
@@ -69,12 +70,15 @@ class DNSCache:
 			callback (hit)
 
 
+PUBLIC_DNS_SERVERS = ['8.8.8.8', '8.8.4.4']
 query = None
 
-def init (logger):
+def init (logger, dns_servers = []):
+	if not dns_servers:
+		dns_servers = PUBLIC_DNS_SERVERS
 	global query
 	if query is None:
-		query = DNSCache (logger)	
+		query = DNSCache (logger, dns_servers)	
 
 def get (name, qtype = "A"):	
 	global query
