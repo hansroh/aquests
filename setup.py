@@ -71,8 +71,10 @@ package_data = {
 }
 
 install_requires = [
-	"redis==2.10", "pymongo==3.4.0", 
-	"h2==2.5.1", "protobuf==3.1.0.post1", 
+	"redis==2.10", 
+	"pymongo==3.4.0", 
+	"h2==2.5.1", 
+	"protobuf==3.1.0.post1", 
 	"psycopg2==2.6.2"
 ]
 
