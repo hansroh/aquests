@@ -671,9 +671,10 @@ History
 =========
 
 - 0.7.3: 
-
+  
+  - add PATCH method
   - use google public DNS for default
-  -fix early termination in case of single worker
+  - fix early termination in case of single worker
 
 - 0.7.2: 
   

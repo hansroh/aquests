@@ -1,6 +1,6 @@
 # 2016. 1. 10 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.7.3"
+__version__ = "0.7.3.2"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 
 from . import lifetime, queue, request_builder, response_builder, stubproxy
@@ -300,9 +300,24 @@ def options (*args, **karg):
 def post (*args, **karg):
 	_add ('post', *args, **karg)
 
+def patch (*args, **karg):
+	_add ('patch', *args, **karg)
+
+def patchform (*args, **karg):
+	_add ('patchform', *args, **karg)
+
+def patchxml (*args, **karg):
+	_add ('patchxml', *args, **karg)
+
+def patchjson (*args, **karg):
+	_add ('patchjson', *args, **karg)
+
+def patchnvp (*args, **karg):
+	_add ('patchnvp', *args, **karg)
+					
 def put (*args, **karg):
 	_add ('put', *args, **karg)
-			
+
 def postform (*args, **karg):
 	_add ('postform', *args, **karg)
 

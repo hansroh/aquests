@@ -25,7 +25,7 @@ responses = {
 		405: "Method Not Allowed",
 		406: "Not Acceptable",
 		407: "Proxy Authentication Required",
-		408: "Request Time-out",
+		408: "Request Timeout",
 		409: "Conflict",
 		410: "Gone",
 		411: "Length Required",			

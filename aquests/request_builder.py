@@ -47,7 +47,7 @@ def make_http (_method, url, params, auth, headers, meta, proxy, logger):
 			req = http_request.HTTPRequest (url, _method.upper (), params, headers, auth, logger, meta)
 			
 		else:	
-			if _method in ("post", "put"):
+			if _method in ("post", "put", "patch"):
 				ct = None
 				for k, v in headers.items ():
 					if k.lower () == "content-type":
@@ -57,7 +57,9 @@ def make_http (_method, url, params, auth, headers, meta, proxy, logger):
 			
 			elif _method != "upload":
 				if _method [:4] == "post":					
-					cta, _method = _method [4:], "post"					 
+					cta, _method = _method [4:], "post"
+				elif _method [:4] == "patch":		
+					cta, _method = _method [5:], "patch"
 				else:
 					cta, _method = _method [3:], "put"							
 				ct = content_types.get (cta)
