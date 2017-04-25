@@ -246,7 +246,7 @@ class ConfParse:
 			else:	
 				if value is None: value = ""
 				self.conf[section][option.strip ()] = value.strip ()
-
+		
 		elif type (self.conf[section]) == type (''):
 			if option is None: option = ""
 			self.conf[section] = option.strip ()
@@ -263,7 +263,7 @@ class ConfParse:
 			try:
 				data = self.conf [sect]
 			except KeyError:
-				continue													
+				continue
 			if type (data) == type ({}):
 				fp.write ("[%s]\n" % sect)
 				for k, v in list(data.items ()): fp.write ("%s = %s\n" % (k, v))

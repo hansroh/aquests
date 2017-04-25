@@ -22,9 +22,16 @@ class API:
 	def put (self, uri, d):
 		return self.session.put ("%s/%s" % (self.API_SERVER, uri), json.dumps (d), timeout = self.REQ_TIMEOUT).json ()
 	
+	def patch (self, uri, d):
+		return self.session.patch ("%s/%s" % (self.API_SERVER, uri), json.dumps (d), timeout = self.REQ_TIMEOUT).json ()
+	
 	def get (self, uri, p = {}):	
 		return self.session.get ("%s/%s%s" % (self.API_SERVER, uri, tostr (p)), timeout = self.REQ_TIMEOUT).json ()
 	
 	def delete (self, uri, p = {}):
 		return self.session.delete ("%s/%s%s" % (self.API_SERVER, uri, tostr (p)), timeout = self.REQ_TIMEOUT).json ()
-
+	
+	def options (self, uri):
+		return self.session.options ("%s/%s%s" % (self.API_SERVER, uri), timeout = self.REQ_TIMEOUT).json ()
+	
+	
