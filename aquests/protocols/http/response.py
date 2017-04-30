@@ -322,14 +322,14 @@ class Response:
 			return result
 			
 		elif ct.startswith ("application/json"):
-			return json.loads (result)
+			return json.loads (result.decode ("utf8"))
 			
 		elif ct.startswith ('application/grpc'):			
 			msgs = []
 			for msg in result:
 				descriptor, isstream = discover.find_output (self.request.path [1:])					
 				f = descriptor ()
-				f.ParseFromString (msg)
+				f.ParseFromString (msg.decode ("utf8"))
 				msgs.append (f)
 								
 			if not isstream:
