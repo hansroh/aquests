@@ -123,17 +123,19 @@ def _next ():
 	_finished_total += 1	
 	# preventing recursive _next	
 	if lifetime._shutdown_phase:
-		return	
+		return
+		
 	if not qsize ():
 		if not _currents:
 			lifetime.shutdown (0, 30)
 		return
 	
-	while _concurrent >= min (len (_currents), mapsize ()) and qsize ():		
-		try:
-			_req ()
-		except:
-			_logger.trace ()
+	#print ('---', _concurrent, len (_currents), mapsize (), qsize ())
+	try: _req ()
+	except: _logger.trace ()
+	while _concurrent > min (len (_currents), mapsize ()) and qsize ():		
+		try: _req ()
+		except: _logger.trace ()
 
 def _request_finished (handler):
 	global _cb_gateway, _currents, _concurrent, _finished_total, _logger
