@@ -672,6 +672,7 @@ History
 
 - 0.7.3: 
   
+  - fix early termination when single worker
   - add PATCH method
   - use google public DNS for default
   - fix early termination in case of single worker
