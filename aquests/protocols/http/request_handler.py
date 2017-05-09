@@ -10,6 +10,10 @@ from ..http2 import H2_PROTOCOLS
 from ...client import socketpool
 from ...lib.cbutil import tuple_cb
 
+class ProtocolSwitchError (Exception):
+	pass
+	
+	
 class RequestHandler (base_request_handler.RequestHandler):
 	FORCE_HTTP_11 = False
 	ALLOW_REDIRECTS = False
@@ -154,24 +158,21 @@ class RequestHandler (base_request_handler.RequestHandler):
 				self.found_end_of_body ()
 						
 		else:
-			self.expect_disconnect = False
-			if not self.create_response ():
-				return
-					
-			# 100 Continue etc. try recv continued header
-			if self.response is None:
+			self.expect_disconnect = False			
+			self.create_response ()
+			if not self.response or isinstance (self.response, http_response.FailedResponse):
 				return
 			
 			if self.used_chunk ():
 				self.wrap_in_chunk = True
 				self.asyncon.set_terminator (b"\r\n") #chunked transfer
 			
-			else:			
+			else:
 				try:
 					clen = self.get_content_length ()
 				except TypeError:
 					if self.will_be_close ():
-						self.expect_disconnect = True						
+						self.expect_disconnect = True
 						if self.response.get_header ("content-type"):
 							clen = None							
 						else:
@@ -183,52 +184,52 @@ class RequestHandler (base_request_handler.RequestHandler):
 	def create_response (self):
 		buffer, self.buffer = self.buffer, b""
 		try:
-			self.response = http_response.Response (self.request, buffer.decode ("utf8"))
+			self.response = http_response.Response (self.request, buffer.decode ("utf8"))			
+			if self.handle_response_code ():
+				return
+		except ProtocolSwitchError:
+			return self.asyncon.handle_error (716)
 		except:
 			self.log ("response header error: `%s`" % repr (buffer [:80]), "error")
-			self.asyncon.handle_error (715)
-			return 0
-		else:	
-			try:
-				self.handle_response_code ()				
-			except:				
-				self.response = None
-				self.asyncon.handle_error (716)
-				return 0
-		
+			return self.asyncon.handle_error (715)			
+			
 		accepts = self.request.get_header ("accept", '')
 		if accepts in ("", "*/*"):
-			return 1
+			return
 		
 		ct = self.response.get_header ("content-type", 'text/html').split (";")[0].strip ()
 		try: 
 			mct, sct = ct.split ("/")
 		except:
-			self.asyncon.handle_error (717)
-			return 0
-
+			return self.asyncon.handle_error (717)
+			
 		for accept in accepts.split (","):
 			acctype = accept.split (";")[0].strip ()
 			try: mtype, stype = acctype.split ("/", 1)
 			except ValueError: continue
 			if mtype in ("*", mct) and stype in ("*", sct):
-				return 1
+				return
 		
-		self.asyncon.handle_close (718)
-		return 0
+		self.asyncon.handle_close (718)		
 		
-	def handle_response_code (self):	
+	def handle_response_code (self):
 		# default header never has "Expect: 100-continue"
 		# ignore, wait next message	
 		if self.response.code == 100:
 			self.asyncon.set_terminator (b"\r\n\r\n")
-			self.response = None
+			self.response = None			
+			return 1
 			
 		elif self.response.code == 101 and self.response.get_header ("Upgrade") == "h2c":	# swiching protocol		
 			self.asyncon._proto = "h2c"
 			self.response = None
-			self.switch_to_http2 ()			
-	
+			try:
+				self.switch_to_http2 ()
+			except:	
+				raise ProtocolSwitchError
+			return 1
+		return 0	
+			
 	def handle_redirect (self, newloc = None):
 		if not self.ALLOW_REDIRECTS:
 			return 0
