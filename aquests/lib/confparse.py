@@ -128,17 +128,24 @@ class ConfParse:
 			# sector
 			if match:
 				cursect = match.group(1)
-				try:
-					[ cursect, secttype ] = [x.strip() for x in cursect.split(':')]
-				except ValueError:
-					[ cursect, secttype ] = cursect.strip(), TPAIR
-				secttype = secttype.strip()
+				if cursect [0] == ":":
+					cursect = cursect [1:]
+					secttype = TLINE
+				elif cursect [0] == "@":
+					cursect = cursect [1:]
+					secttype = TDATA
+				else:
+					try:
+						[ cursect, secttype ] = [x.strip() for x in cursect.split(':')]
+					except ValueError:
+						[ cursect, secttype ] = cursect.strip(), TPAIR
+					secttype = secttype.strip()
 
 				if secttype not in (TPAIR, TLINE, TDATA):
 					raise UnknownSectorType("%s:%s" % (cursect, secttype))
 				self.conf [cursect] = self._secttype (secttype)
 				self.sectionlist.append (cursect)
-
+				
 			elif not cursect:
 				raise MissingSectionHeaderError
 
@@ -270,12 +277,12 @@ class ConfParse:
 				fp.write ("\n\n")
 
 			elif type (data) == type ([]):
-				fp.write ("[%s:%s]\n" % (sect, TLINE))
+				fp.write ("[:%s]\n" % sect)
 				for l in data: fp.write ("%s\n" % l)
 				fp.write ("\n\n")
 
 			elif type (data) == type (''):
-				fp.write ("[%s:%s]\n" % (sect, TDATA))
+				fp.write ("[@%s]\n" % sect)
 				fp.write ("%s\n" % data.strip())
 				fp.write ("\n\n")
 
