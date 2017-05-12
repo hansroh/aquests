@@ -41,16 +41,16 @@ class LocalStorage:
 			netloc = netloc.lower ()	
 			if ("." + netloc).find (domain) > -1:
 				for path in self.cookie [domain]:
-					if script.find (path) > -1:
+					if script.find (path) > -1:						
 						cookie += list(self.cookie [domain][path].items ())
 		return cookie
 	
 	def get_cookie_as_dict (self, url):	
-		cookie = self.get_cookie_as_list (url)
+		cookie = self.get_cookie_as_list (url)		
 		dict = {}
 		if cookie:
 			for k, v in cookie:
-				dict [k] = v		
+				dict [k] = v
 		return dict
 		
 	def get_cookie (self, url, key):

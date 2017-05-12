@@ -187,7 +187,7 @@ class ConfParse:
 		value = self.getopt (section, option)
 
 		if not value: return False
-		if value.lower () in ('1', 'yes'): return True
+		if value.lower () in ("1", "yes", "ture"): return True
 		return False
 
 	def getint (self, section, option = None, default = None):
@@ -196,7 +196,7 @@ class ConfParse:
 		value = self.getopt (section, option)
 		try: return int (value)
 		except: return default
-
+	
 	def getfloat (self, section, option = None, default = None):
 		if not option:
 			raise OptionNotFound
