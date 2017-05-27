@@ -65,8 +65,8 @@ class await_fifo:
 		if item is None:
 			self.has_None = True
 			return			
-		if self.has_None:
-			return # deny adding			
+		if self.has_None and index != 0:
+			return # deny adding
 		if hasattr (item, 'ready'):
 			return self.r.append (item)
 		self.insert_into (self.l, index, item)
