@@ -58,11 +58,12 @@ class DBConnect:
 		# call by dist_call
 		self.close ()
 		
-	def close (self):		
+	def close (self, deactive = 1):
 		self.request = None
-		#self.set_active (False)
 		addr = type (self.address) is tuple and ("%s:%d" % self.address) or str (self.address)
 		self.logger ("[info] .....dbo %s has been closed" % addr)	
+		if deactive:
+			self.set_active (False)
 					
 	def get_history (self):
 		return self.__history
@@ -99,7 +100,7 @@ class DBConnect:
 	def disconnect (self):
 		# keep request, just close temporary
 		request = self.request
-		self.close ()
+		self.close (deactive = 0)
 		self.request = request
 	
 	def close_case (self):

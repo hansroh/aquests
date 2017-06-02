@@ -31,7 +31,7 @@ else:
 			
 		def check_state (self, state):
 			if state not in (_STATE_OK):				
-				self.logger ("psycopg2.poll() returned %s" % state)
+				self.logger ("[warn] psycopg2.poll() returned %s" % state)
 				self.handle_close ()
 		
 		def poll (self):
@@ -129,7 +129,7 @@ else:
 			self.has_result = False
 			return result
 							
-		def close (self):			
+		def close (self, deactive = 1):
 			if self.cur:
 				try:
 					self.cur.close ()
@@ -140,7 +140,7 @@ else:
 				self.conn.close ()
 				self.conn = None	
 				
-			dbconnect.AsynDBConnect.close (self)
+			dbconnect.AsynDBConnect.close (self, deactive)
 			asyncore.dispatcher.close (self)
 			
 		def connect (self, force = 0):

@@ -17,17 +17,16 @@ class AsynConnect (dbconnect.AsynDBConnect, asynchat.async_chat):
 	def __init__ (self, address, params = None, lock = None, logger = None):
 		dbconnect.AsynDBConnect.__init__ (self, address, params, lock, logger)
 		self.redis = redisconn.Connection ()
-		self.retried = 0
 		asynchat.async_chat.__init__ (self)
 	
-	def close (self):
+	def close (self, deactive = 1):
 		asynchat.async_chat.close (self)				
 		# re-init asychat
 		self.ac_in_buffer = b''
 		self.incoming = []
 		self.producer_fifo.clear()
 				
-		dbconnect.AsynDBConnect.close (self)
+		dbconnect.AsynDBConnect.close (self, deactive)
 		self.logger ("[info] .....dbo %s:%d has been closed" % self.address)
 		
 	def handle_connect (self):
@@ -138,7 +137,6 @@ class AsynConnect (dbconnect.AsynDBConnect, asynchat.async_chat):
 			self.request.handle_result (None, self.exception_class, self.exception_str, self.fetchall ())
 			self.request = None
 		self.set_active (False)
-		self.retried = 0
 	
 	def end_tran (self):
 		self.del_channel ()
