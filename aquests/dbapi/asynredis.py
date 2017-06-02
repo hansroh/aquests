@@ -136,7 +136,7 @@ class AsynConnect (dbconnect.AsynDBConnect, asynchat.async_chat):
 		if self.request:
 			self.request.handle_result (None, self.exception_class, self.exception_str, self.fetchall ())
 			self.request = None
-		self.set_active (False)
+		self.set_active (False)		
 	
 	def end_tran (self):
 		self.del_channel ()

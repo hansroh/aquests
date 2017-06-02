@@ -15,7 +15,7 @@ Supported requests are:
 - MongoDB
 - Redis
 
-.. _`Skitai App Engine`: https://pypi.python.org/pypi/skitaid
+.. _`Skitai App Engine`: https://pypi.python.org/pypi/skitai
 
 .. contents:: Table of Contents
 
@@ -670,6 +670,10 @@ Note: stub's methods and parameters are defined by database engines. Please read
 History
 =========
 
+- 0.7.4: 
+  
+  - fix incomplete sending when resuested with connection: close header
+  
 - 0.7.3: 
   
   - fix early termination when single worker

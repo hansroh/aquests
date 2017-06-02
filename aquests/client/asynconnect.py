@@ -26,9 +26,9 @@ class AsynConnect (asynchat.async_chat):
 	ac_in_buffer_size = 65535
 	ac_out_buffer_size = 65535
 	zombie_timeout = 10
+	keep_alive = 10
 	request_count = 0
 	active = 0
-	proxy = False
 	fifo_class = deque
 	
 	def __init__ (self, address, lock = None, logger = None):
@@ -39,19 +39,36 @@ class AsynConnect (asynchat.async_chat):
 		self.__sendlock = None
 		self.__no_more_request = False
 		self.set_event_time ()
+		self.handler = None
+		
+		self.auth = None
 		self.proxy = False
 		self.proxy_client = False
-		self.handler = None
+		
 		self.initialize_connection ()
-		#asynchat.async_chat.__init__ (self)
 		self.ac_in_buffer = b''
 		self.incoming = []
 		self.producer_fifo = self.fifo_class ()
 		asyncore.dispatcher.__init__(self)
 	
+	def duplicate (self):
+		new_asyncon = self.__class__ (self.address, self.lock, self.logger)
+		new_asyncon.zombie_timeout = self.zombie_timeout
+		new_asyncon.keep_alive = self.keep_alive
+		new_asyncon.proxy = self.proxy
+		new_asyncon.proxy_client = proxy_client
+		new_asyncon.auth = self.auth
+		return new_asyncon
+			
 	def __repr__ (self):
 		return "<AsynConnect %s:%d>" % self.address
-		
+	
+	def set_auth (self, auth):
+		self.auth = auth
+	
+	def get_auth (self):
+		return self.auth
+				
 	def close (self):
 		if self._closed:
 			return
@@ -96,7 +113,7 @@ class AsynConnect (asynchat.async_chat):
 			self.logger ('end_tran {rid:%s} %s' % (self.handler.request.meta.get ('req_id', -1), self.handler.request.uri), 'debug')
 		self.del_channel ()
 		self.handler = None
-		self.set_active (False)
+		self.set_active (False)		
 				
 	def use_sendlock (self):
 		self.__sendlock = threading.Lock ()
@@ -150,9 +167,6 @@ class AsynConnect (asynchat.async_chat):
 			self.logger.trace ()
 		else:
 			warn ("No logger for traceback")
-				
-	def duplicate (self):
-		return self.__class__ (self.address, self.lock, self.logger)
 		
 	def clean_shutdown_control (self, phase, time_in_this_phase):	
 		self.__no_more_request = True
@@ -176,11 +190,13 @@ class AsynConnect (asynchat.async_chat):
 			
 		if nolock or self.lock is None:
 			self.active = flag
+			if not flag: self.set_timeout (self.keep_alive)
 			return
 			
 		self.lock.acquire ()
 		self.active = flag
-		self.request_count += 1
+		self.request_count += 1		
+		if not flag: self.set_timeout (self.keep_alive)
 		self.lock.release ()
 	
 	def get_active (self, nolock = False):
@@ -260,8 +276,7 @@ class AsynConnect (asynchat.async_chat):
 			else:
 				raise
 	
-	def send (self, data):
-		#print ("====SEND", data)
+	def send (self, data):		
 		try:
 			numsent = self.socket.send (data)
 			if numsent:
@@ -379,7 +394,7 @@ class AsynConnect (asynchat.async_chat):
 		
 	def set_proxy_client (self, flag = True):
 		self.proxy_client = flag
-						
+
 	def begin_tran (self, handler):
 		if self.__no_more_request:
 			return self.handle_close (705)
@@ -516,7 +531,7 @@ class AsynSSLProxyConnect (AsynSSLConnect, AsynConnect):
 		else:
 			return AsynConnect.recv (self, buffer_size)
 			
-	def send (self, data):		
+	def send (self, data):	
 		if self._handshaked or self._handshaking:
 			return AsynSSLConnect.send (self, data)
 		else:

@@ -107,10 +107,11 @@ else:
 		#-----------------------------------
 		def close_case (self):			
 			if self.request:
-				if self.has_result:
+				if self.has_result and self.cur.description:					
 					self.request.handle_result (self.cur.description, self.exception_class, self.exception_str, self.fetchall ())					
 				else:
 					self.request.handle_result (None, self.exception_class, self.exception_str, None)
+					self.has_result = False
 				self.request = None
 			self.set_active (False)
 			
@@ -121,7 +122,7 @@ else:
 				except psycopg2.ProgrammingError:
 					pass				
 		
-		def fetchall (self):		
+		def fetchall (self):
 			result = self.cur.fetchall ()
 			self.has_result = False
 			return result

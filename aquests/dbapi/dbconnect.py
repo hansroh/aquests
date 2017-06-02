@@ -11,6 +11,7 @@ class OperationalError (Exception):
 	
 class DBConnect:
 	zombie_timeout = 120
+	keep_alive = 120
 	
 	def __init__ (self, address, params = None, lock = None, logger = None):
 		self.address = address
@@ -43,6 +44,12 @@ class DBConnect:
 		
 		self.set_event_time ()
 	
+	def duplicate (self):
+		new_asyncon = self.__class__ (self.address, self.params, self.lock, self.logger)
+		new_asyncon.zombie_timeout = self.zombie_timeout
+		new_asyncon.keep_alive = self.keep_alive
+		return new_asyncon
+		
 	def get_proto (self):
 		# call by culster_manager
 		return None
@@ -53,15 +60,12 @@ class DBConnect:
 		
 	def close (self):		
 		self.request = None
-		self.set_active (False)		
+		self.set_active (False)
 		addr = type (self.address) is tuple and ("%s:%d" % self.address) or str (self.address)
 		self.logger ("[info] .....dbo %s has been closed" % addr)	
 					
 	def get_history (self):
 		return self.__history
-		
-	def duplicate (self):
-		return self.__class__ (self.address, self.params, self.lock, self.logger)
 		
 	def clean_shutdown_control (self, phase, time_in_this_phase):
 		self.__no_more_request = True
@@ -103,12 +107,16 @@ class DBConnect:
 			flag = time.time ()
 		else:
 			flag = 0
+		
 		if nolock or self.lock is None:
 			self.active = flag
-			return			
+			if not flag: self.set_timeout (self.keep_alive)
+			return
+			
 		self.lock.acquire ()
 		self.active = flag
 		self.request_count += 1
+		if not flag: self.set_timeout (self.keep_alive)
 		self.lock.release ()
 	
 	def get_active (self, nolock = False):
@@ -143,6 +151,7 @@ class DBConnect:
 	
 	def handle_error (self):
 		dummy, exception_class, exception_str, tbinfo = asyncore.compact_traceback()
+		self.has_result = False
 		self.logger.trace ()
 		self.handle_close (exception_class, exception_str)
 	
