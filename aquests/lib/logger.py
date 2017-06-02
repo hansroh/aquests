@@ -20,6 +20,17 @@ def trace ():
 def now (detail = 1):
 	if detail: return time.strftime("%Y.%m.%d %H:%M:%S", time.localtime(time.time()))
 	else: return time.strftime("%Y%m%d", time.localtime(time.time()))
+
+def ago (t):
+	diff = time.time () - t
+	if diff < 3600:
+		return "%2.1f minutes ago" % (diff/60)
+	elif diff < 3600	 * 24:
+		return "%2.1f hours ago" % (diff/3600)
+	elif diff < 3600	 * 72:
+		return "%2.1f days ago" % (diff/(3600 * 24))	
+	return time.strftime ("%Y-%m-%d", time.localtime (t))
+
 	
 class base_logger:
 	def __init__(self, out, cacheline = 100, flushnow = 0):

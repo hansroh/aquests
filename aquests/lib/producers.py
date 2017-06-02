@@ -218,7 +218,7 @@ class composite_producer:
 			if d:
 				return d
 			else:
-				self.producers.pop()	
+				self.producers.pop()
 		else:
 			return b''
 
