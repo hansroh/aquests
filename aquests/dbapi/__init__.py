@@ -1,6 +1,7 @@
 from . import asynmongo, asynpsycopg2, asynredis
 
 DB_PGSQL = "*postgresql"
+DB_POSTGRESQL = "*postgresql"
 DB_SQLITE3 = "*sqlite3"
 DB_REDIS = "*redis"
 DB_MONGODB = "*mongodb"
