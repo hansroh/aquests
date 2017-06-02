@@ -670,6 +670,11 @@ Note: stub's methods and parameters are defined by database engines. Please read
 History
 =========
 
+- 0.7.5
+
+   - retry once if database is disconnected by keep-live timeout
+   - change screen_logger for easy to read traceback information
+
 - 0.7.4: 
   
   - fix incomplete sending when resuested with connection: close header

@@ -31,15 +31,17 @@ else:
 			
 		def check_state (self, state):
 			if state not in (_STATE_OK):				
-				self.logger ("%s, %s" % ("psycopg2.OperationalError", "psycopg2.poll() returned %s" % state))
+				self.logger ("psycopg2.poll() returned %s" % state)
 				self.handle_close ()
 		
 		def poll (self):
 			try:
 				return self.socket.poll ()
-			except:
+			except psycopg2.OperationalError:
+				pass
+			except:				
 				self.logger.trace ()
-				return -1
+			return -1
 			
 		def writable (self):			
 			return self.out_buffer or not self.connected
