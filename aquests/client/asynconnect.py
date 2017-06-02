@@ -43,7 +43,6 @@ class AsynConnect (asynchat.async_chat):
 		
 		self.auth = None
 		self.proxy = False
-		self.proxy_client = False
 		
 		self.initialize_connection ()
 		self.ac_in_buffer = b''
@@ -56,7 +55,6 @@ class AsynConnect (asynchat.async_chat):
 		new_asyncon.zombie_timeout = self.zombie_timeout
 		new_asyncon.keep_alive = self.keep_alive
 		new_asyncon.proxy = self.proxy
-		new_asyncon.proxy_client = proxy_client
 		new_asyncon.auth = self.auth
 		return new_asyncon
 			
@@ -101,7 +99,6 @@ class AsynConnect (asynchat.async_chat):
 			
 		if not keep_active:
 			self.set_active (False)
-			#if not self.proxy_client:
 			self.logger (
 				".....socket %s has been closed (reason: %d)" % ("%s:%d" % self.address, self.errcode),
 				"info"
@@ -391,10 +388,7 @@ class AsynConnect (asynchat.async_chat):
 	
 	def set_proxy (self, flag = True):
 		self.proxy = flag
-		
-	def set_proxy_client (self, flag = True):
-		self.proxy_client = flag
-
+	
 	def begin_tran (self, handler):
 		if self.__no_more_request:
 			return self.handle_close (705)
@@ -405,7 +399,6 @@ class AsynConnect (asynchat.async_chat):
 		if DEBUG:
 			self.logger ('begin_tran {rid:%s} %s' % (self.handler.request.meta.get ('req_id', -1), self.handler.request.uri), 'debug')
 		self.set_event_time ()
-		self.proxy_client = False
 		
 		if self.connected:
 			self.close_if_over_keep_live () # check keep-alive
