@@ -17,7 +17,7 @@ except ImportError:
 
 else:	
 	import asyncore
-	from . import dbconnect	
+	from . import dbconnect
 
 	from psycopg2.extensions import POLL_OK, POLL_WRITE, POLL_READ
 	_STATE_OK = (POLL_OK, POLL_WRITE, POLL_READ)
@@ -30,11 +30,11 @@ else:
 			asyncore.dispatcher.__init__ (self)
 			
 		def check_state (self, state):
-			if state not in (_STATE_OK):
-				self.logger (self.exception_str, "psycopg2.poll() returned %s" % state)
-				self.handle_close (psycopg2.OperationalError, "psycopg2.poll() returned %s" % state)
+			if state not in (_STATE_OK):				
+				self.logger ("%s, %s" % ("psycopg2.OperationalError", "psycopg2.poll() returned %s" % state))
+				self.handle_close ()
 		
-		def poll (self):		
+		def poll (self):
 			try:
 				return self.socket.poll ()
 			except:
@@ -66,7 +66,7 @@ else:
 				self.handle_connect ()
 				self.connected = True
 				self.connecting = False		
-			else:
+			else:				
 				self.check_state (state)
 		
 		def handle_write_event (self):		
@@ -83,7 +83,7 @@ else:
 			self.conn = self.socket
 			self.cur = self.conn.cursor()		
 			self.set_socket (self.cur.connection)			
-						
+					
 		def handle_read (self):
 			state = self.poll ()
 			if self.cur and state == POLL_OK:
@@ -99,7 +99,7 @@ else:
 				self.set_event_time ()				
 				self.cur.execute (self.out_buffer)
 				self.out_buffer = ""
-			else:
+			else:				
 				self.check_state (state)
 				
 		#-----------------------------------
@@ -129,10 +129,13 @@ else:
 							
 		def close (self):			
 			if self.cur:
-				self.cur.close ()
+				try:
+					self.cur.close ()
+				except psycopg2.ProgrammingError:
+					pass						
 				self.cur = None
 			if self.conn:	
-				self.conn.close ()			
+				self.conn.close ()
 				self.conn = None	
 				
 			dbconnect.AsynDBConnect.close (self)
@@ -152,7 +155,7 @@ else:
 		
 		def end_tran (self):
 			self.del_channel ()
-				
+
 		def begin_tran (self, request):
 			dbconnect.AsynDBConnect.begin_tran (self, request)
 			self.out_buffer = request.params [0]

@@ -37,6 +37,7 @@ class DBConnect:
 		
 		# need if there's not any request yet
 		self.active = 0
+		self.retried = 0
 		self.request = None
 		self.has_result = False
 		self.__history = []
@@ -59,7 +60,7 @@ class DBConnect:
 		
 	def close (self):		
 		self.request = None
-		self.set_active (False)
+		#self.set_active (False)
 		addr = type (self.address) is tuple and ("%s:%d" % self.address) or str (self.address)
 		self.logger ("[info] .....dbo %s has been closed" % addr)	
 					
@@ -96,26 +97,31 @@ class DBConnect:
 		self.connect ()
 	
 	def disconnect (self):
+		# keep request, just close temporary
+		request = self.request
 		self.close ()
+		self.request = request
 	
 	def close_case (self):
 		raise NotImplementedError
 			
 	def set_active (self, flag, nolock = False):
+		if not flag: 
+			self.set_timeout (self.keep_alive)
+			self.retried = 0
+			
 		if flag:
 			flag = time.time ()
 		else:
 			flag = 0
-		
+			
 		if nolock or self.lock is None:
 			self.active = flag
-			if not flag: self.set_timeout (self.keep_alive)
 			return
-			
+		
 		self.lock.acquire ()
 		self.active = flag
-		self.request_count += 1
-		if not flag: self.set_timeout (self.keep_alive)
+		self.request_count += 1		
 		self.lock.release ()
 	
 	def get_active (self, nolock = False):
@@ -154,7 +160,13 @@ class DBConnect:
 		self.logger.trace ()
 		self.handle_close (exception_class, exception_str)
 	
-	def handle_close (self, expt = None, msg = ""):		
+	def handle_close (self, expt = None, msg = ""):
+		if not expt and not self.retried:			
+			self.disconnect ()
+			self.retried = 1
+			self.execute (self.request)			
+			return
+			
 		self.exception_class, self.exception_str = expt, msg		
 		self.close_case_with_end_tran ()
 		self.close ()

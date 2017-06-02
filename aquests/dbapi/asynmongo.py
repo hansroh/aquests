@@ -228,10 +228,10 @@ class AsynConnect (asynredis.AsynConnect):
 		# SHOULD push before adding to map, otherwise raised threading collision
 		command = request.method.lower ()
 		if command not in self.REQ_OPS_OF_WIRE_PROTOCOL:
-			raise NotImplementedError ("Command %s Not Impemented" % command)		
+			raise NotImplementedError ("Command %s Not Impemented" % command)
+
 		self.begin_tran (request)		
 		getattr (self, command) (*request.params)
-		
 		self.set_terminator (16)
 		if not self.connected:
 			self.connect ()

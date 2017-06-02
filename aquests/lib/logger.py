@@ -102,7 +102,6 @@ class base_logger:
 	def read (self):
 		return self.__cache
 		
-
 	
 class screen_logger (base_logger):
 	def __init__ (self, cacheline = 200, flushnow = 1):
@@ -110,13 +109,13 @@ class screen_logger (base_logger):
 	
 	def log (self, line, type = "info", name = ""):
 		if type.startswith ("expt"):
-			line = trace ().replace ("] [", "]\n  - ")
-			line = line.replace ("Traceback: [", "\nTraceback\n=========\n  - ")
-			line = line + "\n---------"
+			line = trace ().replace ("] [", "\n  - ")
+			line = line.replace ("Traceback: [", "\n  -----------\n  + Traceback\n  ===========\n  - ")
+			line = line [:-1] + "\n  -----------"
 		base_logger.log (self, line, type, name)			
 	
-	# do nothing
-	def close (self): pass
+	def close (self): 
+		pass
 
 
 class null_logger (screen_logger):

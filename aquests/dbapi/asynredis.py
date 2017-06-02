@@ -17,9 +17,10 @@ class AsynConnect (dbconnect.AsynDBConnect, asynchat.async_chat):
 	def __init__ (self, address, params = None, lock = None, logger = None):
 		dbconnect.AsynDBConnect.__init__ (self, address, params, lock, logger)
 		self.redis = redisconn.Connection ()
+		self.retried = 0
 		asynchat.async_chat.__init__ (self)
 	
-	def close (self):		
+	def close (self):
 		asynchat.async_chat.close (self)				
 		# re-init asychat
 		self.ac_in_buffer = b''
@@ -131,12 +132,13 @@ class AsynConnect (dbconnect.AsynDBConnect, asynchat.async_chat):
 		if not self.num_elements:
 			self.has_result = True
 			self.close_case_with_end_tran ()
-	
+		
 	def close_case (self):
 		if self.request:
 			self.request.handle_result (None, self.exception_class, self.exception_str, self.fetchall ())
 			self.request = None
-		self.set_active (False)		
+		self.set_active (False)
+		self.retried = 0
 	
 	def end_tran (self):
 		self.del_channel ()
