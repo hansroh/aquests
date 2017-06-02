@@ -46,7 +46,6 @@ class DBConnect:
 	
 	def duplicate (self):
 		new_asyncon = self.__class__ (self.address, self.params, self.lock, self.logger)
-		new_asyncon.zombie_timeout = self.zombie_timeout
 		new_asyncon.keep_alive = self.keep_alive
 		return new_asyncon
 		

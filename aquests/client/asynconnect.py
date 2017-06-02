@@ -52,9 +52,10 @@ class AsynConnect (asynchat.async_chat):
 	
 	def duplicate (self):
 		new_asyncon = self.__class__ (self.address, self.lock, self.logger)
-		new_asyncon.zombie_timeout = self.zombie_timeout
-		new_asyncon.keep_alive = self.keep_alive
+		# used in socketpool
 		new_asyncon.proxy = self.proxy
+		# used in skitai cluster manager
+		new_asyncon.keep_alive = self.keep_alive
 		new_asyncon.auth = self.auth
 		return new_asyncon
 			
