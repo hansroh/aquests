@@ -15,7 +15,7 @@ def trace ():
 		v = str (v)
 	except UnicodeEncodeError:
 		pass
-	return "%s %s %s" % (t, v, tbinfo)
+	return "%s %s Traceback: %s" % (t, v, tbinfo)
 		
 def now (detail = 1):
 	if detail: return time.strftime("%Y.%m.%d %H:%M:%S", time.localtime(time.time()))
@@ -107,6 +107,13 @@ class base_logger:
 class screen_logger (base_logger):
 	def __init__ (self, cacheline = 200, flushnow = 1):
 		base_logger.__init__(self, sys.stdout, cacheline, flushnow)
+	
+	def log (self, line, type = "info", name = ""):
+		if type.startswith ("expt"):
+			line = trace ().replace ("] [", "]\n  - ")
+			line = line.replace ("Traceback: [", "\nTraceback\n=========\n  - ")
+			line = line + "\n---------"
+		base_logger.log (self, line, type, name)			
 	
 	# do nothing
 	def close (self): pass
