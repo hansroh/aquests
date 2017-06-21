@@ -44,7 +44,7 @@ class base_logger:
 	def set_filter (self, *types):	
 		self.filter = types
 		
-	def __call__(self, line, type="", name=""):
+	def __call__(self, line, type="info", name=""):
 		return self.log (line, type, name)
 	
 	def write (self, line, type="", name=""):
