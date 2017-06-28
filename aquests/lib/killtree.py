@@ -6,8 +6,7 @@ if os.name == "nt":
 		subprocess.call(['taskkill', '/F', '/T', '/PID', str(pid)])		
 
 else:
-	import psutil
-	
+	import psutil	
 	def kill (pid, including_parent = True):	
 		parent = psutil.Process(pid)
 		children = parent.children(recursive=True)

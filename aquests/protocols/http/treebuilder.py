@@ -79,8 +79,11 @@ def to_str (body, encoding = None):
 	
 def html (html, baseurl, encoding = None):
 	# html5lib rebuilds possibly mal-formed html	
-	try:
-		return lxml.html.fromstring (lxml.etree.tostring (html5lib.parse (html, encoding = encoding, treebuilder="lxml")), baseurl)
+	try:		
+		if type (html) is str:
+			return lxml.html.fromstring (lxml.etree.tostring (html5lib.parse (html, treebuilder="lxml")), baseurl)
+		else:	
+			return lxml.html.fromstring (lxml.etree.tostring (html5lib.parse (html, likely_encoding = encoding, treebuilder="lxml")), baseurl)
 	except ValueError:
 		return lxml.html.fromstring (lxml.etree.tostring (html5lib.parse (to_str (html, encoding), treebuilder="lxml")), baseurl)
 

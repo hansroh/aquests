@@ -75,8 +75,10 @@ install_requires = [
 	"pymongo==3.4.0", 
 	"h2==2.5.1", 
 	"protobuf==3.1.0.post1", 
-	"psycopg2==2.6.2"
+	"psycopg2==2.6.2",
 ]
+if os.name == "posix":
+	install_requires.append ("psutil")
 
 with open('aquests/__init__.py', 'r') as fd:
 	version = re.search(r'^__version__\s*=\s*"(.*?)"',fd.read(), re.M).group(1)
