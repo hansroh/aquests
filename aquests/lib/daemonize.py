@@ -1,12 +1,13 @@
 import os
 import sys
+from . import killtree
 
 class Daemonizer:
 	def __init__(self, chdir="/", umask=0o22):
 		self.chdir = chdir
 		self.umask = umask
 		self.pidfile = os.path.join (chdir, '.pid')
-		
+			
 	def runAsDaemon(self):
 		self.fork_and_die()
 		self.dettach_env ()		
@@ -26,7 +27,7 @@ class Daemonizer:
 	def attach_stream (self, name, mode, fd = '/dev/null'):
 		stream = open(fd, mode)
 		os.dup2(stream.fileno(), getattr(sys, name).fileno())
-		
+	
 	def fork_and_die(self):
 		r = os.fork()
 		if r == -1:
@@ -39,6 +40,12 @@ class Daemonizer:
 			raise OSError("Something bizarre happened while trying to fork().")
 			# now only r = 0 (the child) survives.
 		return r
+
+def kill (chdir):
+	with open ( os.path.join (chdir, '.pid')) as f:
+		pid = int (f.read ())
+	killtree.kill (pid, True)
+				
 
 if __name__ == "__main__"	:
 	import time
