@@ -21,7 +21,7 @@ class API:
 			return resp.json ()
 		except ValueError:
 			if resp.status_code == 200:
-				return resp.content
+				return resp.content or None
 			else:
 				raise	
 		

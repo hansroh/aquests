@@ -2,7 +2,50 @@ import win32pdh
 import win32process
 import win32event
 import pywintypes
+import os, sys
 
+def is_running (pid, cmd = None):
+	if cmd is None:
+		cmd = sys.argv [0]
+		
+	if os.name == "nt":
+		import win32process, win32api, win32con, pywintypes
+		HAS_WMI = True
+		try: import wmi	
+		except ImportError: HAS_WMI = False
+		
+		if pid not in win32process.EnumProcesses ():
+			return False
+	
+		if HAS_WMI:
+			cl = [p.CommandLine for p in wmi.WMI ().Win32_Process () if p.ProcessID == pid]
+			if cl and cl [0].find (cmd) != -1:
+				return True
+			return False
+												
+		else:	
+			try:
+				handle = win32api.OpenProcess (win32con.PROCESS_QUERY_INFORMATION | win32con.PROCESS_VM_READ, 0, int (pid))
+				exefilename = win32process.GetModuleFileNameEx (handle, 0)
+				win32process.GetStartupInfo()
+				if exefilename.find ("python.exe") != -1:
+					return True
+			except pywintypes.error: 
+				# Windows service, Access is denied
+				return False
+	
+	else:
+		proc = "/proc/%s/cmdline" % pid
+		if not os.path.isfile (proc):
+			return False
+		
+		with open (proc) as f:
+			exefilename = f.read ()		
+		if exefilename.find (cmd) != -1:
+			return True
+		
+	return False
+				
 def timeout_execute (cmd, timeout = 0):
 	if timeout == 0:
 		timeout = win32event.INFINITE

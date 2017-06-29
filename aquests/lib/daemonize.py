@@ -1,14 +1,17 @@
 import os
 import sys
-from . import killtree
+from . import killtree, processutil
 
 class Daemonizer:
 	def __init__(self, chdir="/", umask=0o22):
 		self.chdir = chdir
 		self.umask = umask
 		self.pidfile = os.path.join (chdir, '.pid')
-			
+	
 	def runAsDaemon(self):
+		if status (self.chdir):
+			return 0
+						
 		self.fork_and_die()
 		self.dettach_env ()		
 		self.fork_and_die()	
@@ -18,6 +21,7 @@ class Daemonizer:
 		self.attach_stream('stdin', 'r')
 		self.attach_stream('stdout', 'a+')
 		self.attach_stream('stderr', 'a+')
+		return 1
 		
 	def dettach_env (self):
 		os.setsid()
@@ -42,10 +46,18 @@ class Daemonizer:
 		return r
 
 def kill (chdir):
-	with open ( os.path.join (chdir, '.pid')) as f:
+	if status (chdir):
+		killtree.kill (pid, True)
+		os.remove (pidfile)
+
+def status (chdir):
+	pidfile =  os.path.join (chdir, '.pid')
+	if not os.path.isfile (pidfile):		
+		return 0
+	with open (pidfile) as f:
 		pid = int (f.read ())
-	killtree.kill (pid, True)
-				
+	return processutil.is_running (pid)
+
 
 if __name__ == "__main__"	:
 	import time
