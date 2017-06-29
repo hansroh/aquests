@@ -46,9 +46,10 @@ class Daemonizer:
 		return r
 
 def kill (chdir):
-	if status (chdir):
+	pid = status (chdir)
+	if pid:	
 		killtree.kill (pid, True)
-		os.remove (pidfile)
+		os.remove (os.path.join (chdir, ".pid"))
 
 def status (chdir):
 	pidfile =  os.path.join (chdir, '.pid')
@@ -56,7 +57,7 @@ def status (chdir):
 		return 0
 	with open (pidfile) as f:
 		pid = int (f.read ())
-	return processutil.is_running (pid)
+	return processutil.is_running (pid) and pid or 0
 
 
 if __name__ == "__main__"	:
