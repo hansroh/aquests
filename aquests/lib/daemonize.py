@@ -1,5 +1,6 @@
 import os
 import sys
+import signal
 from . import killtree, processutil
 
 class Daemonizer:
@@ -45,12 +46,6 @@ class Daemonizer:
 			# now only r = 0 (the child) survives.
 		return r
 
-def kill (chdir):
-	pid = status (chdir)
-	if pid:	
-		killtree.kill (pid, True)
-		os.remove (os.path.join (chdir, ".pid"))
-
 def status (chdir):
 	pidfile =  os.path.join (chdir, '.pid')
 	if not os.path.isfile (pidfile):		
@@ -58,6 +53,16 @@ def status (chdir):
 	with open (pidfile) as f:
 		pid = int (f.read ())
 	return processutil.is_running (pid) and pid or 0
+	
+def kill (chdir, include_children = True):
+	pid = status (chdir)
+	if not pid:	
+		return	
+	if include_children:
+		killtree.kill (pid, True)
+	else:	
+		os.kill (pid, signal.SIGTERM)			
+	os.remove (os.path.join (chdir, ".pid"))
 
 
 if __name__ == "__main__"	:
