@@ -56,7 +56,7 @@ def status (chdir):
 	if not os.path.isfile (pidfile):		
 		return 0
 	with open (pidfile) as f:
-		pid = int (f.read ())
+		pid = int (f.read ())	
 	return processutil.is_running (pid) and pid or 0
 
 

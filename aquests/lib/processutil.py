@@ -2,7 +2,7 @@ import os, sys
 
 def is_running (pid, cmd = None):
 	if cmd is None:
-		cmd = sys.argv [0]
+		cmd = os.path.split (sys.argv [0])[1]
 		
 	if os.name == "nt":
 		import win32process, win32api, win32con, pywintypes
