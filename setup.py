@@ -76,6 +76,7 @@ install_requires = [
 	"h2==2.5.1", 
 	"protobuf==3.1.0.post1", 
 	"psycopg2==2.6.2",
+	"event_bus==1.0.2",
 ]
 if os.name == "posix":
 	install_requires.append ("psutil")

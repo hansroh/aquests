@@ -95,6 +95,11 @@ Installation
 
   pip install aquests
 
+On posix, for compiling psycopg2 module, requires theses packages,
+
+.. code:: bash
+    
+  apt-get install libpq-dev python-dev
 
 Usage
 ======
@@ -671,7 +676,8 @@ History
 =========
 
 - 0.7.5
-
+   
+   - add lib.evbus
    - retry once if database is disconnected by keep-live timeout
    - change screen_logger for easy to read traceback information
 
