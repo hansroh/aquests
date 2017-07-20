@@ -5,13 +5,14 @@ from ..http.request import XMLRPCRequest
 class GRPCRequest (XMLRPCRequest):
 	initial_http_version = "2.0"
 	
-	def __init__ (self, uri, method, params = (), headers = None, auth = None, logger = None, meta = {}):
+	def __init__ (self, uri, method, params = (), headers = None, auth = None, logger = None, meta = {}, http_version = "2.0"):
 		self.uri = uri
 		self.method = method
 		self.params = params
 		self.auth = (auth and type (auth) is not tuple and tuple (auth.split (":", 1)) or auth)
 		self.logger = logger
 		self.meta = meta
+		self.http_version = http_version
 		self.address, self.path = self.split (uri)
 	
 		self.headers = {

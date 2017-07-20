@@ -147,6 +147,7 @@ class pipe_logger (screen_logger):
 
 
 class rotate_logger (base_logger):
+	PRESERVE_MAX = 30
 	def __init__(self, base, surfix = '', freq = "daily", cacheline = 200, flushnow = 0):
 		self.base = base
 		self.surfix = surfix
@@ -186,9 +187,9 @@ class rotate_logger (base_logger):
 			if file.find (self.surfix + "-") != 0: continue 			
 			dlogs.append (file) 
 		
-		if len (dlogs) <= 100: return
+		if len (dlogs) <= self.PRESERVE_MAX: return
 		dlogs.sort ()
-		for file in dlogs [:-100]:
+		for file in dlogs [:-self.PRESERVE_MAX]:
 			try: os.remove (os.path.join (self.base, file))
 			except: pass
 		

@@ -41,14 +41,14 @@ class XMLRPCRequest:
 		self.meta = meta
 		self.http_version = http_version
 		self.content_length = 0
-		self.address, self.path = self.split (uri)
+		self.address, self.path = self.split (uri)		
 		self._history = []
 		self.__xmlrpc_serialized = False
 		self.headers = attrdict.NocaseDict ()
 		self.headers ["Accept"] = "*/*"
 		self.headers ["Accept-Encoding"] = "gzip"		
 		if headers:
-			for k, v in headers.items ():
+			for k, v in type (headers) is dict and headers.items () or headers:
 				n = k.lower ()
 				if n in ("accept-encoding	", "content-length", "connection"):
 					# reanalyze
@@ -154,7 +154,7 @@ class XMLRPCRequest:
 			self.uri += "/"
 			self.path += "/"
 		data = xmlrpclib.dumps (self.params, self.method, allow_none = 1).encode ("utf8")
-		self.headers ["Content-Type"] = "text/xml"
+		self.headers ["Content-Type"] = "text/xml; charset=utf-8"
 		cl = len (data)
 		self.headers ["Content-Length"] = cl
 		self.set_content_length (cl)
@@ -193,7 +193,7 @@ class XMLRPCRequest:
 		if self.headers:			
 			k = k.lower ()
 			for n, v in self.headers.items ():
-				if n.lower () == k:
+				if n.lower () == k:					
 					if with_key:
 						return n, v
 					return v
@@ -240,7 +240,7 @@ class HTTPRequest (XMLRPCRequest):
 	def urlencode (self, to_bytes = True):
 		fm = []
 		for k, v in list(self.params.items ()):			
-			fm.append ("%s=%s" % (quote (k), quote (v)))				
+			fm.append ("%s=%s" % (quote (k), quote (str (v))))				
 		if to_bytes:	
 			return "&".join (fm).encode ("utf8")
 		return "&".join (fm)
@@ -248,7 +248,7 @@ class HTTPRequest (XMLRPCRequest):
 	def nvpencode (self):
 		fm = []
 		for k, v in list(self.params.items ()):
-			v = v.encode ("utf8")
+			v = str (v).encode ("utf8")
 			fm.append (k.encode ("utf8") + b"[" + str (len (v)).encode ("utf8") + b"]=" + v)
 		return b"&".join (fm)
 									
@@ -276,12 +276,15 @@ class HTTPRequest (XMLRPCRequest):
 			content_type = "application/json"
 						
 		if type (self.params) is dict:			
-			if content_type == "application/json":
-				data = json.dumps (self.params).encode ("utf8")				
-			elif content_type == "application/x-www-form-urlencoded":
+			if content_type.startswith ("application/json"):
+				data = json.dumps (self.params).encode ("utf8")		
+				content_type = "application/json; charset=utf-8"
+			elif content_type.startswith ("application/x-www-form-urlencoded"):
 				data = self.urlencode ()				
-			elif content_type == "text/namevalue":
+				content_type = "application/x-www-form-urlencoded; charset=utf-8"
+			elif content_type.startswith ("text/namevalue"):
 				data = self.nvpencode ()				
+				content_type = "text/namevalue; charset=utf-8"
 		self.headers ["Content-Type"] = content_type
 		return self.to_bytes (data)
 		
@@ -289,8 +292,8 @@ class HTTPRequest (XMLRPCRequest):
 class HTTPMultipartRequest (HTTPRequest):
 	boundary = "-------------------Skitai-%s.%s-a1a80da4-ca3d-11e6-b245-001b216d6e71" % aquests.version_info [:2]
 		
-	def __init__ (self, uri, method, params = {}, headers = None, auth = None, logger = None, meta = {}):
-		HTTPRequest.__init__ (self, uri, method, params, headers, auth, logger, meta)
+	def __init__ (self, uri, method, params = {}, headers = None, auth = None, logger = None, meta = {}, http_version = "1.1"):
+		HTTPRequest.__init__ (self, uri, method, params, headers, auth, logger, meta, http_version)
 		if type (self.params) is bytes:
 			self.find_boundary ()
 	
