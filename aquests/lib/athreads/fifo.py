@@ -8,30 +8,21 @@ class await_fifo:
 	
 	def __init__ (self):
 		self.l = deque ()
-		self.r = deque ()
 		self.has_None = False
 	
 	def working (self):
-		return (self.has_None or self.l or self.r) and 1 or 0
+		return (self.has_None or self.l) and 1 or 0
 	
-	def __len__ (self):	
-		if self.l:
+	def __len__ (self):
+		for i in range (len (self.l)):
 			if not hasattr (self.l [0], 'ready'):
+				return len (self.l)				
+			elif self.l [0].ready ():
 				return len (self.l)
-			if not self.l [0].ready ():
-				self.r.append (self.l.popleft ())
+			else:	
+				self.l.append (self.l.popleft ())
 		
-		if self.l:
-			return len (self.l)
-	
-		if self.r:
-			for i in range (len (self.r)):				
-				if self.r [0].ready ():
-					self.l.append (self.r.popleft ())
-					return 1	
-				self.r.rotate (1)
-		
-		if self.has_None and not self.l and not self.r:
+		if self.has_None and not self.l:
 			# for return None
 			self.l.append (None)
 			self.has_None = False
@@ -67,15 +58,14 @@ class await_fifo:
 		if self.has_None and index != 0:
 			return # deny adding
 		if index == 0:
-			if not hasattr (item, 'ready') or item.ready ():			 
+			if type (item) is bytes:
 				return self.l.appendleft (item)
-		if hasattr (item, 'ready'):
-			return self.r.append (item)
+			elif hasattr (item, "ready") and not item.ready:
+				return self.l.append (item)
 		self.insert_into (self.l, index, item)
 		
 	def clear (self):
 		self.l.clear ()
-		self.r.clear ()
 		self.has_None = False
 	
 	
