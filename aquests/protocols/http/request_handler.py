@@ -168,6 +168,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 				self.asyncon.set_terminator (b"\r\n") #chunked transfer
 			
 			else:
+				clen = 0 # no transfer-encoding, no content-lenth	
 				try:
 					clen = self.get_content_length ()
 				except TypeError:
@@ -175,10 +176,10 @@ class RequestHandler (base_request_handler.RequestHandler):
 						self.expect_disconnect = True
 						if self.response.get_header ("content-type"):
 							clen = None							
-						else:
-							clen = 0 # no transfer-encoding, no content-lenth	
+						
 				if clen == 0:
 					return self.found_end_of_body ()
+					
 				self.asyncon.set_terminator (clen)
 			
 	def create_response (self):
