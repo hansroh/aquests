@@ -19,8 +19,7 @@ class await_fifo:
 			if not hasattr (self.l [0], 'ready'):
 				return len (self.l)
 			if not self.l [0].ready ():
-				item = self.l.popleft ()
-				self.r.append (item)
+				self.r.append (self.l.popleft ())
 		
 		if self.l:
 			return len (self.l)
@@ -67,6 +66,9 @@ class await_fifo:
 			return			
 		if self.has_None and index != 0:
 			return # deny adding
+		if index == 0:
+			if not hasattr (item, 'ready') or item.ready ():			 
+				return self.l.appendleft (item)
 		if hasattr (item, 'ready'):
 			return self.r.append (item)
 		self.insert_into (self.l, index, item)

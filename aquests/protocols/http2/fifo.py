@@ -25,7 +25,18 @@ class http2_producer_fifo (await_ts_fifo):
 				self.remove_from (stream_id, self.l)
 			if self.r:
 				self.remove_from (stream_id, self.r)
-			
+	
+	def insert_into (self, lst, index, item):		
+		if index == 0:
+			lst.appendleft (item)
+		elif index == -1:
+			lst.append (item)	
+		else:
+			r = len (self.l) - index
+			lst.rotate (r)
+			lst.append (item)
+			lst.rotate (index + 1)
+					
 	def insert (self, index, item):
 		if item is None:
 			with self._lock:
@@ -36,6 +47,11 @@ class http2_producer_fifo (await_ts_fifo):
 			if self.has_None:
 				return # deny adding	
 		
+		if index == 0:
+			if not hasattr (item, 'ready') or item.ready ():
+				with self._lock:
+					return self.l.appendleft (item)
+				
 		if hasattr (item, 'ready'):
 			with self._lock:
 				return self.r.append (item)
@@ -48,7 +64,7 @@ class http2_producer_fifo (await_ts_fifo):
 			with self._lock:
 				return self.insert_into (self.l, index, item)
 		
-		index = 0
+		i = 0
 		inserted = False
 		with self._lock:
 			for each in self.l:
@@ -57,12 +73,12 @@ class http2_producer_fifo (await_ts_fifo):
 					d2 = each.depends_on
 				except AttributeError:
 					pass
-				else:
-					if d2 >= d1 and w2 < w1:
-						self.insert_into (self.l, index, item)
+				else:					
+					if d1 <= d2 and w2 < w1:
+						self.insert_into (self.l, i, item)
 						inserted = True
-						break
-				index += 1
+						break				
+				i += 1
 				
 			if not inserted:
 				self.l.append (item)

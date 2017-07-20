@@ -142,7 +142,7 @@ class SocketPool:
 					
 				else:		
 					asyncons = list(self.__socketfarm [serverkey].values ())
-					#print ('~~~~~~~~~~', len (asyncons), end = ' ')
+					#print (self.__protos.get (serverkey), PROTO_CONCURRENT_STREAMS)
 					if self.__protos.get (serverkey) in PROTO_CONCURRENT_STREAMS:
 						asyncon = select_channel (asyncons)
 						
