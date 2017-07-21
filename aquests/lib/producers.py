@@ -10,6 +10,7 @@ from . import compressors, strutil
 import mimetypes
 import os
 from collections import Iterable
+import asynchat
 
 """
 A collection of producers.
@@ -20,9 +21,11 @@ For example, you can feed dynamically-produced output into the compressing
 producer, then wrap this with the 'chunked' transfer-encoding producer.
 """
 
+SIZE_BUFFER = asynchat.async_chat.ac_out_buffer_size
+
 class simple_producer:
 	"producer for a string"
-	def __init__ (self, data, buffer_size = 4096):
+	def __init__ (self, data, buffer_size = SIZE_BUFFER):
 		self.data = data
 		self.buffer_size = buffer_size
 
@@ -59,7 +62,7 @@ class iter_producer (list_producer):
 			return b""
 
 class closing_stream_producer (simple_producer):
-	def __init__ (self, data, buffer_size = 4096):
+	def __init__ (self, data, buffer_size = SIZE_BUFFER):
 		if not hasattr (data, "read"):
 			raise AttributeError ("stream object should have `read()` returns bytes object and optional 'close()'")			
 		simple_producer.__init__ (self, data, buffer_size)
@@ -81,7 +84,7 @@ class closing_stream_producer (simple_producer):
 	
 class scanning_producer:
 	"like simple_producer, but more efficient for large strings"
-	def __init__ (self, data, buffer_size = 4096):
+	def __init__ (self, data, buffer_size = SIZE_BUFFER):
 		self.data = data
 		self.buffer_size = buffer_size
 		self.pos = 0
@@ -137,12 +140,11 @@ class file_producer:
 	"producer wrapper for file[-like] objects"
 
 	# match http_channel's outgoing buffer size
-	buffer_size = 4096
-
-	def __init__ (self, file):
+	def __init__ (self, file, buffer_size = SIZE_BUFFER):
 		self.done = 0
 		self.file = file
-
+		self.buffer_size = buffer_size
+		
 	def more (self):
 		if self.done:
 			return b''
@@ -229,7 +231,7 @@ class globbing_producer:
 	gain about 30% performance on requests to a single channel]
 	"""
 
-	def __init__ (self, producer, buffer_size = 4096):
+	def __init__ (self, producer, buffer_size = SIZE_BUFFER):
 		self.producer = producer
 		self.buffer = b''
 		self.buffer_size = buffer_size
@@ -352,6 +354,7 @@ class compressed_producer (globbing_producer):
 			# feed until we get some output
 			while not cdata:
 				data = self.producer.more()
+				print ('~~~~~~~~~~~~~~~~~~~', body)
 				if not data:
 					self.producer = None
 					return self.compressor.flush()
