@@ -53,24 +53,34 @@ class http2_producer_fifo (await_ts_fifo):
 		
 		# insert by priority
 		try:
-			w1 = item.weight
 			d1 = item.depends_on
+			w1 = item.weight			
 		except AttributeError:
 			with self._lock:
 				return self.l.append (item)
 		
-		with self._lock:				
+		if d1 == 0:
+			with self._lock:
+				return self.l.append (item)
+		
+		with self._lock:
 			i = 0
+			found_parent = 0			
 			for each in self.l:
 				try:
-					w2 = each.weight
-					d2 = each.depends_on
+					s2 = each.stream_id					
 				except AttributeError:
 					pass
 				else:
-					if d1 <= d2 and w2 < w1:
-						self.insert_into (self.l, i, item)
-						return			
+					if found_parent:
+						d2 = each.depends_on
+						w2 = each.weight					
+						if d1 == d2 and w2 < w1:
+							self.insert_into (self.l, i, item)
+							return							
+					elif d1 == s2:
+						found_parent = 1
 				i += 1
+				
 			self.l.append (item)
 				

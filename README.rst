@@ -677,6 +677,7 @@ History
 
 - 0.7.5
    
+   - re-engineer await_fifo, http2_fifo
    - add lib.evbus
    - retry once if database is disconnected by keep-live timeout
    - change screen_logger for easy to read traceback information
