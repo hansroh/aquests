@@ -4,12 +4,14 @@ from subprocess import Popen, PIPE
 import threading
 
 class Process:
-	def __init__ (self, logger = None):
+	def __init__ (self, logger = None, communicate = True):
 		self.logger = logger
 		self.p = None
 		self.__lock = threading.Lock ()
 		self.__active = False
 		self.__last_activated = time.time ()
+		self.__communicate = communicate
+		self.__commnad = None
 		
 	def set_active (self, flag):
 		self.__lock.acquire ()
@@ -24,7 +26,9 @@ class Process:
 		self.__lock.release ()
 		return r
 			
-	def start (self):
+	def start (self, command = None):
+		self.__command = command		
+		
 		self.set_active (True)
 		threading.Thread (target = self.threaded_run).start ()
 		
@@ -71,12 +75,15 @@ class Process:
 			self.p = Popen (
 				cmd,
 		    universal_newlines=True,
-		    stdout=PIPE, stderr=PIPE,
+		    stdout=self.__communicate and PIPE or None, stderr=self.__communicate and PIPE or None,
 		    shell = False
 			)
 		finally:
 			self.__lock.release ()
 		
+		if not self.__communicate:
+			return
+			
 		for line in iter (self.p.stdout.readline, ''):
 			self.log (line [20:].strip ())
 
@@ -86,6 +93,8 @@ class Process:
 		self.p.stderr.close ()
 	
 	def shell_command (self):
+		if self.__command:
+			return self.__command
 		raise NotImplementedError ('should return command like [sys.executable, "script.py", "-tw%s" % phase]')
 		
 		

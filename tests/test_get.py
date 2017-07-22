@@ -3,7 +3,7 @@ import aquests
 
 SERVER = "http://127.0.0.1:5000"
 
-class MyTest (unittest.TestCase):
+class test:
 	def setUp (self):
 		self.__fetchcount = 0
 		
@@ -98,10 +98,3 @@ class MyTest (unittest.TestCase):
 		for i in range (10):	
 			aquests.get (SERVER + "/no-page")
 		aquests.fetchall ()
-		
-
-if __name__ == "__main__":
-	TS = unittest.makeSuite(MyTest, "test")
-	runner = unittest.TextTestRunner()
-	runner.run(TS)
-	

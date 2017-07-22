@@ -675,6 +675,10 @@ Note: stub's methods and parameters are defined by database engines. Please read
 History
 =========
 
+- 0.7.6
+
+  - increase socket out buffer from 4096 -> 65535
+  
 - 0.7.5
    
    - re-engineer await_fifo, http2_fifo

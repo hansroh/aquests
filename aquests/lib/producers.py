@@ -28,7 +28,11 @@ class simple_producer:
 	def __init__ (self, data, buffer_size = SIZE_BUFFER):
 		self.data = data
 		self.buffer_size = buffer_size
-
+		self.proxsize = len (data)
+	
+	def get_size (self):
+		return self.proxsize
+		
 	def more (self):
 		if len (self.data) > self.buffer_size:
 			result = self.data[:self.buffer_size]
@@ -42,6 +46,7 @@ class simple_producer:
 class list_producer (simple_producer):
 	def __init__ (self, data):
 		self.data = data
+		self.proxsize = sum ([len (each) for each in self.data])
 		
 	def more (self):
 		if not self.data:
@@ -52,6 +57,10 @@ class list_producer (simple_producer):
 		return data
 
 class iter_producer (list_producer):
+	def __init__ (self, data):
+		self.data = data
+		self.proxsize = -1
+		
 	def more (self):
 		try:
 			data = next (self.data)
@@ -63,15 +72,15 @@ class iter_producer (list_producer):
 
 class closing_stream_producer (simple_producer):
 	def __init__ (self, data, buffer_size = SIZE_BUFFER):
-		if not hasattr (data, "read"):
-			raise AttributeError ("stream object should have `read()` returns bytes object and optional 'close()'")			
-		simple_producer.__init__ (self, data, buffer_size)
+		self.data = data
+		self.buffer_size = buffer_size
 		self.closed = False
+		self.proxsize = hasattr (data, "get_size") and data.get_size () or -1
 			
 	def more (self):
 		if self.closed: 
 			return b""
-		data = self.data.read (self.buffer_size)
+		data = self.data.read (self.buffer_size)		
 		if not data:
 			self.close ()
 		return data
@@ -87,8 +96,12 @@ class scanning_producer:
 	def __init__ (self, data, buffer_size = SIZE_BUFFER):
 		self.data = data
 		self.buffer_size = buffer_size
+		self.proxsize = len (self.data)
 		self.pos = 0
 
+	def get_size (self):
+		return self.proxsize
+		
 	def more (self):
 		if self.pos < len(self.data):
 			lp = self.pos
@@ -107,7 +120,10 @@ class lines_producer:
 
 	def __init__ (self, lines):
 		self.lines = lines
-
+	
+	def get_size (self):
+		return sum ([len (each) for each in self.data])
+		
 	def ready (self):
 		return len(self.lines)
 
@@ -127,7 +143,10 @@ class buffer_list_producer:
 	def __init__ (self, buffers):
 		self.index = 0
 		self.buffers = buffers
-
+		
+	def get_size (self):
+		return len (self.buffers)
+		
 	def more (self):
 		if self.index >= len(self.buffers):
 			return b''
@@ -140,11 +159,21 @@ class file_producer:
 	"producer wrapper for file[-like] objects"
 
 	# match http_channel's outgoing buffer size
-	def __init__ (self, file, buffer_size = SIZE_BUFFER):
+	def __init__ (self, file, buffer_size = SIZE_BUFFER, proxsize = -1):
 		self.done = 0
 		self.file = file
 		self.buffer_size = buffer_size
-		
+		self.proxsize = proxsize
+	
+	def get_size (self):
+		if self.proxsize != -1:
+			return self.proxsize
+		# possible io object
+		try:
+			return os.path.getsize (self.file.name)
+		except:
+			return -1	
+			
 	def more (self):
 		if self.done:
 			return b''
@@ -167,22 +196,28 @@ class file_producer:
 
 class output_producer:
 	"Acts like an output file; suitable for capturing sys.stdout"
+	
 	def __init__ (self):
 		self.data = ''
-			
+		self.proxsize = 0
+	
+	def get_size (self):
+		return self.proxsize
+				
 	def write (self, data):
 		lines = data.split (b'\n')
 		data = b'\r\n'.join (lines)
+		self.proxsize += len (data)
 		self.data = self.data + data
 		
 	def writeline (self, line):
+		self.proxsize += (len (line) + 2)
 		self.data = self.data + line + b'\r\n'
 		
 	def writelines (self, lines):
-		self.data = self.data + string.joinfields (
-			lines,
-			b'\r\n'
-			) + b'\r\n'
+		d = b'\r\n'.join (lines)
+		self.proxsize += (len (d) + 2)
+		self.data = self.data + d + b'\r\n'
 
 	def ready (self):
 		return (len (self.data) > 0)
@@ -200,27 +235,45 @@ class output_producer:
 			return result
 		else:
 			return b''
+
 		
 class composite_producer:
 	"combine a fifo of producers into one"
 	def __init__ (self, producers):
-		self.producers = producers
-		self.bind_ready ()
+		self.producers = producers		
+		self.override ()
 	
-	def bind_ready (self):	
+	def get_size (self):
+		return self.estimate_size ()
+		
+	def estimate_size (self):
+		size = 0
+		for p in self.producers:
+			s = p.get_size () 
+			if s == -1:
+				return -1
+			size += s
+		return size
+			
+	def override (self):
+		if len (self.producers) == 0:
+			return
 		p = self.producers.first ()
 		if hasattr (p, "ready"):
 			self.ready = p.ready
 			p.ready = None
+		elif hasattr (self, 'ready'):
+			del self.ready
 						
 	def more (self):
-		while len(self.producers):
+		while len (self.producers):
 			p = self.producers.first()
 			d = p.more()			
 			if d:
 				return d
 			else:
 				self.producers.pop()
+				self.override ()
 		else:
 			return b''
 
@@ -235,9 +288,12 @@ class globbing_producer:
 		self.producer = producer
 		self.buffer = b''
 		self.buffer_size = buffer_size
-		self.bind_ready ()
+		self.override ()
 	
-	def bind_ready (self):	
+	def get_size (self):
+		return self.producer.get_size ()
+		
+	def override (self):	
 		if hasattr (self.producer, "ready"):
 			self.ready = self.producer.ready
 			self.producer.ready = None
@@ -264,8 +320,8 @@ class hooked_producer (globbing_producer):
 	def __init__ (self, producer, function):
 		self.producer = producer
 		self.function = function
-		self.bytes = 0
-		self.bind_ready ()
+		self.bytes = 0		
+		self.override ()
 		
 	def more (self):
 		if self.producer:
@@ -300,7 +356,7 @@ class chunked_producer (globbing_producer):
 	def __init__ (self, producer, footers=None):
 		self.producer = producer
 		self.footers = footers
-		self.bind_ready ()
+		self.override ()
 			
 	def more (self):
 		if self.producer:
@@ -346,7 +402,7 @@ class compressed_producer (globbing_producer):
 	def __init__ (self, producer, level=6):
 		self.producer = producer
 		self.compressor = zlib.compressobj (level, zlib.DEFLATED)
-		self.bind_ready ()
+		self.override ()
 	
 	def more (self):
 		if self.producer:
@@ -354,7 +410,6 @@ class compressed_producer (globbing_producer):
 			# feed until we get some output
 			while not cdata:
 				data = self.producer.more()
-				print ('~~~~~~~~~~~~~~~~~~~', body)
 				if not data:
 					self.producer = None
 					return self.compressor.flush()
@@ -369,8 +424,8 @@ class gzipped_producer (compressed_producer):
 	def __init__ (self, producer, level=5):
 		self.producer = producer
 		self.compressor = compressors.GZipCompressor (level)		
-		self.bind_ready ()
-			
+		self.override ()
+
 	
 class escaping_producer:
 
@@ -384,8 +439,11 @@ class escaping_producer:
 		self.buffer = b''
 		from asynchat import find_prefix_at_end
 		self.find_prefix_at_end = find_prefix_at_end		
-		self.bind_ready ()
-			
+		self.override ()
+	
+	def get_size (self):
+		return self.producer.get_size ()
+		
 	def more (self):
 		esc_from = self.esc_from
 		esc_to   = self.esc_to
@@ -408,12 +466,24 @@ class escaping_producer:
 
 
 class fifo:
-	def __init__ (self, list=None):
+	def __init__ (self, list = None):
 		if not list:
 			self.list = []
 		else:
 			self.list = list
+	
+	def __iter__ (self):
+		return iter (self.list)
 		
+	def get_estimate_content_length (self):
+		cl = 0
+		for p in self.list:
+			s = p.get_size ()
+			if s == -1:
+				return -1				
+			cl += s	
+		return cl
+			
 	def __len__ (self):
 		return len(self.list)
 

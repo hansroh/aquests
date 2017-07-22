@@ -16,7 +16,10 @@ class h2header_producer:
 				end_stream = producer is None
 			)
 			self.data_to_send = encoder.data_to_send ()
-			
+	
+	def get_size (self):
+		return 0
+		
 	def __repr__ (self):
 		return "<h2header_producer stream_id:%d>" % (self.__stream_id,)
 	
@@ -43,7 +46,10 @@ class h2data_producer:
 		if hasattr (producer, "ready"):
 			self.ready = producer.ready
 			producer.ready = None
-				
+	
+	def get_size (self):			
+		return self.producer.get_size ()
+		
 	def __repr__ (self):
 		return "<h2data_producer stream_id:%d, weight:%d, depends_on:%d>" % (self.stream_id, self.weight, self.depends_on)
 	
@@ -88,6 +94,9 @@ class h2stream_producer (h2data_producer):
 	def __repr__ (self):
 		return "<h2stream_producer stream_id:%d>" % (self.stream_id,)
 	
+	def get_size (self):			
+		return -1
+		
 	def is_end_stream (self, data):
 		return len (data) == 0
 		
