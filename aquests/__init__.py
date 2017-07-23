@@ -1,6 +1,6 @@
 # 2016. 1. 10 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.7.6.3"
+__version__ = "0.7.6.4"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 
 from . import lifetime, queue, request_builder, response_builder, stubproxy
@@ -133,7 +133,7 @@ def _next ():
 	#print ('---', _concurrent, len (_currents), mapsize (), qsize ())
 	try: _req ()
 	except: _logger.trace ()
-	while _concurrent > min (len (_currents), mapsize ()) and qsize ():		
+	while _concurrent > max (len (_currents), mapsize ()) and qsize ():		
 		try: _req ()
 		except: _logger.trace ()
 

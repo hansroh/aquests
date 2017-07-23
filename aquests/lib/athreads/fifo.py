@@ -15,12 +15,13 @@ class await_fifo:
 	
 	def __len__ (self):
 		for i in range (len (self.l)):
-			if not hasattr (self.l [0], 'ready'):
-				return len (self.l)				
-			elif self.l [0].ready ():
-				return len (self.l)
-			else:	
-				self.l.rotate (-1)
+			try:
+				readyfunc = getattr (self.l [0], 'ready')
+			except AttributeError:
+				return 1
+			if readyfunc ():
+				return 1
+			self.l.rotate (-1)
 		
 		if self.has_None and not self.l:
 			# for return None
@@ -44,12 +45,6 @@ class await_fifo:
 	
 	def appendleft (self, item):
 		self.insert (0, item)
-	
-	def insert_into (self, lst, index, item):		
-		if index == 0:
-			lst.appendleft (item)
-		else:
-			lst.append (item)	
 		
 	def insert (self, index, item):
 		if item is None:
@@ -57,12 +52,22 @@ class await_fifo:
 			return
 		if self.has_None and index != 0:
 			return # deny adding
-		if index == 0:
-			if type (item) is bytes:
-				return self.l.appendleft (item)
-			elif hasattr (item, "ready") and not item.ready:
+		
+		if not self.l:
+			return self.l.append (item)
+				
+		if index == -1:	
+			return self.l.append (item)
+		
+		try:
+			readyfunc = getattr (item, 'ready')
+		except AttributeError:
+			pass
+		else:	
+			if not readyfunc ():
 				return self.l.append (item)
-		self.insert_into (self.l, index, item)
+				
+		return self.l.appendleft (item)
 		
 	def clear (self):
 		self.l.clear ()

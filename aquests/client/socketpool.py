@@ -145,7 +145,7 @@ class SocketPool:
 					#print (self.__protos.get (serverkey), PROTO_CONCURRENT_STREAMS)
 					if self.__protos.get (serverkey) in PROTO_CONCURRENT_STREAMS:
 						asyncon = select_channel (asyncons)
-						
+						#print (len (asyncons), asyncon)
 					else:
 						for each in asyncons:								
 							if not each.isactive ():

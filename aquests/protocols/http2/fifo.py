@@ -37,19 +37,22 @@ class http2_producer_fifo (await_ts_fifo):
 		
 		with self._lock:
 			if self.has_None and index != 0:
-				return # deny adding	
-		
-		if hasattr (item, "ready") and not item.ready:
-			with self._lock:	
-				return self.l.append (item)
-					
-		if index == 0:
-			with self._lock:
-				return self.l.appendleft (item)
-		
-		with self._lock:
+				return # deny adding			
 			if not self.l:
 				return self.l.append (item)
+				
+		if index == 0:
+			try:
+				readyfunc = getattr (item, "ready")
+			except AttributeError:
+				pass
+			else:		
+				if not readyfunc ():
+					with self._lock:	
+						return self.l.append (item)
+						
+			with self._lock:
+				return self.l.appendleft (item)
 		
 		# insert by priority
 		try:
@@ -76,11 +79,9 @@ class http2_producer_fifo (await_ts_fifo):
 						d2 = each.depends_on
 						w2 = each.weight					
 						if d1 == d2 and w2 < w1:
-							self.insert_into (self.l, i, item)
-							return							
+							return self.insert_into (self.l, i, item)
 					elif d1 == s2:
 						found_parent = 1
 				i += 1
-				
 			self.l.append (item)
 				

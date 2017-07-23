@@ -69,6 +69,7 @@ class Process:
 			
 	def log (self, line):
 		if line[0].isdigit ():
+			# auqests.lib.logger classes
 			line = line [20:].strip ()
 		if self.logger:
 			self.logger (line, "")			
