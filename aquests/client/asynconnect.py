@@ -99,11 +99,13 @@ class AsynConnect (asynchat.async_chat):
 			self.trace ()
 			
 		if not keep_active:
-			self.set_active (False)
-			self.logger (
-				".....socket %s has been closed (reason: %d)" % ("%s:%d" % self.address, self.errcode),
-				"info"
-			)		
+			self.set_active (False)	
+			if self.errcode != 712:		
+				# controlled shutdown
+				self.logger (
+					".....socket %s has been closed (reason: %d)" % ("%s:%d" % self.address, self.errcode),
+					"info"
+				)		
 		# DO NOT Change any props, because may be request has been restarted	
 	
 	def end_tran (self):

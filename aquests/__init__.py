@@ -1,6 +1,6 @@
 # 2016. 1. 10 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.7.6.4"
+__version__ = "0.7.6.5"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 
 from . import lifetime, queue, request_builder, response_builder, stubproxy
@@ -67,6 +67,8 @@ _currents = {}
 _que = None
 _dns_query_req = {}
 _timeout = 10
+_max_conns = 0
+_bytesrecv = 0
 	
 def configure (
 	workers = 1, 
@@ -118,7 +120,7 @@ def configure (
 	_initialized = True
 
 def _next ():
-	global _currents, _concurrent, _finished_total, _que, _logger
+	global _currents, _concurrent, _finished_total, _que, _logger, _max_conns
 	
 	_finished_total += 1	
 	# preventing recursive _next	
@@ -131,6 +133,7 @@ def _next ():
 		return
 	
 	#print ('---', _concurrent, len (_currents), mapsize (), qsize ())
+	_max_conns = max (_max_conns, mapsize ())
 	try: _req ()
 	except: _logger.trace ()
 	while _concurrent > max (len (_currents), mapsize ()) and qsize ():		
@@ -138,7 +141,7 @@ def _next ():
 		except: _logger.trace ()
 
 def _request_finished (handler):
-	global _cb_gateway, _currents, _concurrent, _finished_total, _logger
+	global _cb_gateway, _currents, _concurrent, _finished_total, _logger, _bytesrecv
 	
 	if isinstance (handler, dbo_request.Request):
 		response = handler
@@ -147,7 +150,7 @@ def _request_finished (handler):
 	
 	_currents.pop (response.meta ['req_id'])
 	response.logger = _logger
-	
+	_bytesrecv += len (response.content)
 	callback = response.meta ['req_callback'] or _cb_gateway
 	try:
 		callback (response)
@@ -225,7 +228,7 @@ def concurrent ():
 	return _concurrent
 
 def fetchall ():
-	global _workers, _logger, _que, _timeout
+	global _workers, _logger, _que, _timeout, _max_conns, _bytesrecv
 	
 	if not _initialized:
 		configure ()
@@ -239,7 +242,14 @@ def fetchall ():
 	socketpool.cleanup ()
 	dbpool.cleanup ()
 	
-	_logger.log ("* %d tasks during %1.5f sec, %1.2f tasks/sec" % (_que.req_id, _duration, _que.req_id / _duration))
+	_logger.log ("* %d tasks during %1.2f sec (%1.2f tasks/s), recieved %d bytes (%d bytes/s), max %d conns" % (
+			_que.req_id, _duration, 
+			_que.req_id / _duration, 
+			_bytesrecv,
+			_bytesrecv / _duration,
+			_max_conns
+		)
+	)
 
 def suspend (timeout):
 	a, b = math.modf (timeout)
