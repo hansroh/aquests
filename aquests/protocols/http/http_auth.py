@@ -71,7 +71,7 @@ class Authorizer:
 		self.db [netloc] = infod
 		
 	def make_http_auth_header (self, request, is_proxy = False):
-		auth = request.get_auth ()
+		auth = request.get_auth ()		
 		if auth:
 			uri = is_proxy and request.uri or request.path
 			auth_header = self.get (request.get_address (), auth, request.get_method (), uri, request.get_payload ())

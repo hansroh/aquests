@@ -142,7 +142,7 @@ def _next ():
 		except: _logger.trace ()
 
 def handle_status_401 (response):
-	if response.request.reauth_count:
+	if not response.request.get_auth () or response.request.reauth_count:
 		return response
 	response.request.reauth_count = 1	
 	first	(response.request)
