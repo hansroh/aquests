@@ -11,23 +11,21 @@ class Process:
 		self.__active = False
 		self.__last_activated = time.time ()
 		self.__communicate = communicate
-		self.__commnad = None
+		self.__command = None
 		
 	def set_active (self, flag):
-		self.__lock.acquire ()
-		self.__active = flag
-		if flag == False:
-			self.p = None
-		self.__lock.release ()
-	
+		with self.__lock:
+			self.__active = flag
+			if flag == False:
+				self.p = None
+		
 	def is_active (self):
-		self.__lock.acquire ()
-		r = self.__active
-		self.__lock.release ()
+		with self.__lock:
+			r = self.__active		
 		return r
 			
 	def start (self, command = None):
-		self.__command = command		
+		self.__command = command
 		
 		self.set_active (True)
 		threading.Thread (target = self.threaded_run).start ()
@@ -45,17 +43,27 @@ class Process:
 		killtree.kill (self.p.pid)
 		
 	def wait (self):
-		if self.p:
+		with self.__lock:
+			p = self.p
+			
+		if not p:
+			self.log ("[error] -- terminated with -1")
+				
+		else:
 			while 1:
-				if self.p.poll () is not None:
+				try:
+					with self.__lock:					
+						exitcode = self.p.poll ()
+				except AttributeError:	
+					exitcode = -1
+					break										
+				if exitcode is not None:
 					break
 				time.sleep (1)
-			self.log ("[info] -- terminated with %s" % self.p.poll ())
-		else:
-			self.log ("[error] -- terminated with -1")
+			self.log ("[info] -- terminated with %s" % exitcode)		
+		
 		self.set_active (False)
-		self.p = None
-	
+		
 	def is_timeout (self, timeout):
 		return time.time () - self.__last_activated > timeout
 	
@@ -63,7 +71,10 @@ class Process:
 		self.__last_activated = time.time ()
 			
 	def log (self, line):
-		self.logger (line, "")
+		if line[0].isdigit ():
+			line = line [20:].strip ()
+		if self.logger:
+			self.logger (line, "")			
 		self.set_last_activate ()
 			
 	def create_process (self):		
@@ -85,7 +96,7 @@ class Process:
 			return
 			
 		for line in iter (self.p.stdout.readline, ''):
-			self.log (line [20:].strip ())
+			self.log (line)
 
 		self.p.stdout.close ()			
 		e = self.p.stderr.read ()

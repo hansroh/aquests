@@ -53,7 +53,8 @@ def make_http (_method, url, params, auth, headers, meta, proxy, logger):
 					if k.lower () == "content-type":
 						ct = v						
 						break
-				if not ct: raise TypeError ("Content Type Undefined")
+				if not ct:
+					headers["Content-Type"] = "application/json"
 			
 			elif _method != "upload":
 				if _method [:4] == "post":					

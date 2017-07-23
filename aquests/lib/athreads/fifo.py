@@ -20,7 +20,7 @@ class await_fifo:
 			elif self.l [0].ready ():
 				return len (self.l)
 			else:	
-				self.l.append (self.l.popleft ())
+				self.l.rotate (-1)
 		
 		if self.has_None and not self.l:
 			# for return None
@@ -54,7 +54,7 @@ class await_fifo:
 	def insert (self, index, item):
 		if item is None:
 			self.has_None = True
-			return			
+			return
 		if self.has_None and index != 0:
 			return # deny adding
 		if index == 0:

@@ -9,7 +9,7 @@ import gzip
 from . import compressors, strutil
 import mimetypes
 import os
-from collections import Iterable
+from collections import Iterable, deque
 import asynchat
 
 """
@@ -464,17 +464,13 @@ class escaping_producer:
 		else:
 			return buffer
 
-
 class fifo:
-	def __init__ (self, list = None):
+	def __init__(self, list=None):
 		if not list:
-			self.list = []
+			self.list = deque()
 		else:
-			self.list = list
+			self.list = deque(list)
 	
-	def __iter__ (self):
-		return iter (self.list)
-		
 	def get_estimate_content_length (self):
 		cl = 0
 		for p in self.list:
@@ -483,27 +479,29 @@ class fifo:
 				return -1				
 			cl += s	
 		return cl
-			
-	def __len__ (self):
+		
+	def __len__(self):
 		return len(self.list)
 
-	def first (self):
+	def is_empty(self):
+		return not self.list
+
+	def first(self):
 		return self.list[0]
 
-	def push_front (self, object):
-		self.list.insert (0, object)
-
-	def push (self, data):
-		self.list.append (data)
-
-	def pop (self):
+	def push(self, data):
+		self.list.append(data)
+	
+	def push_front (self, data):
+		self.push(data)
+		self.list.rotate (1)
+		
+	def pop(self):
 		if self.list:
-			result = self.list[0]
-			del self.list[0]
-			return (1, result)
+			return (1, self.list.popleft())
 		else:
 			return (0, None)
 	
 	def clear (self):
-		self.list = []
-			
+		self.list.clear ()
+				

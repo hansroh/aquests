@@ -10,7 +10,7 @@ class Response (response.Response):
 			self.__data.append ((opcode, data))		
 		self.version = "1.1"		
 		
-	def add_message (opcode, data = None):
+	def add_message (self, opcode, data = None):
 		self.__data.append ((opcode, data))
 		
 	@property

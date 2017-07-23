@@ -342,7 +342,7 @@ class AsynConnect (asynchat.async_chat):
 		
 	# proxy POST need no init_send
 	def push (self, thing, init_send = True):
-		if type (thing) is bytes:
+		if isinstance(thing, (bytes, bytearray, memoryview)):
 			asynchat.async_chat.push (self, thing)
 		else:
 			self.push_with_producer (thing, init_send)	
