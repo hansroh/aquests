@@ -17,6 +17,9 @@ class Queue:
 	def add (self, req):		
 		self._add (req)
 		self._req_id += 1
+	
+	def first (self, req):	
+		self._first (req)
 		
 	def get (self):
 		try:
@@ -31,6 +34,10 @@ class Queue:
 	def _add (self, req):
 		self.q.append (req)
 	
+	def _first (self, req):
+		self.q.append (req)
+		self.q.rotate (-1)
+		
 	def _get (self):
 		return self.q.popleft ()
 		
@@ -46,6 +53,9 @@ class RandomQueue (Queue):
 		else:
 			self.q.insert(random.randrange (lq), req)
 	
+	def _first (self, req):
+		self.q.insert (0, req)
+		
 	def _get (self):		
 		return self.q.pop (0)
 		

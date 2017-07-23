@@ -57,7 +57,7 @@ class h2data_producer:
 		return self._end_stream and not self._buf
 	
 	def is_end_stream (self, data):
-		return len (data) < self.producer.buffer_size
+		return not data or len (data) < self.producer.buffer_size
 				 	
 	def more (self):
 		if self.is_done ():

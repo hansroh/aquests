@@ -44,6 +44,7 @@ class XMLRPCRequest:
 		self.address, self.path = self.split (uri)		
 		self._history = []
 		self.__xmlrpc_serialized = False
+		self.reauth_count = 0
 		self.headers = attrdict.NocaseDict ()
 		self.headers ["Accept"] = "*/*"
 		self.headers ["Accept-Encoding"] = "gzip"		

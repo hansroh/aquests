@@ -18,7 +18,8 @@ except ImportError:
 
 class FakeAsynConnect:
 	collector = None
-	def __init__ (self, logger):
+	def __init__ (self, asyncon, logger):
+		self.asyncon = asyncon
 		self.logger = logger
 	
 	def get_proto (self):
@@ -60,6 +61,8 @@ class FakeAsynConnect:
 			
 	
 class RequestHandler (base_request_handler.RequestHandler):
+	# HTTP2 Adaptor Class	
+	# this class rely: asyncon - this class - http_reqyest_handler
 	def __init__ (self, handler):
 		self.asyncon = handler.asyncon
 		self.request = handler.request
@@ -70,7 +73,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 		
 		self._clock = threading.RLock () # conn lock
 		self._llock = threading.RLock () # local lock
-		self.fakecon = FakeAsynConnect (self.logger)		
+		self.fakecon = FakeAsynConnect (self.asyncon, self.logger)		
 		
 		self.initiate ()		
 		is_upgrade = not (self._ssl or self.request.initial_http_version == "2.0")			
@@ -184,7 +187,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 		with self._llock:
 			requests = list (self.requests.items ())
 		for stream_id, h in requests:
-			h.response = http_response.FailedResponse (720, respcodes.get (720), h.request)
+			h.response = http_response.FailedResponse (720, respcodes.get (720), h.request)			
 			h.handle_callback ()
 		with self._llock:
 			self.requests = {}
@@ -288,9 +291,6 @@ class RequestHandler (base_request_handler.RequestHandler):
 				h = self.get_handler (event.stream_id)
 				if h:
 					self.remove_handler (event.stream_id)
-					if h.handle_redirect () or h.handled_http_authorization ():
-						pass
-					else:						
-						h.handle_callback ()
-						
+					h.found_terminator ()
 		self.send_data ()
+		

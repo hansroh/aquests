@@ -15,8 +15,7 @@ class ProtocolSwitchError (Exception):
 	
 	
 class RequestHandler (base_request_handler.RequestHandler):
-	FORCE_HTTP_11 = False
-	ALLOW_REDIRECTS = False
+	FORCE_HTTP_11 = False	
 	
 	def __init__ (self, asyncon, request, callback, connection = "keep-alive"):
 		self.asyncon = asyncon
@@ -30,11 +29,11 @@ class RequestHandler (base_request_handler.RequestHandler):
 		self.connection = connection				
 		
 		self.retry_count = 0
-		self.reauth_count = 0
 		self.http2_handler = None
 		
 		self.buffer = b""	
 		self.response = None
+		self.callbacked = 0
 		
 		self._ssl = isinstance (self.asyncon, asynconnect.AsynSSLConnect)			
 		self.method, self.uri = (
@@ -158,7 +157,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 				self.found_end_of_body ()
 						
 		else:
-			self.expect_disconnect = False			
+			self.expect_disconnect = False
 			self.create_response ()
 			if not self.response or isinstance (self.response, http_response.FailedResponse):
 				return
@@ -224,70 +223,32 @@ class RequestHandler (base_request_handler.RequestHandler):
 		elif self.response.code == 101 and self.response.get_header ("Upgrade") == "h2c":	# swiching protocol		
 			self.asyncon._proto = "h2c"
 			self.response = None
-			try:
+			try:				
 				self.switch_to_http2 ()
 			except:	
 				raise ProtocolSwitchError
 			return 1
 		return 0	
-			
-	def handle_redirect (self, newloc = None):
-		if not self.ALLOW_REDIRECTS:
-			return 0
-		
-		if newloc or self.response.status_code in (301, 302, 307, 308):			
-			if not newloc:
-				newloc = self.response.get_header ('location')
-			oldloc = self.request.uri				
-			try:
-				self.request.relocate (self.response, newloc)
-			except:
-				self.response.code, self.response.msg = 711, respcodes.get (711)
-				return 0
-			
-			self.log ("%s %s from %s" % (self.response.status_code, self.response.reason, oldloc), "info")
-			self.asyncon.end_tran ()
-			self.asyncon = socketpool.get (self.request.uri)
-			if not self.asyncon.isconnected (): 
-				# domain's changed
-				self.http2_handler = None
-			self.method, self.uri = (
-				self.request.get_method (),
-				self.asyncon.is_proxy () and self.request.uri or self.request.path
-			)
-			self._ssl = isinstance (self.asyncon, asynconnect.AsynSSLConnect)			
-			self.handle_rerequest ()
-			return 1
-			
-		return 0	
 	
 	def handled_http_authorization (self):
 		if self.response.code != 401:
-			return 0 #pass
-			
-		if self.reauth_count > 0:
-			return 0 # abort
+			return
+						
+		if self.request.reauth_count > 0:
+			return
 
-		self.reauth_count = 1		
 		try: 
 			http_auth.authorizer.save_http_auth_header (self.request, self.response)
 		except:
-			self.trace ()			
-			return 0 # abort
-		else:
-			self.handle_rerequest ()
-			return 1		
-		return 0 #pass
-	
-	def found_end_of_body (self):			
+			self.trace ()
+				
+	def found_end_of_body (self):
 		if self.response:
 			self.response.done ()		
-		if self.handle_redirect ():
-			return
-		if self.handled_http_authorization ():
-			return			
+		
+		self.handled_http_authorization ()			
 		if self.will_be_close ():
-			self.asyncon.disconnect ()			
+			self.asyncon.disconnect ()		
 		self.close_case_with_end_tran ()
 				
 	def connection_closed (self, why, msg):		
@@ -310,24 +271,27 @@ class RequestHandler (base_request_handler.RequestHandler):
 		self.close_case ()
 		
 	def handle_callback (self):
+		if self.callbacked:
+			return
 		tuple_cb (self, self.callback)		
+		self.callbacked = 1
 			
 	def close_case (self):
 		if self.asyncon:
-			self.asyncon.handler = None # unlink back ref.
+			self.asyncon.handler = None # unlink back ref.			
 		self.handle_callback ()
 	
-	def switch_to_http2 (self):
-		if self.http2_handler is None:
-			self.http2_handler = http2_request_handler.RequestHandler (self)
+	def switch_to_http2 (self):		
+		if self.http2_handler is None:			
+			self.http2_handler = http2_request_handler.RequestHandler (self)			
 		else:
 			self.http2_handler.handle_request (self)	
 		
 	def has_been_connected (self):
 		if self._ssl or self.request.initial_http_version == "2.0":
 			if self.request.initial_http_version == "2.0":
-				self.asyncon.set_proto ("h2c")
-			if self.asyncon._proto in H2_PROTOCOLS:
+				self.asyncon.set_proto ("h2c")			
+			if self.asyncon._proto in H2_PROTOCOLS:				
 				self.switch_to_http2 ()
 			else:
 				for data in self.get_request_buffer ("1.1", False):
@@ -338,13 +302,14 @@ class RequestHandler (base_request_handler.RequestHandler):
 		self.response = None
 		self.end_of_data = False
 		self.buffer = b''
+		self.callbacked = 0
 		self.handle_request ()
 						
 	def handle_request (self):
 		if self.asyncon.isconnected () and self.asyncon.get_proto ():			
 			return self.switch_to_http2 ()
 		self.buffer, self.response = b"", None
-		self.asyncon.set_terminator (b"\r\n\r\n")	
+		self.asyncon.set_terminator (b"\r\n\r\n")			
 		if (self.asyncon.connected) or not (self._ssl or self.request.initial_http_version == "2.0"):
 			# IMP: if already connected, it means not http2
 			upgrade = True

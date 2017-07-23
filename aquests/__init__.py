@@ -11,7 +11,7 @@ from .dbapi import dbpool
 from .client import adns
 from . import client, dbapi
 from .protocols.http import localstorage as ls
-from .protocols.http import request_handler
+from .protocols.http import request_handler, response as http_response
 from .protocols import http2
 from .dbapi import request as dbo_request
 import os
@@ -69,6 +69,7 @@ _dns_query_req = {}
 _timeout = 10
 _max_conns = 0
 _bytesrecv = 0
+_allow_redirects = True
 	
 def configure (
 	workers = 1, 
@@ -81,7 +82,7 @@ def configure (
 	allow_redirects = True,
 	qrandom = False
 ):
-	global _logger, _cb_gateway, _concurrent, _initialized, _timeout, _workers, _que
+	global _logger, _cb_gateway, _concurrent, _initialized, _timeout, _workers, _que, _allow_redirects
 	
 	if logger is None:
 		logger = logger_f.screen_logger ()
@@ -91,9 +92,9 @@ def configure (
 		_que = queue.RandomQueue ()
 	else:
 		_que = queue.Queue ()
-
-	request_handler.RequestHandler.FORCE_HTTP_11 = force_http1
-	request_handler.RequestHandler.ALLOW_REDIRECTS = allow_redirects
+	
+	_allow_redirects = allow_redirects
+	request_handler.RequestHandler.FORCE_HTTP_11 = force_http1	
 	http2.MAX_HTTP2_CONCURRENT_STREAMS = max (http2_constreams, 3)		
 	_workers = workers
 	_concurrent = workers
@@ -140,6 +141,29 @@ def _next ():
 		try: _req ()
 		except: _logger.trace ()
 
+def handle_status_401 (response):
+	if response.request.reauth_count:
+		return response
+	response.request.reauth_count = 1	
+	first	(response.request)
+	
+def handle_status_3xx (response):
+	global _allow_redirects	
+	
+	if not _allow_redirects:
+		return response
+	if response.status_code not in (301, 302, 307, 308):
+		return response
+	
+	newloc = response.get_header ('location')	
+	oldloc = response.request.uri			
+	try:
+		response.request.relocate (response.response, newloc)
+	except:
+		response.response = http_response.FailedResponse (711, "Redirect Error", response.request)
+	_logger ("%s redirected %s from %s" % (response.status_code, response.reason, oldloc), "info")
+	first (response.request)
+	
 def _request_finished (handler):
 	global _cb_gateway, _currents, _concurrent, _finished_total, _logger, _bytesrecv
 	
@@ -147,8 +171,13 @@ def _request_finished (handler):
 		response = handler
 	else:
 		response = response_builder.HTTPResponse (handler)
-	
-	_currents.pop (response.meta ['req_id'])
+		
+		for handle_func in (handle_status_401, handle_status_3xx):
+			response = handle_func (response)
+			if not response:
+				return _next ()
+
+	_currents.pop (response.meta ['req_id'])	
 	response.logger = _logger
 	_bytesrecv += len (response.content)
 	callback = response.meta ['req_callback'] or _cb_gateway
@@ -170,6 +199,7 @@ def _req ():
 	
 	if type (args) is not tuple:
 		req = args
+		meta = req.meta
 		_is_request = True
 		_is_db = hasattr (req, 'dbtype')		
 	else:
@@ -197,9 +227,10 @@ def _req ():
 				req = request_builder.make_http (_method, url, params, auth, headers, meta, proxy, _logger)			
 		else:
 			asyncon = socketpool.get (req.uri)
+		
 		_currents [meta ['req_id']] = [0, req.uri]
 		handler = req.handler (asyncon, req, _request_finished)
-		if asyncon.get_proto () and asyncon.isconnected ():			
+		if asyncon.get_proto () and asyncon.isconnected ():
 			asyncon.handler.handle_request (handler)
 		else:
 			handler.handle_request ()	
@@ -290,7 +321,11 @@ def _add (method, url, params = None, auth = None, headers = {}, callback = None
 def add (request):
 	global _que	
 	_que.add (request)
-		
+
+def first (request):
+	global _que	
+	_que.first (request)
+			
 #----------------------------------------------------
 # REST CALL
 #----------------------------------------------------	

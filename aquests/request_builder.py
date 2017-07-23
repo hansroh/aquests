@@ -72,7 +72,7 @@ def make_http (_method, url, params, auth, headers, meta, proxy, logger):
 			else:
 				req = http_request.HTTPRequest (url, _method.upper (), params, headers, auth, logger, meta)	
 	
-	req.handler = handler_class		
+	req.handler = handler_class
 	return req
 
 def make_dbo (_method, server, dbmethod, params, dbname, auth, meta, logger):

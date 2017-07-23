@@ -316,7 +316,6 @@ class hooked_producer (globbing_producer):
 	with an argument of the number of bytes produced.  Useful
 	for logging/instrumentation purposes.
 	"""
-
 	def __init__ (self, producer, function):
 		self.producer = producer
 		self.function = function
