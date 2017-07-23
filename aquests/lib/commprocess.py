@@ -10,8 +10,7 @@ class Process:
 		self.__lock = threading.Lock ()
 		self.__active = False
 		self.__last_activated = time.time ()
-		self.__communicate = communicate
-		self.__command = None
+		self.__communicate = communicate		
 		
 	def set_active (self, flag):
 		with self.__lock:
@@ -24,15 +23,13 @@ class Process:
 			r = self.__active		
 		return r
 			
-	def start (self, command = None):
-		self.__command = command
-		
+	def start (self, command):
 		self.set_active (True)
-		threading.Thread (target = self.threaded_run).start ()
+		threading.Thread (target = self.threaded_run, args = (command,)).start ()
 		
-	def threaded_run (self):
+	def threaded_run (self, command):
 		try:
-			self.create_process ()
+			self.create_process (command)
 		finally:
 			self.wait ()
 
@@ -77,8 +74,7 @@ class Process:
 			self.logger (line, "")			
 		self.set_last_activate ()
 			
-	def create_process (self):		
-		cmd = self.shell_command ()
+	def create_process (self, cmd):				
 		self.log ("[info] -- start process: %s" % " ".join (cmd))
 		s_time = time.time ()
 		self.__lock.acquire ()
@@ -103,9 +99,4 @@ class Process:
 		if e: self.log (e)		
 		self.p.stderr.close ()
 	
-	def shell_command (self):
-		if self.__command:
-			return self.__command
-		raise NotImplementedError ('should return command like [sys.executable, "script.py", "-tw%s" % phase]')
-		
-		
+	
