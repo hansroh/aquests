@@ -291,6 +291,6 @@ class RequestHandler (base_request_handler.RequestHandler):
 				h = self.get_handler (event.stream_id)
 				if h:
 					self.remove_handler (event.stream_id)
-					h.found_terminator ()
+					h.found_terminator ()					
 		self.send_data ()
 		

@@ -1,11 +1,11 @@
 ﻿
-def tuple_cb (default, callback):
+def tuple_cb (default, callback):	
 	if not callback:
-		return			
+		return
 	
 	if type (callback) is not tuple:
 		return callback (default)
-			
+	
 	lc = len (callback)
 	if lc == 2:
 		arg = callback [1]
@@ -17,5 +17,6 @@ def tuple_cb (default, callback):
 		args, karg = callback [1:]
 	else:
 		args, karg = (), {}
+		
 	callback [0] (default, *args, **karg)
 	

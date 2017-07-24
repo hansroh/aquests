@@ -14,12 +14,13 @@ class Queue:
 	def req_id (self):
 		return self._req_id
 			
-	def add (self, req):		
+	def add (self, req, delta = 1):		
 		self._add (req)
-		self._req_id += 1
+		self._req_id += delta
 	
-	def first (self, req):	
+	def first (self, req, delta = 1):	
 		self._first (req)
+		self._req_id += delta
 		
 	def get (self):
 		try:
@@ -36,7 +37,7 @@ class Queue:
 	
 	def _first (self, req):
 		self.q.append (req)
-		self.q.rotate (-1)
+		self.q.rotate (1)
 		
 	def _get (self):
 		return self.q.popleft ()

@@ -90,22 +90,22 @@ class AsynConnect (asynchat.async_chat):
 		if not self.errcode:
 			# disconnect intentionally
 			return
-
+		
 		handler, self.handller = self.handler, None
 		keep_active = False			
 		try: 
 			keep_active = handler.connection_closed (self.errcode, self.errmsg)
 		except: 
 			self.trace ()
-			
+		
 		if not keep_active:
 			self.set_active (False)	
-			if self.errcode != 712:		
+			if self.errcode not in (704, 712):
 				# controlled shutdown
 				self.logger (
 					".....socket %s has been closed (reason: %d)" % ("%s:%d" % self.address, self.errcode),
 					"info"
-				)		
+				)
 		# DO NOT Change any props, because may be request has been restarted	
 	
 	def end_tran (self):
@@ -241,12 +241,13 @@ class AsynConnect (asynchat.async_chat):
 			self.continue_connect (True)
 		
 	def continue_connect (self, answer = None):		
-		answer = answer or adns.get (self.address [0], "A")		
+		answer = answer or adns.get (self.address [0], "A")
 		ipaddr = answer and answer [-1]["data"] or None
 		if DEBUG:
 			self.logger ('got DNS {rid:%s} %s %s' % (self.handler.request.meta.get ('req_id', -1), res, self.handler.request.uri), 'debug')
 		
 		if not ipaddr:
+			# for perventing recursion, check already close			
 			return self.handle_close (704)
 		
 		self.initialize_connection ()
@@ -259,7 +260,7 @@ class AsynConnect (asynchat.async_chat):
 									
 		except:	
 			self.handle_error (714)
-	
+		
 	def recv (self, buffer_size):
 		try:
 			data = self.socket.recv (buffer_size)			
@@ -397,6 +398,7 @@ class AsynConnect (asynchat.async_chat):
 			return self.handle_close (705)
 		self.errcode = 0
 		self.errmsg = ""
+		self._closed = False
 		
 		self.handler = handler
 		if DEBUG:

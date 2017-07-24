@@ -10,6 +10,7 @@ from .client import socketpool
 from .dbapi import dbpool
 from .client import adns
 from . import client, dbapi
+from aquests.protocols.dns.asyndns import async_dns
 from .protocols.http import localstorage as ls
 from .protocols.http import request_handler, response as http_response
 from .protocols import http2
@@ -18,6 +19,7 @@ import os
 import asyncore
 import timeit
 import time, math, random
+import sys
 
 DEBUG = 0
 
@@ -95,12 +97,13 @@ def configure (
 	
 	_allow_redirects = allow_redirects
 	request_handler.RequestHandler.FORCE_HTTP_11 = force_http1	
-	http2.MAX_HTTP2_CONCURRENT_STREAMS = max (http2_constreams, 3)		
+	http2.MAX_HTTP2_CONCURRENT_STREAMS = http2_constreams
 	_workers = workers
 	_concurrent = workers
-	if _concurrent == 1:
+	
+	#if _concurrent == 1:
 		# for preventing lifetime.loop break
-		trigger.start_trigger ()
+	#	trigger.start_trigger ()
 		
 	if not force_http1:
 		_concurrent = workers * http2_constreams
@@ -120,35 +123,15 @@ def configure (
 	lifetime.init (_timeout / 2.) # maintern interval
 	_initialized = True
 
-def _next ():
-	global _currents, _concurrent, _finished_total, _que, _logger, _max_conns
-	
-	_finished_total += 1	
-	# preventing recursive _next	
-	if lifetime._shutdown_phase:
-		return
-		
-	if not qsize ():
-		if not _currents:
-			lifetime.shutdown (0, 30)
-		return
-	
-	#print ('---', _concurrent, len (_currents), mapsize (), qsize ())
-	_max_conns = max (_max_conns, mapsize ())
-	try: _req ()
-	except: _logger.trace ()
-	while _concurrent > max (len (_currents), mapsize ()) and qsize ():		
-		try: _req ()
-		except: _logger.trace ()
-
 def handle_status_401 (response):
+	global _que
 	if not response.request.get_auth () or response.request.reauth_count:
 		return response
-	response.request.reauth_count = 1	
-	first	(response.request)
+	response.request.reauth_count = 1		
+	_que.first (response.request, 0)	
 	
 def handle_status_3xx (response):
-	global _allow_redirects	
+	global _allow_redirects	, _que
 	
 	if not _allow_redirects:
 		return response
@@ -156,43 +139,46 @@ def handle_status_3xx (response):
 		return response
 	
 	newloc = response.get_header ('location')	
-	oldloc = response.request.uri			
+	oldloc = response.request.uri	
+	
 	try:
 		response.request.relocate (response.response, newloc)
-	except:
+	except RuntimeError:		
 		response.response = http_response.FailedResponse (711, "Redirect Error", response.request)
+		return response
+		
 	_logger ("%s redirected %s from %s" % (response.status_code, response.reason, oldloc), "info")
-	first (response.request)
+	_que.first (response.request, 0)
 	
 def _request_finished (handler):
 	global _cb_gateway, _currents, _concurrent, _finished_total, _logger, _bytesrecv
 	
 	if isinstance (handler, dbo_request.Request):
 		response = handler
+		_currents.pop (response.meta ['req_id'])
+		
 	else:
 		response = response_builder.HTTPResponse (handler)
+		_currents.pop (response.meta ['req_id'])		
 		
 		for handle_func in (handle_status_401, handle_status_3xx):
 			response = handle_func (response)
 			if not response:
-				return _next ()
+				return
 
-	_currents.pop (response.meta ['req_id'])	
+	_finished_total += 1
 	response.logger = _logger
 	_bytesrecv += len (response.content)
 	callback = response.meta ['req_callback'] or _cb_gateway
 	try:
 		callback (response)
-	except:	
-		_logger.trace ()
-	_next ()
+	except:
+		_logger.trace ()	
 
 def _req ():
-	global _que, _logger, _finished_total, _currents, _request_total
-	
+	global _que, _logger, _currents, _request_total
 	args = _que.get ()	
 	_request_total += 1
-	
 	_is_request = False
 	_is_db = False
 	_method = None
@@ -201,7 +187,8 @@ def _req ():
 		req = args
 		meta = req.meta
 		_is_request = True
-		_is_db = hasattr (req, 'dbtype')		
+		_is_db = hasattr (req, 'dbtype')
+		
 	else:
 		_is_request = False
 		_method = args [0].lower ()
@@ -220,15 +207,15 @@ def _req ():
 	else:	
 		if not _is_request:
 			method, url, params, auth, headers, meta, proxy = args
-			asyncon = socketpool.get (url)		
+			asyncon = socketpool.get (url)
 			if _method in ("ws", "wss"):
 				req = request_builder.make_ws (_method, url, params, auth, headers, meta, proxy, _logger)
 			else:
 				req = request_builder.make_http (_method, url, params, auth, headers, meta, proxy, _logger)			
 		else:
-			asyncon = socketpool.get (req.uri)
-		
+			asyncon = socketpool.get (req.uri)		
 		_currents [meta ['req_id']] = [0, req.uri]
+		
 		handler = req.handler (asyncon, req, _request_finished)
 		if asyncon.get_proto () and asyncon.isconnected ():
 			asyncon.handler.handle_request (handler)
@@ -259,23 +246,42 @@ def concurrent ():
 	return _concurrent
 
 def fetchall ():
-	global _workers, _logger, _que, _timeout, _max_conns, _bytesrecv
+	global _workers, _logger, _que, _timeout, _max_conns, _bytesrecv, _concurrent, _finished_total, _max_conns
 	
 	if not _initialized:
 		configure ()
 	
 	_fetch_started = timeit.default_timer ()
-	for i in range (min (_workers, _que.qsize ())):
-		_req ()		
+	
+	if not request_handler.RequestHandler.FORCE_HTTP_11 and http2.MAX_HTTP2_CONCURRENT_STREAMS > 1:
+		# create initail workers	
+		_logger ("creating http2 socket pool", "info")
+		for i in range (min (_workers, qsize ())):
+			_req ()	
+		# wait all availabale	
+		while 1:
+			lifetime.lifetime_loop (os.name == "nt" and 1.0 or _timeout / 2.0, 1)
+			if sum ([1 for conn in asyncore.socket_map.values () if not isinstance (conn, async_dns) and conn.connected and not conn.isactive ()]) == _workers:
+				break			
+			if _finished_total == _workers:
+				_logger ("can't connect remote host", "error")
+				sys.exit ()
 		
-	lifetime.loop (os.name == "nt" and 1.0 or _timeout / 2.0)
+	# now starting
+	while qsize () or _currents:
+		#print ('---', _concurrent, len (_currents), mapsize (), qsize ())
+		while _concurrent > min (len (_currents), mapsize ()) and qsize ():
+			_req ()			
+			_max_conns = max (_max_conns, mapsize ())		
+		lifetime.lifetime_loop (os.name == "nt" and 1.0 or _timeout / 2.0, 1)
+			
 	_duration = timeit.default_timer () - _fetch_started	
 	socketpool.cleanup ()
 	dbpool.cleanup ()
 	
 	_logger.log ("* %d tasks during %1.2f sec (%1.2f tasks/s), recieved %d bytes (%d bytes/s), max %d conns" % (
-			_que.req_id, _duration, 
-			_que.req_id / _duration, 
+			_finished_total, _duration, 
+			_finished_total / _duration, 
 			_bytesrecv,
 			_bytesrecv / _duration,
 			_max_conns
@@ -288,7 +294,6 @@ def suspend (timeout):
 		socketpool.noop ()
 		time.sleep (1)
 	time.sleep (a)
-		
 
 _dns_reqs = 0
 def _add (method, url, params = None, auth = None, headers = {}, callback = None, meta = {}, proxy = None):	
@@ -300,6 +305,7 @@ def _add (method, url, params = None, auth = None, headers = {}, callback = None
 	
 	if not _initialized:		
 		configure ()
+		
 	if not meta: meta = {}
 	meta ['req_id'] = _que.req_id
 	meta ['req_method'] = method
@@ -313,6 +319,7 @@ def _add (method, url, params = None, auth = None, headers = {}, callback = None
 		adns.query (host, "A", callback = dns_result)
 		for i in range (2): 
 			lifetime.poll_fun_wrap (0.1)
+			
 	_que.add ((method, url, params, auth, headers, meta, proxy))
 	
 #----------------------------------------------------
@@ -321,10 +328,6 @@ def _add (method, url, params = None, auth = None, headers = {}, callback = None
 def add (request):
 	global _que	
 	_que.add (request)
-
-def first (request):
-	global _que	
-	_que.first (request)
 			
 #----------------------------------------------------
 # REST CALL

@@ -30,7 +30,10 @@ class XMLRPCRequest:
 	user_agent = "Mozilla/5.0 (compatible; Aquests/%s.%s)" % aquests.version_info [:2]
 	initial_http_version = "1.1"
 	allow_redirects = True
-			
+	
+	reauth_count = 0
+	retry_count = 0
+				
 	def __init__ (self, uri, method, params = (), headers = None, auth = None, logger = None, meta = {}, http_version = None):
 		# mount point generalizing, otherwise some servers reponse 301
 		self.uri = uri
@@ -44,7 +47,7 @@ class XMLRPCRequest:
 		self.address, self.path = self.split (uri)		
 		self._history = []
 		self.__xmlrpc_serialized = False
-		self.reauth_count = 0
+		
 		self.headers = attrdict.NocaseDict ()
 		self.headers ["Accept"] = "*/*"
 		self.headers ["Accept-Encoding"] = "gzip"		

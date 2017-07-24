@@ -84,7 +84,13 @@ class async_dns (asyncore.dispatcher_with_send):
 			self.socket.shutdown (1)
 		
 	def handle_read (self):
-		data = self.recv (4096)
+		try:
+			data = self.recv (4096)
+		except BlockingIOError:
+			return
+		except OSError as why:
+			self.handle_close()
+			return
 		self.ac_in_buffer += data		
 		
 	def handle_expt (self):
@@ -166,7 +172,7 @@ class Request:
 			answers = []
 			
 		else:	
-			# do not query for 5 minutes
+			# do not query for 1 minutes
 			not_found = [{'err': True, "name": args ['name'].decode ('utf8'), "data": None, "typename": args ["qtype"], 'ttl': 60}]
 				
 			try:
@@ -205,7 +211,10 @@ class Request:
 				except:
 					self.logger.trace ()
 					answers = not_found
-			
+					
+			if not answers:
+				answers = not_found
+		
 		callback = args.get ("callback", None)
 		#self.logger ('DNS callback %s' % callback)
 		if callback:

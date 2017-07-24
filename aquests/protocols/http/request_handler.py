@@ -256,8 +256,9 @@ class RequestHandler (base_request_handler.RequestHandler):
 			self.close_case ()
 			return
 		
-		# possibly disconnected cause of keep-alive timeout				
-		if why == 700 and self.response is None and self.retry_count == 0:
+		# possibly disconnected cause of keep-alive timeout
+		# but works only HTTP 1.1
+		if not self.http2_handler and why == 700 and self.response is None and self.retry_count == 0:
 			self.retry_count = 1
 			self.handle_rerequest ()
 			return True
@@ -265,7 +266,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 		self.response = http_response.FailedResponse (why, msg, self.request)
 		if hasattr (self.asyncon, "begin_tran"):
 			self.close_case ()
-	
+			
 	def close_case_with_end_tran (self):
 		self.asyncon.end_tran ()
 		self.close_case ()
@@ -273,12 +274,12 @@ class RequestHandler (base_request_handler.RequestHandler):
 	def handle_callback (self):
 		if self.callbacked:
 			return
-		tuple_cb (self, self.callback)		
+		tuple_cb (self, self.callback)
 		self.callbacked = 1
 			
 	def close_case (self):
 		if self.asyncon:
-			self.asyncon.handler = None # unlink back ref.			
+			self.asyncon.handler = None # unlink back ref.		
 		self.handle_callback ()
 	
 	def switch_to_http2 (self):		
@@ -308,8 +309,10 @@ class RequestHandler (base_request_handler.RequestHandler):
 	def handle_request (self):
 		if self.asyncon.isconnected () and self.asyncon.get_proto ():			
 			return self.switch_to_http2 ()
+		
 		self.buffer, self.response = b"", None
-		self.asyncon.set_terminator (b"\r\n\r\n")			
+		self.asyncon.set_terminator (b"\r\n\r\n")
+		
 		if (self.asyncon.connected) or not (self._ssl or self.request.initial_http_version == "2.0"):
 			# IMP: if already connected, it means not http2
 			upgrade = True
@@ -317,10 +320,13 @@ class RequestHandler (base_request_handler.RequestHandler):
 				upgrade = False
 			elif self.asyncon.isconnected ():
 				upgrade = False
-			for data in self.get_request_buffer ("1.1", upgrade):
-				self.asyncon.push (data)				
+			
+			for data in self.get_request_buffer ("1.1", upgrade):				
+				self.asyncon.push (data)
+				
 		if self._ssl and self.FORCE_HTTP_11 and self.request.initial_http_version != "2.0":
 			self.asyncon.negotiate_http2 (False)
+			
 		self.asyncon.begin_tran (self)
 	
 	def will_be_close (self):

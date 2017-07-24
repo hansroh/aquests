@@ -9,7 +9,7 @@ class DNSCache:
 		self.cache = {}
 		self.hits = 0
 
-	def set (self, answers):
+	def set (self, answers):		
 		if not answers:
 			return
 
@@ -25,7 +25,7 @@ class DNSCache:
 		try: del self.cache [host]
 		except KeyError: pass		
 
-	def get (self, host, qtype = "A", check_ttl = False):		
+	def get (self, host, qtype = "A", check_ttl = True):	
 		host = host.lower ()
 		try: answers = self.cache [host][qtype]
 		except KeyError: return []
@@ -53,7 +53,7 @@ class DNSCache:
 		
 	def __call__ (self, host, qtype, callback):
 		self.hits += 1
-		hit = self.get (host, qtype, True)
+		hit = self.get (host, qtype, True)		
 		if hit: 
 			return callback (hit)
 	
@@ -83,4 +83,3 @@ def init (logger, dns_servers = []):
 def get (name, qtype = "A"):	
 	global query
 	return query.get (name, qtype, False)
-	
