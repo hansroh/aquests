@@ -136,7 +136,6 @@ class AsynConnect (asynchat.async_chat):
 		return self.__history
 				
 	def initialize_connection (self):		
-		self._closed = False
 		self._raised_ENOTCONN = 0 # for win32
 		self.__history = []
 		self._proto = None
@@ -396,10 +395,11 @@ class AsynConnect (asynchat.async_chat):
 	def begin_tran (self, handler):
 		if self.__no_more_request:
 			return self.handle_close (705)
+		
+		# IMP: the reason why DNS error, _closed must be located here
+		self._closed = False
 		self.errcode = 0
 		self.errmsg = ""
-		# IMP
-		self._closed = False
 		
 		self.handler = handler
 		if DEBUG:
