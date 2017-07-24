@@ -398,6 +398,7 @@ class AsynConnect (asynchat.async_chat):
 			return self.handle_close (705)
 		self.errcode = 0
 		self.errmsg = ""
+		# IMP
 		self._closed = False
 		
 		self.handler = handler
