@@ -4,6 +4,7 @@ try:
 except ImportError:
 	pass	
 from aquests.lib import producers
+import asynchat
 
 class h2header_producer:
 	def __init__ (self, stream_id, headers, producer, encoder, lock):
@@ -30,7 +31,7 @@ class h2header_producer:
 
 
 class h2frame_producer:
-	BUFFER_SIZE = 4096	
+	SIZE_BUFFER = 16384
 	
 	def __init__ (self, stream_id, depends_on, weight, producer, encoder, lock):
 		self.stream_id = stream_id
@@ -58,21 +59,20 @@ class h2frame_producer:
 		return self._end_stream and not self._buf
 	
 	def is_end_stream (self, data):
-		#return not data or len (data) < self.producer.buffer_size
-		return not data
+		return not data or len (data) < self.producer.buffer_size
 				 	
 	def more (self):
 		if self.is_done ():
 			return b''
 
 		if self._buf:
-			data, self._buf = self._buf [:self.BUFFER_SIZE], self._buf [self.BUFFER_SIZE:]
+			data, self._buf = self._buf [:self.SIZE_BUFFER], self._buf [self.SIZE_BUFFER:]
 				
 		else:
 			data = self.producer.more ()
 			self._end_stream = self.is_end_stream (data)
-			if len (data) > self.BUFFER_SIZE:
-				data, self._buf = data [:self.BUFFER_SIZE], data [self.BUFFER_SIZE:]
+			if len (data) > self.SIZE_BUFFER:
+				data, self._buf = data [:self.SIZE_BUFFER], data [self.SIZE_BUFFER:]
 		
 		# print ("MULTIPLEXING", self.stream_id, self.encoder.local_flow_control_window (self.stream_id))
 		with self._lock:
@@ -107,13 +107,13 @@ class h2stream_producer (h2frame_producer):
 			return b''
 
 		if self._buf:
-			data, self._buf = self._buf [:self.BUFFER_SIZE], self._buf [self.BUFFER_SIZE:]
+			data, self._buf = self._buf [:self.SIZE_BUFFER], self._buf [self.SIZE_BUFFER:]
 				
 		else:
 			data = self.producer.more ()
 			self._end_stream = self.is_end_stream (data)
-			if len (data) > self.BUFFER_SIZE:
-				data, self._buf = data [:self.BUFFER_SIZE], data [self.BUFFER_SIZE:]
+			if len (data) > self.SIZE_BUFFER:
+				data, self._buf = data [:self.SIZE_BUFFER], data [self.SIZE_BUFFER:]
 		
 		with self._lock:
 			try:

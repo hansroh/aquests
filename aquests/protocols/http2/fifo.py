@@ -8,26 +8,26 @@ class http2_producer_fifo (await_ts_fifo):
 	def remove (self, stream_id):
 		with self._lock:
 			if self.l:
-				for i in range (len (lst)):
+				for i in range (len (self.l)):
 					try:
-						producer_stream_id = lst [0].stream_id
+						producer_stream_id = self.l [0].stream_id
 					except AttributeError:
 						pass
 					else:
 						if producer_stream_id	== stream_id:
-							lst.popleft ()							
-					lst.rotate (1)				
+							self.l.popleft ()							
+					self.l.rotate (1)				
 				
-	def insert_into (self, lst, index, item):		
+	def insert_into (self, index, item):		
 		if index == 0:
-			lst.appendleft (item)
+			self.l.appendleft (item)
 		elif index == -1:
-			lst.append (item)	
+			self.l.append (item)	
 		else:
 			r = len (self.l) - index
-			lst.rotate (r)
-			lst.append (item)
-			lst.rotate (index + 1)
+			self.l.rotate (r)
+			self.l.append (item)
+			self.l.rotate (index + 1)
 					
 	def insert (self, index, item):
 		if item is None:
@@ -79,7 +79,7 @@ class http2_producer_fifo (await_ts_fifo):
 						d2 = each.depends_on
 						w2 = each.weight					
 						if d1 == d2 and w2 < w1:
-							return self.insert_into (self.l, i, item)
+							return self.insert_into (i, item)
 					elif d1 == s2:
 						found_parent = 1
 				i += 1
