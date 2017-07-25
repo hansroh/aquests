@@ -677,6 +677,8 @@ History
 
 - 0.7.6
   
+  - reengineer select loop
+  - fix DNS erro handling
   - fix HTTP/2 auto redirecting
   - fix HTTP/2 sockets over creation
   - add get_size () to all producers for estimating content length

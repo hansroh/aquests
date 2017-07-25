@@ -286,17 +286,13 @@ class globbing_producer:
 
 	def __init__ (self, producer, buffer_size = SIZE_BUFFER):
 		self.producer = producer
+		if hasattr (self.producer, "ready"):
+			raise TypeError ("globbing producer cannot have ready methods")
 		self.buffer = b''
 		self.buffer_size = buffer_size
-		self.override ()
 	
 	def get_size (self):
 		return self.producer.get_size ()
-		
-	def override (self):	
-		if hasattr (self.producer, "ready"):
-			self.ready = self.producer.ready
-			self.producer.ready = None
 		
 	def more (self):
 		while len(self.buffer) < self.buffer_size:
@@ -321,7 +317,12 @@ class hooked_producer (globbing_producer):
 		self.function = function
 		self.bytes = 0		
 		self.override ()
-		
+	
+	def override (self):	
+		if hasattr (self.producer, "ready"):
+			self.ready = self.producer.ready
+			self.producer.ready = None
+				
 	def more (self):
 		if self.producer:
 			result = self.producer.more()			
@@ -342,7 +343,7 @@ class hooked_producer (globbing_producer):
 # Blessing, and it really ought to be used even with normal files.
 # How beautifully it blends with the concept of the producer.
 
-class chunked_producer (globbing_producer):
+class chunked_producer (hooked_producer):
 	"""A producer that implements the 'chunked' transfer coding for HTTP/1.1.
 	Here is a sample usage:
 		request['Transfer-Encoding'] = 'chunked'
@@ -384,7 +385,7 @@ try:
 except ImportError:
 	zlib = None
 
-class compressed_producer (globbing_producer):
+class compressed_producer (hooked_producer):
 	"""
 	Compress another producer on-the-fly, using ZLIB
 	[Unfortunately, none of the current browsers seem to support this]

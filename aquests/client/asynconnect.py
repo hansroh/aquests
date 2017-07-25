@@ -45,6 +45,8 @@ class AsynConnect (asynchat.async_chat):
 		self.proxy = False
 		
 		self.initialize_connection ()
+		self._closed = False
+		
 		self.ac_in_buffer = b''
 		self.incoming = []
 		self.producer_fifo = self.fifo_class ()

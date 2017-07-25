@@ -1,6 +1,6 @@
 # 2016. 1. 10 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.7.6.6"
+__version__ = "0.7.6.8"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 
 from . import lifetime, queue, request_builder, response_builder, stubproxy
@@ -14,6 +14,7 @@ from aquests.protocols.dns.asyndns import async_dns
 from .protocols.http import localstorage as ls
 from .protocols.http import request_handler, response as http_response
 from .protocols import http2
+from .protocols.http2 import H2_PROTOCOLS
 from .dbapi import request as dbo_request
 import os
 import asyncore
@@ -104,9 +105,10 @@ def configure (
 	#if _concurrent == 1:
 		# for preventing lifetime.loop break
 	#	trigger.start_trigger ()
-		
 	if not force_http1:
 		_concurrent = workers * http2_constreams
+	elif http2_constreams:
+		_logger ("parameter http2_constreams is ignored", "warn")	
 				
 	if callback:
 		_cb_gateway = callback
@@ -255,23 +257,25 @@ def fetchall ():
 	
 	if not request_handler.RequestHandler.FORCE_HTTP_11 and http2.MAX_HTTP2_CONCURRENT_STREAMS > 1:
 		# create initail workers	
-		_logger ("creating http2 socket pool", "info")
-		for i in range (min (_workers, qsize ())):
+		_logger ("try to create http2 connection pool", "info")
+		target_socks = min (_workers, qsize ())
+		for i in range (target_socks):
 			_req ()	
 		# wait all availabale	
 		while 1:
 			lifetime.lifetime_loop (os.name == "nt" and 1.0 or _timeout / 2.0, 1)
-			if sum ([1 for conn in asyncore.socket_map.values () if not isinstance (conn, async_dns) and conn.connected and not conn.isactive ()]) == _workers:
+			if sum ([1 for conn in asyncore.socket_map.values () if not isinstance (conn, async_dns) and conn.get_proto () in H2_PROTOCOLS and conn.connected and not conn.isactive ()]) == _workers:
+				_logger ('%d connection(s) created' % target_socks, 'info')
 				break			
-			if _finished_total == _workers:
+			if _finished_total == target_socks:
 				_logger ("can't connect remote host", "error")
-				sys.exit ()
+				sys.exit ()				
 		
 	# now starting
 	while qsize () or _currents:
 		#print ('---', _concurrent, len (_currents), mapsize (), qsize ())
-		while _concurrent > min (len (_currents), mapsize ()) and qsize ():
-			_req ()			
+		while _concurrent > max (len (_currents), mapsize ()) and qsize ():
+			_req ()
 			_max_conns = max (_max_conns, mapsize ())		
 		lifetime.lifetime_loop (os.name == "nt" and 1.0 or _timeout / 2.0, 1)
 			

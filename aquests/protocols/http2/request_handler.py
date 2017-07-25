@@ -5,7 +5,7 @@ from h2.events import DataReceived, ResponseReceived, StreamEnded, ConnectionTer
 from h2.errors import PROTOCOL_ERROR, FLOW_CONTROL_ERROR, NO_ERROR
 import h2.settings
 from ...lib import producers
-from .producers import h2data_producer, h2header_producer
+from .producers import h2frame_producer, h2header_producer
 from ..http import respcodes
 from ..http import response as http_response
 
@@ -162,7 +162,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 		header = h2header_producer (stream_id, headers, producer, self.conn, self._clock)		
 		self.asyncon.push (header)				
 		if producer:
-			payload = h2data_producer (stream_id, 0, 1, producer, self.conn, self._clock)
+			payload = h2frame_producer (stream_id, 0, 1, producer, self.conn, self._clock)
 			self.asyncon.push (payload)
 	
 	def increment_flow_control_window (self, cl, stream_id = 0):

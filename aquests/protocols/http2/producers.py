@@ -3,6 +3,7 @@ try:
 	from h2.exceptions import FlowControlError
 except ImportError:
 	pass	
+from aquests.lib import producers
 
 class h2header_producer:
 	def __init__ (self, stream_id, headers, producer, encoder, lock):
@@ -28,7 +29,7 @@ class h2header_producer:
 		return data_to_send
 
 
-class h2data_producer:
+class h2frame_producer:
 	BUFFER_SIZE = 4096	
 	
 	def __init__ (self, stream_id, depends_on, weight, producer, encoder, lock):
@@ -51,13 +52,14 @@ class h2data_producer:
 		return self.producer.get_size ()
 		
 	def __repr__ (self):
-		return "<h2data_producer stream_id:%d, weight:%d, depends_on:%d>" % (self.stream_id, self.weight, self.depends_on)
+		return "<h2frame_producer stream_id:%d, weight:%d, depends_on:%d>" % (self.stream_id, self.weight, self.depends_on)
 	
 	def is_done (self):
 		return self._end_stream and not self._buf
 	
 	def is_end_stream (self, data):
-		return not data or len (data) < self.producer.buffer_size
+		#return not data or len (data) < self.producer.buffer_size
+		return not data
 				 	
 	def more (self):
 		if self.is_done ():
@@ -90,7 +92,7 @@ class h2data_producer:
 		return data_to_send
 	
 	
-class h2stream_producer (h2data_producer):
+class h2stream_producer (h2frame_producer):
 	def __repr__ (self):
 		return "<h2stream_producer stream_id:%d>" % (self.stream_id,)
 	
@@ -128,5 +130,11 @@ class h2stream_producer (h2data_producer):
 				return b''
 		
 		return data_to_send
-		
+
+class h2_globbing_producer (producers.globbing_producer):
+	def __init__ (self, stream_id, depends_on, weight,  producer, buffer_size = producers.SIZE_BUFFER):
+		self.stream_id = stream_id
+		self.depends_on = depends_on
+		self.weight = weight
+		producers.globbing_producer.__init__ (self, producer, buffer_size)
 		

@@ -35,7 +35,7 @@ class Response:
 		self.request = request
 		if header [:2] == "\r\n":
 			header = header [2:]
-		header = header.split ("\r\n")	
+		header = header.split ("\r\n")
 		self.response = header [0]
 		self.header = header [1:]
 		self._header_cache = {}
