@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 import signal
 from . import killtree, processutil
 
@@ -62,7 +63,7 @@ def kill (chdir, include_children = True):
 		killtree.kill (pid, True)
 	else:	
 		os.kill (pid, signal.SIGTERM)
-	while status (chdir):
+	while processutil.is_running (pid):
 		time.sleep (1)
 	os.remove (os.path.join (chdir, ".pid"))
 	
