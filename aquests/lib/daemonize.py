@@ -61,10 +61,12 @@ def kill (chdir, include_children = True):
 	if include_children:
 		killtree.kill (pid, True)
 	else:	
-		os.kill (pid, signal.SIGTERM)			
+		os.kill (pid, signal.SIGTERM)
+	while status (chdir):
+		time.sleep (1)
 	os.remove (os.path.join (chdir, ".pid"))
-
-
+	
+	
 if __name__ == "__main__"	:
 	import time
 	
