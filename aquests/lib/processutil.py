@@ -24,7 +24,7 @@ def is_running (pid, cmd = None):
 				handle = win32api.OpenProcess (win32con.PROCESS_QUERY_INFORMATION | win32con.PROCESS_VM_READ, 0, int (pid))
 				exefilename = win32process.GetModuleFileNameEx (handle, 0)
 				win32process.GetStartupInfo()
-				if exefilename.find ("python.exe") != -1:
+				if exefilename.lower ().find ("python.exe") != -1 or exefilename.lower ().find ("cmd.exe") != -1:
 					return True
 			except pywintypes.error: 
 				# Windows service, Access is denied
