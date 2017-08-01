@@ -52,7 +52,7 @@ class SynConnect (asynpsycopg2.AsynConnect, dbconnect.DBConnect):
 		sql= request.params [0].strip ()
 		try:
 			if sql [:7].lower () == "select ":
-				self.cur.execute (sql)
+				self.cur.execute (*request.params)
 			else:	
 				tranaction = True
 				self.cur.executescript (sql)

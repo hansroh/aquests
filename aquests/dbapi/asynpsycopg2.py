@@ -99,8 +99,8 @@ else:
 			state = self.poll ()
 			if self.cur and state == POLL_OK:
 				self.set_event_time ()				
-				self.cur.execute (self.out_buffer)
-				self.out_buffer = ""
+				self.cur.execute (*self.out_buffer)
+				self.out_buffer = ()
 			else:				
 				self.check_state (state)
 				
@@ -160,7 +160,7 @@ else:
 
 		def begin_tran (self, request):
 			dbconnect.AsynDBConnect.begin_tran (self, request)
-			self.out_buffer = request.params [0]
+			self.out_buffer = request.params
 								
 		def execute (self, request):			
 			self.begin_tran (request)			
