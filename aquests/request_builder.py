@@ -77,4 +77,3 @@ def make_http (_method, url, params, auth, headers, meta, proxy, logger):
 
 def make_dbo (_method, server, dbmethod, params, dbname, auth, meta, logger):
 	return dbo_request.Request (_method [1:], server, dbname, auth, dbmethod, params, None, meta)
-	
