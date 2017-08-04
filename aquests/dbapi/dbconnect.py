@@ -167,8 +167,9 @@ class DBConnect:
 			self.retried = 1
 			self.execute (self.request)			
 			return
-			
-		self.exception_class, self.exception_str = expt, msg		
+		
+		if self.exception_class is None:	
+			self.exception_class, self.exception_str = expt, msg		
 		self.close_case_with_end_tran ()
 		self.close ()
 	

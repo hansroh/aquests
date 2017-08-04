@@ -51,7 +51,7 @@ class Request:
 		tuple_cb (self, self.callback)
 					
 	def handle_result (self, description, expt_class, expt_str, data):
-		self.expt_class, self.expt_str = expt_class, expt_str
+		self.expt_class, self.expt_str = expt_class, expt_str		
 		if expt_class:
 			self.code, self.msg = 500, "Error"
 

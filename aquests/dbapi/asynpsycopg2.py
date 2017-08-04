@@ -35,12 +35,18 @@ else:
 				self.handle_close ()
 		
 		def poll (self):
+			# 2 cases, if on requesting raise immediatly, else handle silently
 			try:
 				return self.socket.poll ()
-			except psycopg2.OperationalError:
-				pass
-			except:				
-				self.logger.trace ()
+			except psycopg2.OperationalError:				
+				if self.request:
+					return self.handle_error ()					
+				# else usually timeout	
+			except:
+				if self.request:
+					return self.handle_error ()
+				# logging
+				elf.logger.trace ()
 			return -1
 			
 		def writable (self):			
