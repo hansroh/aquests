@@ -40,13 +40,13 @@ else:
 				return self.socket.poll ()
 			except psycopg2.OperationalError:				
 				if self.request:
-					return self.handle_error ()					
+					raise
 				# else usually timeout	
 			except:
 				if self.request:
-					return self.handle_error ()
+					raise
 				# logging
-				elf.logger.trace ()
+				self.logger.trace ()
 			return -1
 			
 		def writable (self):			
@@ -105,8 +105,8 @@ else:
 			state = self.poll ()
 			if self.cur and state == POLL_OK:
 				self.set_event_time ()				
-				self.cur.execute (*self.out_buffer)
-				self.out_buffer = ()
+				self.cur.execute (self.out_buffer)
+				self.out_buffer = ""
 			else:				
 				self.check_state (state)
 				
@@ -166,7 +166,7 @@ else:
 
 		def begin_tran (self, request):
 			dbconnect.AsynDBConnect.begin_tran (self, request)
-			self.out_buffer = request.params
+			self.out_buffer = request.params [0]
 								
 		def execute (self, request):			
 			self.begin_tran (request)			
