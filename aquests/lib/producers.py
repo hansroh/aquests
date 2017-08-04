@@ -60,7 +60,7 @@ class iter_producer (list_producer):
 	def __init__ (self, data):
 		self.data = data
 		self.proxsize = -1
-		
+	
 	def more (self):
 		try:
 			data = next (self.data)
@@ -69,7 +69,7 @@ class iter_producer (list_producer):
 			return data
 		except StopIteration:		
 			return b""
-
+	
 class closing_stream_producer (simple_producer):
 	def __init__ (self, data, buffer_size = SIZE_BUFFER):
 		self.data = data

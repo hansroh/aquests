@@ -427,7 +427,7 @@ if __name__ == "__main__":
 	from skitai import lifetime
 	
 	log = logger.screen_logger ()
-	m = composer.Composer ("SMTP TEST", "@gmail.com", "@gmail.com")
+	m = composer.Composer ("smtp.gmail.com:587", "", "")
 	m.add_content ("Hello World<div><img src='cid:A'></div>", "text/html")
 	#m.add_attachment (r"1.png", cid="A")
 	
@@ -435,4 +435,6 @@ if __name__ == "__main__":
 		SMTP_SSL (m, log)
 		
 	asyncore.loop ()
+	
+	
 
