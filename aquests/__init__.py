@@ -176,7 +176,10 @@ def _request_finished (handler):
 		callback (response)
 	except:
 		_logger.trace ()	
-
+	
+	if qsize ():
+		_req ()
+		
 def _req ():
 	global _que, _logger, _currents, _request_total
 	args = _que.get ()	
@@ -278,7 +281,7 @@ def fetchall ():
 			_req ()
 			_max_conns = max (_max_conns, mapsize ())		
 		lifetime.lifetime_loop (os.name == "nt" and 1.0 or _timeout / 2.0, 1)
-			
+		
 	_duration = timeit.default_timer () - _fetch_started	
 	socketpool.cleanup ()
 	dbpool.cleanup ()

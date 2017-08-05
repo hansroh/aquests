@@ -60,7 +60,6 @@ def kill (chdir, include_children = True):
 		pid = status (chdir)
 		if not pid:	
 			break
-		print (pid)
 		if include_children:
 			killtree.kill (pid, True)
 		else:	
