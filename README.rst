@@ -677,6 +677,8 @@ History
 
 - 0.7.6
   
+  - fix delay when http concurrent stream = 1
+  - fix handling psycopg2 poll () failure
   - reengineer select loop
   - fix DNS erro handling
   - fix HTTP/2 auto redirecting

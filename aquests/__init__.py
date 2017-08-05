@@ -1,6 +1,6 @@
 # 2016. 1. 10 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.7.6.10"
+__version__ = "0.7.6.11"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 
 from . import lifetime, queue, request_builder, response_builder, stubproxy
@@ -274,7 +274,7 @@ def fetchall ():
 	# now starting
 	while qsize () or _currents:
 		#print ('---', _concurrent, len (_currents), mapsize (), qsize ())
-		while _concurrent > max (len (_currents), mapsize ()) and qsize ():
+		while _concurrent > min (len (_currents), mapsize ()) and qsize ():
 			_req ()
 			_max_conns = max (_max_conns, mapsize ())		
 		lifetime.lifetime_loop (os.name == "nt" and 1.0 or _timeout / 2.0, 1)

@@ -13,8 +13,9 @@ def trace ():
 	(file,fun,line), t, v, tbinfo = asyncore.compact_traceback()
 	try:
 		v = str (v)
-	except UnicodeEncodeError:
-		pass
+	except:	
+		v = repr (v)
+		
 	return "%s %s Traceback: %s" % (t, v, tbinfo)
 		
 def now (detail = 1):
