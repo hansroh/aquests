@@ -52,19 +52,21 @@ def status (chdir):
 	if not os.path.isfile (pidfile):		
 		return 0
 	with open (pidfile) as f:
-		pid = int (f.read ())	
+		pid = int (f.read ())
 	return processutil.is_running (pid) and pid or 0
 	
 def kill (chdir, include_children = True):
-	pid = status (chdir)
-	if not pid:	
-		return	
-	if include_children:
-		killtree.kill (pid, True)
-	else:	
-		os.kill (pid, signal.SIGTERM)
-	while processutil.is_running (pid):
-		time.sleep (1)
+	for i in range (2):
+		pid = status (chdir)
+		if not pid:	
+			break
+		print (pid)
+		if include_children:
+			killtree.kill (pid, True)
+		else:	
+			os.kill (pid, signal.SIGTERM)
+		while processutil.is_running (pid):
+			time.sleep (1)
 	os.remove (os.path.join (chdir, ".pid"))
 	
 	
