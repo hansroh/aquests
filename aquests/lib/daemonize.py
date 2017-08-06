@@ -5,13 +5,14 @@ import signal
 from . import killtree, processutil
 
 class Daemonizer:
-	def __init__(self, chdir="/", umask=0o22):
+	def __init__(self, chdir="/", procname = None, umask=0o22):
 		self.chdir = chdir
+		self.procname = procname
 		self.umask = umask
 		self.pidfile = os.path.join (chdir, '.pid')
 	
 	def runAsDaemon(self):
-		if status (self.chdir):
+		if status (self.chdir, self.procname):
 			return 0
 						
 		self.fork_and_die()
@@ -47,19 +48,19 @@ class Daemonizer:
 			# now only r = 0 (the child) survives.
 		return r
 
-def status (chdir):
+def status (chdir, procname = None):
 	pidfile =  os.path.join (chdir, '.pid')
 	if not os.path.isfile (pidfile):		
 		return 0
 	with open (pidfile) as f:
 		pid = int (f.read ())
-	return processutil.is_running (pid) and pid or 0
+	return processutil.is_running (pid, procname) and pid or 0
 	
-def kill (chdir, include_children = True):
+def kill (chdir, procname = None, include_children = True):
 	import psutil
 	
 	for i in range (2):
-		pid = status (chdir)
+		pid = status (chdir, procname)
 		if not pid:	
 			break
 		os.kill (pid, signal.SIGTERM)		
@@ -69,8 +70,10 @@ def kill (chdir, include_children = True):
 				killtree.kill (pid, True)
 			except psutil.NoSuchProcess:
 				pass	
-		while processutil.is_running (pid):
+		
+		while processutil.is_running (pid, procname):
 			time.sleep (1)
+			
 	try:
 		os.remove (os.path.join (chdir, ".pid"))
 	except FileNotFoundError:	
