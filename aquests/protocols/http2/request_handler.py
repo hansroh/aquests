@@ -2,8 +2,8 @@ from ...protocols.http import base_request_handler
 from h2.connection import H2Connection, GoAwayFrame
 from h2.exceptions import ProtocolError, NoSuchStreamError, StreamClosedError, FlowControlError
 from h2.events import DataReceived, ResponseReceived, StreamEnded, ConnectionTerminated, StreamReset, WindowUpdated, RemoteSettingsChanged
-from h2.errors import PROTOCOL_ERROR, FLOW_CONTROL_ERROR, NO_ERROR
-import h2.settings
+from h2.errors import ErrorCodes
+from h2.settings import SettingCodes
 from ...lib import producers
 from .producers import h2frame_producer, h2header_producer
 from ..http import respcodes
@@ -79,7 +79,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 		is_upgrade = not (self._ssl or self.request.initial_http_version == "2.0")			
 		if is_upgrade:
 			self.conn.initiate_upgrade_connection()
-			self.conn.update_settings({h2.settings.ENABLE_PUSH: 0})
+			self.conn.update_settings({SettingCodes.ENABLE_PUSH: 0})
 			# assume 1st request's stream_id = 1
 			self.add_request (1, handler)
 			self._send_stream_id = 1 # nexet request stream_id will be 3
@@ -99,7 +99,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 		self.asyncon.use_sendlock ()
 		self._send_stream_id = -1
 		self.requests = {}
-		self.conn = H2Connection (client_side = True)
+		self.conn = H2Connection ()
 		self.buf = b""
 		self.rfile = BytesIO ()
 		self.frame_buf = self.conn.incoming_buffer
@@ -121,7 +121,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 		self.channel.close_when_done ()	
 		
 	def enter_shutdown_process (self, err = 0):
-		self.go_away (NO_ERROR)
+		self.go_away (ErrorCodes.NO_ERROR)
 		self.asyncon.handler = None # unlink
 				
 	def add_request (self, stream_id, handler):		
@@ -241,6 +241,8 @@ class RequestHandler (base_request_handler.RequestHandler):
 		# to HTTP/1.1 header
 		jheaders = []
 		for k, v in headers:
+			k = k.decode ("utf8")
+			v = v.decode ("utf8")
 			if k == ":status":
 				jheaders.insert (0, "HTTP/2.0 " + v + " " + respcodes.get (int (v), "Undefined Error"))
 			else:
@@ -281,7 +283,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 			
 			elif isinstance (event, RemoteSettingsChanged):
 				try:
-					iws = event.changed_settings [h2.settings.INITIAL_WINDOW_SIZE].new_value
+					iws = event.changed_settings [SettingCodes.INITIAL_WINDOW_SIZE].new_value
 				except KeyError:
 					pass
 				else:		

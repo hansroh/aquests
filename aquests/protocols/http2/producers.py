@@ -51,8 +51,7 @@ class h2frame_producer:
 			self._ready = producer.ready
 			producer.ready = None
 	
-	def ready (self):
-		#print ('++++++++++++++ready', len (self._frame), self.is_done ())
+	def ready (self):		
 		if self.is_done ():
 			return True
 			

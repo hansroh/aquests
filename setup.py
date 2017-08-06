@@ -71,12 +71,12 @@ package_data = {
 }
 
 install_requires = [
+	"h2==3.0.1",
+	"psycopg2==2.6.2",
 	"redis==2.10", 
 	"pymongo==3.4.0", 
-	"h2==2.5.1", 
-	"protobuf==3.1.0.post1", 
-	"psycopg2==2.6.2",
 	"event_bus==1.0.2",
+	"protobuf==3.1.0.post1",
 ]
 if os.name == "posix":
 	install_requires.append ("psutil")

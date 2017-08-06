@@ -97,7 +97,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 			]
 			if auth_header:
 				headers.append (("authorization", auth_header))
-			return self.rebuild_http2_headers (headers, self.request.get_headers ())			
+			return self.rebuild_http2_headers (headers, self.request.get_headers ())
 		
 		if auth_header:
 			hc ["Authorization"] = auth_header
