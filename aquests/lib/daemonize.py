@@ -71,8 +71,11 @@ def kill (chdir, include_children = True):
 				pass	
 		while processutil.is_running (pid):
 			time.sleep (1)
-	os.remove (os.path.join (chdir, ".pid"))
-	
+	try:
+		os.remove (os.path.join (chdir, ".pid"))
+	except FileNotFoundError:	
+		pass
+		
 	
 if __name__ == "__main__"	:
 	import time
