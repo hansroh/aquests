@@ -1,4 +1,8 @@
 import os, sys
+from setproctitle import setproctitle
+
+def set_process_name (name):
+	setproctitle (name)
 
 def is_running (pid, cmd = None):
 	if cmd is None:
