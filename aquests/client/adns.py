@@ -66,8 +66,6 @@ class DNSCache:
 		if hit: 
 			return callback (hit)
 	
-		print ('##############')
-	
 		if self.is_ip (host):
 			self.set ([{"name": host, "data": host, "typename": qtype}])
 			return callback ([{"name": host, "data": host, "typename": qtype}])
