@@ -9,7 +9,7 @@ class DNSCache:
 		self.cache = {}
 		self.hits = 0
 
-	def set (self, answers):		
+	def set (self, answers):
 		if not answers:
 			return
 
@@ -17,6 +17,12 @@ class DNSCache:
 			name = answer ["name"].lower ()
 			if name not in self.cache:
 				self.cache [name] = {}
+			
+			if not answer ["data"]:
+				addrs = self.get (name, answer ["typename"], False)
+				if addrs and addrs [0]["data"]:
+					return
+						
 			if "ttl" in answer:
 				answer ["valid"]	= time.time () + answer ["ttl"]
 			self.cache [name][answer ["typename"]] = [answer]
@@ -29,16 +35,19 @@ class DNSCache:
 		host = host.lower ()
 		try: answers = self.cache [host][qtype]
 		except KeyError: return []
+		
 		answer = answers [0]
 		if "valid" not in answer:
 			return [answer]
+			
 		else:
 			now = time.time ()
 			if check_ttl and answer ["valid"] < now:				
 				# use max 5 minutes seconds for other querees
-				answer ['valid'] = now + 300
-				# nut new query will be started
+				answer ['valid'] = now + (answer ["data"] and 300 or 1)
+				# nut new query will be started				
 				return []
+				
 			else:
 				return [answer]
 	
@@ -56,6 +65,8 @@ class DNSCache:
 		hit = self.get (host, qtype, True)		
 		if hit: 
 			return callback (hit)
+	
+		print ('##############')
 	
 		if self.is_ip (host):
 			self.set ([{"name": host, "data": host, "typename": qtype}])

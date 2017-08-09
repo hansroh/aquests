@@ -1,6 +1,6 @@
 # 2016. 1. 10 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.7.6.16"
+__version__ = "0.7.6.18"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 
 from . import lifetime, queue, request_builder, response_builder, stubproxy
@@ -177,8 +177,8 @@ def _request_finished (handler):
 	except:
 		_logger.trace ()	
 	
-	if qsize ():
-		_req ()
+	#if qsize ():
+		#_req ()
 		
 def _req ():
 	global _que, _logger, _currents, _request_total
@@ -307,7 +307,7 @@ def _add (method, url, params = None, auth = None, headers = {}, callback = None
 	global _que, _initialized, _dns_query_req, _dns_reqs
 	
 	def dns_result (answer = None):
-		global _dns_reqs	
+		global _dns_reqs		
 		_dns_reqs -= 1
 	
 	if not _initialized:		
@@ -318,15 +318,14 @@ def _add (method, url, params = None, auth = None, headers = {}, callback = None
 	meta ['req_method'] = method
 	meta ['req_callback'] = callback
 	host = urlparse (url) [1].split (":")[0]
-	# DNS query for caching and massive 
-	
-	if not lifetime._polling and _dns_reqs < 10 and host not in _dns_query_req:	
-		_dns_query_req [host] = None
-		_dns_reqs += 1
-		adns.query (host, "A", callback = dns_result)
-		for i in range (2): 
-			lifetime.poll_fun_wrap (0.1)
-			
+	# DNS query for caching and massive
+	if not lifetime._polling:	
+		if host not in _dns_query_req:
+			_dns_query_req [host] = None
+			_dns_reqs += 1
+			adns.query (host, "A", callback = dns_result)			
+		lifetime.poll_fun_wrap (0.1)
+		
 	_que.add ((method, url, params, auth, headers, meta, proxy))
 	
 #----------------------------------------------------

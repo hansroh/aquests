@@ -23,7 +23,7 @@ class async_dns (asyncore.dispatcher_with_send):
 			raise OSError ("DNS Server Required")
 		random.shuffle (self.servers)
 		#self.servers = [("156.154.71.3", 513), ("156.154.71.9", 543)]
-		self.addr = self.servers.pop (0)
+		self.addr = self.servers.pop (0)		
 		self.request = request
 		self.callback = callback		
 		self.args = args		
@@ -166,14 +166,14 @@ class Request:
 		server = [(x, args ["port"]) for x in server]
 		async_dns (server, request, args, self.processReply, self.logger, self.debug_level)
 			
-	def processReply (self, server, request, args, data, timeouted):
+	def processReply (self, server, request, args, data, timeouted):				
 		if timeouted:
 			# for retrying
 			answers = []
 			
 		else:	
-			# do not query for 1 minutes
-			not_found = [{'err': True, "name": args ['name'].decode ('utf8'), "data": None, "typename": args ["qtype"], 'ttl': 60}]
+			# do not query for 1 sec
+			not_found = [{'err': True, "name": args ['name'].decode ('utf8'), "data": None, "typename": args ["qtype"], 'ttl': 1}]
 				
 			try:
 				if not data:
@@ -220,7 +220,7 @@ class Request:
 		if callback:
 			if type (callback) != type ([]):
 				callback = [callback]
-			for cb in callback:
+			for cb in callback:				
 				cb (answers)
 			
 

@@ -1,9 +1,10 @@
 import os, sys
-from setproctitle import setproctitle
 
 def set_process_name (name):
-	setproctitle (name)
-
+	if os.name == "posix":
+		from setproctitle import setproctitle
+		setproctitle (name)
+	
 def is_running (pid, cmd = None):
 	if cmd is None:
 		cmd = os.path.split (sys.argv [0])[1]

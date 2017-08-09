@@ -77,10 +77,10 @@ install_requires = [
 	"pymongo==3.4.0", 
 	"event_bus==1.0.2",
 	"protobuf==3.1.0.post1",
-	"setproctitle",
 ]
 if os.name == "posix":
 	install_requires.append ("psutil")
+	install_requires.append ("setproctitle")
 
 with open('aquests/__init__.py', 'r') as fd:
 	version = re.search(r'^__version__\s*=\s*"(.*?)"',fd.read(), re.M).group(1)

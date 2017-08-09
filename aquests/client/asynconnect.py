@@ -246,8 +246,8 @@ class AsynConnect (asynchat.async_chat):
 		ipaddr = answer and answer [-1]["data"] or None
 		if DEBUG:
 			self.logger ('got DNS {rid:%s} %s %s' % (self.handler.request.meta.get ('req_id', -1), res, self.handler.request.uri), 'debug')
-		
-		if not ipaddr:
+
+		if not ipaddr:			
 			# for perventing recursion, check already close			
 			return self.handle_close (704)
 		
