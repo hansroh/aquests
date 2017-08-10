@@ -30,6 +30,7 @@ class AsynConnect (asynchat.async_chat):
 	request_count = 0
 	active = 0
 	fifo_class = deque
+	prevent_recursion = False
 	
 	def __init__ (self, address, lock = None, logger = None):
 		self.address = address
@@ -95,7 +96,7 @@ class AsynConnect (asynchat.async_chat):
 		
 		handler, self.handller = self.handler, None
 		keep_active = False			
-		try: 
+		try:
 			keep_active = handler.connection_closed (self.errcode, self.errmsg)
 		except: 
 			self.trace ()
@@ -233,34 +234,31 @@ class AsynConnect (asynchat.async_chat):
 		self.set_socket (sock)
 			
 	def connect (self):
-		if DEBUG:
-			self.logger ('query DNS {rid:%s} %s' % (self.handler.request.meta.get ('req_id', -1), self.handler.request.uri), 'debug')
 		if adns.query:
 			adns.query (self.address [0], "A", callback = self.continue_connect)
-		else:
-			# no adns query
+		else:			
 			self.continue_connect (True)
 		
 	def continue_connect (self, answer = None):		
-		answer = answer or adns.get (self.address [0], "A")
-		ipaddr = answer and answer [-1]["data"] or None
-		if DEBUG:
-			self.logger ('got DNS {rid:%s} %s %s' % (self.handler.request.meta.get ('req_id', -1), res, self.handler.request.uri), 'debug')
-
-		if not ipaddr:			
-			# for perventing recursion, check already close			
-			return self.handle_close (704)
-		
 		self.initialize_connection ()
-		self.create_socket (socket.AF_INET, socket.SOCK_STREAM)		
-		try:
-			if not adns.query:				
-				asynchat.async_chat.connect (self, self.address)				
+		
+		if not adns.query:
+			self.create_socket (socket.AF_INET, socket.SOCK_STREAM)		
+			try: asynchat.async_chat.connect (self, self.address)
+			except:	self.handle_error (714)
+			return
+				
+		answer = answer or adns.get (self.address [0], "A")
+		ipaddr = answer and answer [-1]["data"] or None		
+		if not ipaddr:
+			if self.prevent_recursion:
+				ipaddr = "0.0.0.0"
 			else:	
-				asynchat.async_chat.connect (self, (ipaddr, self.address [1]))
-									
-		except:	
-			self.handle_error (714)
+				return self.handle_close (704)
+		
+		self.create_socket (socket.AF_INET, socket.SOCK_STREAM)			
+		try: asynchat.async_chat.connect (self, (ipaddr, self.address [1]))									
+		except:	self.handle_error (714)
 		
 	def recv (self, buffer_size):
 		try:
@@ -330,7 +328,10 @@ class AsynConnect (asynchat.async_chat):
 		err = self.socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
 		if err != 0:
 			#self.log ("Socket Error %d Occurred" % err, "warn")
-			self.handle_close (703, "Socket %d Error" % err)
+			if err == 10049:
+				self.handle_close (704, "DNS Not Found")
+			else:	
+				self.handle_close (703, "Socket %d Error" % err)
 		else:
 			self.handle_expt ()
 	

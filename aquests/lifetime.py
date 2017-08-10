@@ -173,7 +173,7 @@ def lifetime_loop (timeout = 30.0, count = 0):
 
 	map = asyncore.socket_map
 	loop = 0
-	while map and _shutdown_phase == 0:
+	while map and _shutdown_phase == 0:		
 		poll_fun_wrap (timeout, map)
 		now = time.time()
 		if (now - _last_maintern) > _maintern_interval:

@@ -677,6 +677,7 @@ History
 
 - 0.7.6
   
+  - fix recursion error when massive DNS Error
   - retry after 1 seconds when DNS query failed
   - fix daemonizer.kill ()
   - adaptation to h2 3.0.1

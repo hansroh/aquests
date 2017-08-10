@@ -1,6 +1,6 @@
 # 2016. 1. 10 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.7.6.20"
+__version__ = "0.7.6.22"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 import threading
 from . import lifetime, queue, request_builder, response_builder, stubproxy
@@ -73,6 +73,7 @@ _timeout = 10
 _max_conns = 0
 _bytesrecv = 0
 _allow_redirects = True
+_force_h1 = False
 	
 def configure (
 	workers = 1, 
@@ -85,7 +86,7 @@ def configure (
 	allow_redirects = True,
 	qrandom = False
 ):
-	global _logger, _cb_gateway, _concurrent, _initialized, _timeout, _workers, _que, _allow_redirects
+	global _logger, _cb_gateway, _concurrent, _initialized, _timeout, _workers, _que, _allow_redirects, _force_h1
 	
 	if logger is None:
 		logger = logger_f.screen_logger ()
@@ -97,7 +98,7 @@ def configure (
 		_que = queue.Queue ()
 	
 	_allow_redirects = allow_redirects
-	request_handler.RequestHandler.FORCE_HTTP_11 = force_http1	
+	_force_h1 = request_handler.RequestHandler.FORCE_HTTP_11 = force_http1	
 	http2.MAX_HTTP2_CONCURRENT_STREAMS = http2_constreams
 	_workers = workers
 	_concurrent = workers
@@ -153,7 +154,7 @@ def handle_status_3xx (response):
 	_que.first (response.request, 0)
 	
 def _request_finished (handler):
-	global _cb_gateway, _currents, _concurrent, _finished_total, _logger, _bytesrecv
+	global _cb_gateway, _currents, _concurrent, _finished_total, _logger, _bytesrecv,_force_h1
 	
 	if isinstance (handler, dbo_request.Request):
 		response = handler
@@ -173,7 +174,9 @@ def _request_finished (handler):
 	try:
 		callback (response)
 	except:		
-		_logger.trace ()
+		_logger.trace ()	
+	
+	qsize () and _req ()
 		
 def _req ():
 	global _que, _logger, _currents, _request_total
@@ -217,6 +220,7 @@ def _req ():
 			asyncon = socketpool.get (req.uri)		
 		_currents [meta ['req_id']] = [0, req.uri]
 		
+		asyncon.prevent_recursion = True
 		handler = req.handler (asyncon, req, _request_finished)
 		if asyncon.get_proto () and asyncon.isconnected ():
 			asyncon.handler.handle_request (handler)
@@ -247,19 +251,20 @@ def concurrent ():
 	return _concurrent
 
 def fetchall ():
-	global _workers, _logger, _que, _timeout, _max_conns, _bytesrecv, _concurrent, _finished_total, _max_conns
+	global _workers, _logger, _que, _timeout, _max_conns, _bytesrecv, _concurrent, _finished_total, _max_conns	
 	
 	if not _initialized:
 		configure ()
 	
 	_fetch_started = timeit.default_timer ()
 	
-	if not request_handler.RequestHandler.FORCE_HTTP_11 and http2.MAX_HTTP2_CONCURRENT_STREAMS > 1:
-		# create initail workers	
-		_logger ("try to create http2 connection pool", "info")
-		target_socks = min (_workers, qsize ())
-		for i in range (target_socks):
-			_req ()	
+	# create initail workers	
+	_logger ("creating connection pool", "info")
+	target_socks = min (_workers, qsize ())
+	for i in range (target_socks):
+		_req ()
+			
+	if not request_handler.RequestHandler.FORCE_HTTP_11 and http2.MAX_HTTP2_CONCURRENT_STREAMS > 1:		
 		# wait all availabale	
 		while 1:
 			lifetime.lifetime_loop (os.name == "nt" and 1.0 or _timeout / 2.0, 1)
@@ -272,22 +277,22 @@ def fetchall ():
 		
 	# now starting
 	while qsize () or _currents:
-		#print ('---', _concurrent, len (_currents), mapsize (), qsize ())
 		while _concurrent > min (len (_currents), mapsize ()) and qsize ():
-			_req ()
-			_max_conns = max (_max_conns, mapsize ())		
-		lifetime.lifetime_loop (os.name == "nt" and 1.0 or _timeout / 2.0, 1)
+			_req ()			
+		_max_conns = max (_max_conns, mapsize ())	
+		#print ('---', _concurrent, len (_currents), mapsize (), qsize ())
+		lifetime.lifetime_loop (os.name == "nt" and 1.0 or _timeout / 2.0, 1)			
 		
 	_duration = timeit.default_timer () - _fetch_started	
 	socketpool.cleanup ()
 	dbpool.cleanup ()
 	
 	_logger.log ("* %d tasks during %1.2f sec (%1.2f tasks/s), recieved %d bytes (%d bytes/s), max %d conns" % (
-			_finished_total, _duration, 
-			_finished_total / _duration, 
-			_bytesrecv,
-			_bytesrecv / _duration,
-			_max_conns
+		_finished_total, _duration, 
+		_finished_total / _duration, 
+		_bytesrecv,
+		_bytesrecv / _duration,
+		_max_conns
 		)
 	)
 
