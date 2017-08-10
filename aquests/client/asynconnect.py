@@ -31,6 +31,7 @@ class AsynConnect (asynchat.async_chat):
 	active = 0
 	fifo_class = deque
 	prevent_recursion = False
+	unused_error_port = 38157
 	
 	def __init__ (self, address, lock = None, logger = None):
 		self.address = address
@@ -256,7 +257,7 @@ class AsynConnect (asynchat.async_chat):
 		if not ipaddr:
 			if self.prevent_recursion:
 				ipaddr = "127.0.0.1"
-				port = 38157
+				port = self.unused_error_port
 				self._dns_error = True
 			else:	
 				return self.handle_close (704)
@@ -316,30 +317,31 @@ class AsynConnect (asynchat.async_chat):
 	def handle_connect (self):
 		if hasattr (self.handler, "has_been_connected"):		
 			self.handler.has_been_connected ()
-			
+	
+	def handle_dns_error (self):
+		self._dns_error = False
+		self.handle_close (704, "DNS Not Found")
+					
 	def handle_expt (self):
-		#self.logger ("socket panic", "fail")
+		if self._dns_error:
+			return self.handle_dns_error ()			
 		self.handle_close (703)
 	
 	def handle_error (self, code = 701):
 		if self._dns_error:
-			self.handle_close (704, "DNS Not Found")
-		else:
-			self.trace ()
-			self.handle_close(code)
+			return self.handle_dns_error ()			
+		self.trace ()
+		self.handle_close(code)
 	
-	def handle_timeout (self):
-		#self.log ("socket timeout", "fail")
+	def handle_timeout (self):		
 		self.handle_close (702)
 		
 	def handle_expt_event(self):
+		if self._dns_error:
+			return self.handle_dns_error ()	
 		err = self.socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
 		if err != 0:
-			#self.log ("Socket Error %d Occurred" % err, "warn")
-			if err == 10049:
-				self.handle_close (704, "DNS Not Found")
-			else:	
-				self.handle_close (703, "Socket %d Error" % err)
+			self.handle_close (703, "Socket %d Error" % err)
 		else:
 			self.handle_expt ()
 	
