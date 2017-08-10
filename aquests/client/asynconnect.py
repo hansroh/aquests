@@ -434,7 +434,7 @@ class AsynSSLConnect (AsynConnect):
 		if not self._handshaking:
 			err = self.socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
 			if err != 0:
-				raise socket.error(err, _strerror(err))
+				raise socket.error(err, os.strerror(err))
 				
 			ssl_context = create_urllib3_context(ssl_version=resolve_ssl_version(None), cert_reqs=resolve_cert_reqs(None))
 			if self.ac_negotiate_http2:
@@ -473,7 +473,7 @@ class AsynSSLConnect (AsynConnect):
 	def recv (self, buffer_size):
 		if self._closed:
 			# usually handshaking failure, already handled exception
-			return
+			return b''
 			
 		try:
 			data = self.socket.recv (buffer_size)			
