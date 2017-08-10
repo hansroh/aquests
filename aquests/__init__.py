@@ -1,8 +1,8 @@
 # 2016. 1. 10 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.7.6.19"
+__version__ = "0.7.6.20"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
-
+import threading
 from . import lifetime, queue, request_builder, response_builder, stubproxy
 from .lib import logger as logger_f
 from .lib.athreads import trigger
@@ -161,33 +161,29 @@ def _request_finished (handler):
 		
 	else:
 		response = response_builder.HTTPResponse (handler)
-		_currents.pop (response.meta ['req_id'])		
-		
+		_currents.pop (response.meta ['req_id'])				
 		for handle_func in (handle_status_401, handle_status_3xx):
 			response = handle_func (response)
-			if not response:
-				return
-
+			if not response:			
+				return		
 	_finished_total += 1
 	response.logger = _logger
 	_bytesrecv += len (response.content)
 	callback = response.meta ['req_callback'] or _cb_gateway
 	try:
 		callback (response)
-	except:
-		_logger.trace ()	
-	
-	#if qsize ():
-		#_req ()
+	except:		
+		_logger.trace ()
 		
 def _req ():
 	global _que, _logger, _currents, _request_total
-	args = _que.get ()	
+	args = _que.get ()
+	
 	_request_total += 1
 	_is_request = False
 	_is_db = False
 	_method = None
-	
+
 	if type (args) is not tuple:
 		req = args
 		meta = req.meta
@@ -303,7 +299,7 @@ def suspend (timeout):
 	time.sleep (a)
 
 _dns_reqs = 0
-def _add (method, url, params = None, auth = None, headers = {}, callback = None, meta = {}, proxy = None):	
+def _add (method, url, params = None, auth = None, headers = {}, callback = None, meta = None, proxy = None):	
 	global _que, _initialized, _dns_query_req, _dns_reqs
 	
 	def dns_result (answer = None):
@@ -313,11 +309,14 @@ def _add (method, url, params = None, auth = None, headers = {}, callback = None
 	if not _initialized:		
 		configure ()
 		
-	if not meta: meta = {}
+	if not meta: 
+		meta = {}
+
 	meta ['req_id'] = _que.req_id
 	meta ['req_method'] = method
 	meta ['req_callback'] = callback
 	host = urlparse (url) [1].split (":")[0]
+	
 	# DNS query for caching and massive
 	if not lifetime._polling:	
 		if host not in _dns_query_req:

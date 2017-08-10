@@ -12,15 +12,15 @@ class Queue:
 		
 	@property
 	def req_id (self):
-		return self._req_id
+		req_id = self._req_id
+		self._req_id += 1
+		return req_id
 			
 	def add (self, req, delta = 1):		
-		self._add (req)
-		self._req_id += delta
+		self._add (req)		
 	
 	def first (self, req, delta = 1):	
-		self._first (req)
-		self._req_id += delta
+		self._first (req)		
 		
 	def get (self):
 		try:
