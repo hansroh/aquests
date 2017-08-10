@@ -143,7 +143,8 @@ class AsynConnect (asynchat.async_chat):
 		self.__history = []
 		self._proto = None
 		self._handshaking = False
-		self._handshaked = False		
+		self._handshaked = False
+		self._dns_error = False
 		
 		self.established = False		
 		self.upgraded = False		
@@ -250,14 +251,18 @@ class AsynConnect (asynchat.async_chat):
 				
 		answer = answer or adns.get (self.address [0], "A")
 		ipaddr = answer and answer [-1]["data"] or None		
+		port = self.address [1]
+		
 		if not ipaddr:
 			if self.prevent_recursion:
-				ipaddr = "0.0.0.0"
+				ipaddr = "127.0.0.1"
+				port = 38157
+				self._dns_error = True
 			else:	
 				return self.handle_close (704)
 		
 		self.create_socket (socket.AF_INET, socket.SOCK_STREAM)			
-		try: asynchat.async_chat.connect (self, (ipaddr, self.address [1]))									
+		try: asynchat.async_chat.connect (self, (ipaddr, port))									
 		except:	self.handle_error (714)
 		
 	def recv (self, buffer_size):
@@ -317,8 +322,11 @@ class AsynConnect (asynchat.async_chat):
 		self.handle_close (703)
 	
 	def handle_error (self, code = 701):
-		self.trace ()
-		self.handle_close(code)
+		if self._dns_error:
+			self.handle_close (704, "DNS Not Found")
+		else:
+			self.trace ()
+			self.handle_close(code)
 	
 	def handle_timeout (self):
 		#self.log ("socket timeout", "fail")
