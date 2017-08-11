@@ -8,7 +8,8 @@ from .lib import logger as logger_f
 from .lib.athreads import trigger
 from .client import socketpool
 from .dbapi import dbpool
-from .client import adns
+from .client import adns, asynconnect
+from .lib.athreads.fifo import await_fifo
 from . import client, dbapi
 from aquests.protocols.dns.asyndns import async_dns
 from .protocols.http import localstorage as ls
@@ -99,6 +100,10 @@ def configure (
 	
 	_allow_redirects = allow_redirects
 	_force_h1 = request_handler.RequestHandler.FORCE_HTTP_11 = force_http1	
+	if not _force_h1:
+		asynconnect.AsynConnect.fifo_class = await_fifo
+		asynconnect.AsynSSLConnect.fifo_class = await_fifo
+		
 	http2.MAX_HTTP2_CONCURRENT_STREAMS = http2_constreams
 	_workers = workers
 	_concurrent = workers
@@ -208,7 +213,7 @@ def _req ():
 		req.set_callback (_request_finished)
 		asyncon.execute (req)
 		
-	else:	
+	else:
 		if not _is_request:
 			method, url, params, auth, headers, meta, proxy = args
 			asyncon = socketpool.get (url)
@@ -222,7 +227,7 @@ def _req ():
 		
 		asyncon.prevent_recursion = True
 		handler = req.handler (asyncon, req, _request_finished)
-		if asyncon.get_proto () and asyncon.isconnected ():
+		if asyncon.get_proto () and asyncon.isconnected ():			
 			asyncon.handler.handle_request (handler)
 		else:
 			handler.handle_request ()	

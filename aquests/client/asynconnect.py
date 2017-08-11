@@ -31,7 +31,7 @@ class AsynConnect (asynchat.async_chat):
 	active = 0
 	fifo_class = deque
 	prevent_recursion = False
-	unused_error_port = 38157
+	unused_error_port = 44413
 	
 	def __init__ (self, address, lock = None, logger = None):
 		self.address = address
@@ -255,14 +255,13 @@ class AsynConnect (asynchat.async_chat):
 		port = self.address [1]
 		
 		if not ipaddr:
-			if self.prevent_recursion:
-				ipaddr = "127.0.0.1"
-				port = self.unused_error_port
-				self._dns_error = True
-			else:	
-				return self.handle_close (704)
-		
-		self.create_socket (socket.AF_INET, socket.SOCK_STREAM)			
+			if not self.prevent_recursion:
+				return self.handle_close (704)					
+			ipaddr = "127.0.0.1"
+			port = self.unused_error_port
+			self._dns_error = True
+												
+		self.create_socket (socket.AF_INET, socket.SOCK_STREAM)
 		try: asynchat.async_chat.connect (self, (ipaddr, port))									
 		except:	self.handle_error (714)
 		
@@ -315,6 +314,11 @@ class AsynConnect (asynchat.async_chat):
 		self.zombie_timeout = timeout
 		
 	def handle_connect (self):
+		if self._dns_error:
+			# oops, used, really?
+			self.unused_error_port += 1
+			return self.handle_close (704, "DNS Not Found")
+			
 		if hasattr (self.handler, "has_been_connected"):		
 			self.handler.has_been_connected ()
 	

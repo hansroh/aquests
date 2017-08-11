@@ -149,7 +149,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 		
 		headers, content_encoded = handler.get_request_header ("2.0", False)
 		payload = handler.get_request_payload ()
-		producer = None
+		producer = None		
 		if payload:
 			if type (payload) is bytes:
 				producer = producers.globbing_producer (
@@ -160,8 +160,8 @@ class RequestHandler (base_request_handler.RequestHandler):
 				producer = producers.globbing_producer (payload)
 		
 		header = h2header_producer (stream_id, headers, producer, self.conn, self._clock)		
-		self.asyncon.push (header)				
-		if producer:
+		self.asyncon.push (header)		
+		if producer:			
 			payload = h2frame_producer (stream_id, 0, 1, producer, self.conn, self._clock)
 			self.asyncon.push (payload)
 	
