@@ -444,6 +444,8 @@ If you want to send specify message type.
   aquests.ws ("ws://127.0.0.1:5000/websocket/echo", (OPCODE_BINARY, b"Hello World"))
   aquests.fetchall ()
 
+*Note*: This method can only single message per request.
+
 
 XML-RPC
 ----------
@@ -677,6 +679,7 @@ History
 
 - 0.7.6
   
+  - fix http2 body posting
   - fix recursion error when massive DNS Error
   - retry after 1 seconds when DNS query failed
   - fix daemonizer.kill ()
