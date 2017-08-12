@@ -101,6 +101,21 @@ On posix, for compiling psycopg2 module, requires theses packages,
     
   apt-get install libpq-dev python-dev
 
+
+Testing Installation
+=========================
+
+At command line,
+
+.. code-block:: bash
+
+  python3 -m aquests.load -n 100 -c 2 http://myserver.com
+  # for viewing help
+  python3 -m aquests.load --help
+
+Note that is is similar to h2load HTTP2 bench marking tool, but aquests is not optimized for benchmarking.
+
+
 Usage
 ======
 
@@ -679,7 +694,7 @@ History
 
 - 0.7.6
   
-  - add aqtest.py
+  - add load.py for testing installation
   - fix early termination when making http2 connection
   - fix http2 body posting
   - fix recursion error when massive DNS Error
