@@ -679,6 +679,7 @@ History
 
 - 0.7.6
   
+  - fix early termination when making http2 connection
   - fix http2 body posting
   - fix recursion error when massive DNS Error
   - retry after 1 seconds when DNS query failed
