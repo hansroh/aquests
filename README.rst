@@ -679,6 +679,7 @@ History
 
 - 0.7.6
   
+  - add aqtest.py
   - fix early termination when making http2 connection
   - fix http2 body posting
   - fix recursion error when massive DNS Error

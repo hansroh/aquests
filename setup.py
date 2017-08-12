@@ -44,7 +44,7 @@ else:
 			f.write ("def reraise(type, value, tb):\n\traise type, value, tb\n")			
 
 packages = [
-	'aquests',
+	'aquests',	
 	'aquests.client',
 	'aquests.dbapi',	
 	'aquests.protocols',
@@ -66,7 +66,7 @@ package_dir = {'aquests': 'aquests'}
 package_data = {
 	"aquests": [
 		"protocols/dns/*.txt",
-		"protocols/dns/pydns/*.txt"	
+		"protocols/dns/pydns/*.txt"
 	]
 }
 
@@ -95,6 +95,7 @@ setup(
 	long_description = long_description,
 	url = 'https://gitlab.com/hansroh/aquests',
 	author='Hans Roh',
+	scripts= ["aquests/bin/aqtest.py"],
 	author_email='hansroh@gmail.com',	
 	packages=packages,
 	package_dir=package_dir,
