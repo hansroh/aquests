@@ -95,6 +95,7 @@ setup(
 	long_description = long_description,
 	url = 'https://gitlab.com/hansroh/aquests',
 	author='Hans Roh',
+	scripts= ["bin/aqtest.py"],
 	author_email='hansroh@gmail.com',	
 	packages=packages,
 	package_dir=package_dir,
