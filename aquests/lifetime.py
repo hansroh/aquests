@@ -129,10 +129,10 @@ def remove_notsocks (map):
 			killed += 1
 			_select_errors += 1
 			try:
-				obj = map [fd]					
+				obj = map [fd]
 				if obj:
 					try: obj.handle_expt ()
-					except: obj.handle_error ()						
+					except: obj.handle_error ()
 				del map[fd]
 			except (KeyError, AttributeError):
 				pass

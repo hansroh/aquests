@@ -1,6 +1,6 @@
 # 2016. 1. 10 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.7.6.28"
+__version__ = "0.7.6.29"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 import threading
 from . import lifetime, queue, request_builder, response_builder, stubproxy
@@ -128,13 +128,19 @@ def configure (
 	lifetime.init (_timeout / 2.) # maintern interval
 	_initialized = True
 
+def _reque_first (request):
+	global _que
+	_que.first (request)	
+
 def handle_status_401 (response):
 	global _que
 	if not response.request.get_auth () or response.request.reauth_count:
 		return response
-	response.request.reauth_count = 1		
-	_que.first (response.request, 0)	
+	response.request.reauth_count = 1
 	
+	_logger ("authorization failed, %s" % response.url, "info")
+	_reque_first (response.request)
+
 def handle_status_3xx (response):
 	global _allow_redirects	, _que
 	
@@ -144,16 +150,18 @@ def handle_status_3xx (response):
 		return response
 	
 	newloc = response.get_header ('location')	
-	oldloc = response.request.uri	
+	oldloc = response.request.uri
 	
+	original_request = response.request
 	try:
-		response.request.relocate (response.response, newloc)
+		new_request = response.request.relocate (response.response, newloc)
 	except RuntimeError:		
-		response.response = http_response.FailedResponse (711, "Redirect Error", response.request)
+		response.response = http_response.FailedResponse (711, "Redirect Error", original_request)
 		return response
-		
-	_logger ("%s redirected %s from %s" % (response.status_code, response.reason, oldloc), "info")
-	_que.first (response.request, 0)
+	
+	_logger ("%s redirected %s from %s" % (response.status_code, response.reason, oldloc), "info")	
+	# DO NOT use relocated response.request, it is None
+	_reque_first (new_request)
 	
 def _request_finished (handler):
 	global _cb_gateway, _currents, _concurrent, _finished_total, _logger, _bytesrecv,_force_h1
@@ -164,10 +172,10 @@ def _request_finished (handler):
 		
 	else:
 		response = response_builder.HTTPResponse (handler)
-		_currents.pop (response.meta ['req_id'])				
+		_currents.pop (response.meta ['req_id'])
 		for handle_func in (handle_status_401, handle_status_3xx):
 			response = handle_func (response)
-			if not response:			
+			if not response:
 				return		
 	_finished_total += 1
 	response.logger = _logger
@@ -224,7 +232,7 @@ def _req ():
 		
 		asyncon.prevent_recursion = True
 		handler = req.handler (asyncon, req, _request_finished)
-		if asyncon.get_proto () and asyncon.isconnected ():			
+		if asyncon.get_proto () and asyncon.isconnected ():
 			asyncon.handler.handle_request (handler)
 		else:
 			handler.handle_request ()	
@@ -281,11 +289,16 @@ def fetchall ():
 		while _concurrent > min (len (_currents), mapsize ()) and qsize ():
 			_req ()			
 		_max_conns = max (_max_conns, mapsize ())	
-		#print ('---', _concurrent, len (_currents), mapsize (), qsize ())
+		#print ('--', len (_currents), mapsize (), qsize ())
+		if not mapsize ():
+			break
 		lifetime.lifetime_loop (os.name == "nt" and 1.0 or _timeout / 2.0, 1)
 	
+	#for each in _currents:
+		#print ('-- unfinished', each)
+	
 	lifetime._polling = 0	
-	_duration = timeit.default_timer () - _fetch_started	
+	_duration = timeit.default_timer () - _fetch_started
 	socketpool.cleanup ()
 	dbpool.cleanup ()
 	

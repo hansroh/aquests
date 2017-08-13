@@ -16,10 +16,10 @@ class Queue:
 		self._req_id += 1
 		return req_id
 			
-	def add (self, req, delta = 1):		
+	def add (self, req):		
 		self._add (req)		
 	
-	def first (self, req, delta = 1):	
+	def first (self, req):	
 		self._first (req)		
 		
 	def get (self):

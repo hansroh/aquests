@@ -166,9 +166,12 @@ class Request:
 		server = [(x, args ["port"]) for x in server]
 		async_dns (server, request, args, self.processReply, self.logger, self.debug_level)
 			
-	def processReply (self, server, request, args, data, timeouted):				
+	def processReply (self, server, request, args, data, timeouted):
 		if timeouted:
-			# for retrying
+			# for retrying			
+			if server:
+				async_dns (server, request, args, self.processReply, self.logger, self.debug_level)
+				return
 			answers = []
 			
 		else:	

@@ -8,7 +8,7 @@ def request_finished_and_req (r):
 	DONE += 1
 	args = (r.status_code, r.reason, len (r.content))
 	print ("%s %s %d bytes received" % args, r.version)
-	if (DONE + len (aquests._currents)) < TOTAL:
+	if (DONE + len(aquests._currents) + aquests.qsize ()) < TOTAL:
 		aquests.get (r.url)
 
 def request_finished (r):

@@ -694,6 +694,7 @@ History
 
 - 0.7.6
   
+  - fix redicting
   - fix prefetch DNS
   - fix recursion error related to DNS query
   - add load.py for testing installation

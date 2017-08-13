@@ -88,7 +88,7 @@ class AsynConnect (asynchat.async_chat):
 		self._proto = None
 		self._closed = True
 			
-		if not self.handler:			
+		if not self.handler:
 			# return to the pool
 			return self.set_active (False)		
 		if not self.errcode:
@@ -96,7 +96,7 @@ class AsynConnect (asynchat.async_chat):
 			return
 		
 		handler, self.handller = self.handler, None
-		keep_active = False			
+		keep_active = False
 		try:
 			keep_active = handler.connection_closed (self.errcode, self.errmsg)
 		except: 
@@ -249,7 +249,7 @@ class AsynConnect (asynchat.async_chat):
 			try: asynchat.async_chat.connect (self, self.address)
 			except:	self.handle_error (714)
 			return
-				
+		
 		answer = answer or adns.get (self.address [0], "A")
 		ipaddr = answer and answer [-1]["data"] or None		
 		port = self.address [1]
@@ -504,7 +504,7 @@ class AsynSSLConnect (AsynConnect):
 					raise BlockingIOError				
 				except NameError:
 					raise socket.error (EWOULDBLOCK)
-													
+
 			# closed connection
 			elif why.errno in (ssl.SSL_ERROR_ZERO_RETURN, ssl.SSL_ERROR_EOF):
 				self.handle_close (700, "Connection closed by SSL_ERROR_ZERO_RETURN or SSL_ERROR_EOF")
