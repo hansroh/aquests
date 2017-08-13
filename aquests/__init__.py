@@ -262,6 +262,8 @@ def fetchall ():
 		configure ()
 	
 	_fetch_started = timeit.default_timer ()
+	# IMP. mannually set
+	lifetime._polling = 1
 	
 	# create initail workers	
 	_logger ("creating connection pool", "info")
@@ -283,8 +285,9 @@ def fetchall ():
 			_req ()			
 		_max_conns = max (_max_conns, mapsize ())	
 		#print ('---', _concurrent, len (_currents), mapsize (), qsize ())
-		lifetime.lifetime_loop (os.name == "nt" and 1.0 or _timeout / 2.0, 1)			
-		
+		lifetime.lifetime_loop (os.name == "nt" and 1.0 or _timeout / 2.0, 1)
+	
+	lifetime._polling = 0	
 	_duration = timeit.default_timer () - _fetch_started	
 	socketpool.cleanup ()
 	dbpool.cleanup ()
@@ -325,11 +328,11 @@ def _add (method, url, params = None, auth = None, headers = {}, callback = None
 	host = urlparse (url) [1].split (":")[0]
 	
 	# DNS query for caching and massive
-	if not lifetime._polling:	
+	if not lifetime._polling:
 		if host not in _dns_query_req:
 			_dns_query_req [host] = None
 			_dns_reqs += 1
-			adns.query (host, "A", callback = dns_result)			
+			adns.query (host, "A", callback = dns_result)
 		lifetime.poll_fun_wrap (0.1)
 		
 	_que.add ((method, url, params, auth, headers, meta, proxy))

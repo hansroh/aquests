@@ -6,10 +6,10 @@ import os, sys
 def request_finished_and_req (r):
 	global TOTAL, DONE
 	DONE += 1
-	if (DONE + len (aquests._currents)) < TOTAL:
-		aquests.get (r.url)
 	args = (r.status_code, r.reason, len (r.content))
 	print ("%s %s %d bytes received" % args, r.version)
+	if (DONE + len (aquests._currents)) < TOTAL:
+		aquests.get (r.url)
 
 def request_finished (r):
 	args = (r.status_code, r.reason, len (r.content))
