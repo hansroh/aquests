@@ -125,7 +125,7 @@ def remove_notsocks (map):
 	for fd in list(map.keys()):
 		try:
 			select.select([fd], [], [], 0)
-		except (ValueError, select.error):
+		except (TypeError, ValueError, select.error):
 			killed += 1
 			_select_errors += 1
 			try:
@@ -146,7 +146,7 @@ def poll_fun_wrap (timeout, map = None):
 	try:		
 		poll_fun (timeout, map)
 	
-	except select.error as why:
+	except (TypeError, select.error) as why:
 		# WSAENOTSOCK
 		remove_notsocks (map)
 	
