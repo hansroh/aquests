@@ -694,6 +694,7 @@ History
 
 - 0.7.6
   
+  - fix recursion error related to DNS query
   - add load.py for testing installation
   - fix early termination when making http2 connection
   - fix http2 body posting

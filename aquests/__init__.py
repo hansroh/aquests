@@ -1,6 +1,6 @@
 # 2016. 1. 10 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.7.6.27"
+__version__ = "0.7.6.28"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 import threading
 from . import lifetime, queue, request_builder, response_builder, stubproxy
@@ -108,9 +108,6 @@ def configure (
 	_workers = workers
 	_concurrent = workers
 	
-	#if _concurrent == 1:
-		# for preventing lifetime.loop break
-	#	trigger.start_trigger ()
 	if not force_http1:
 		_concurrent = workers * http2_constreams
 	elif http2_constreams:
@@ -310,12 +307,8 @@ def suspend (timeout):
 
 _dns_reqs = 0
 def _add (method, url, params = None, auth = None, headers = {}, callback = None, meta = None, proxy = None):	
-	global _que, _initialized, _dns_query_req, _dns_reqs
-	
-	def dns_result (answer = None):
-		global _dns_reqs		
-		_dns_reqs -= 1
-	
+	global _que, _initialized, _dns_query_req, _dns_reqs, _workers
+
 	if not _initialized:		
 		configure ()
 		
@@ -329,11 +322,12 @@ def _add (method, url, params = None, auth = None, headers = {}, callback = None
 	
 	# DNS query for caching and massive
 	if not lifetime._polling:
-		if host not in _dns_query_req:
+		if _dns_reqs < _workers and host not in _dns_query_req:
 			_dns_query_req [host] = None
 			_dns_reqs += 1
-			adns.query (host, "A", callback = dns_result)
-		lifetime.poll_fun_wrap (0.1)
+			adns.query (host, "A", callback = lambda x: None)		
+		if mapsize ():
+			lifetime.poll_fun_wrap (0.05)
 		
 	_que.add ((method, url, params, auth, headers, meta, proxy))
 	
