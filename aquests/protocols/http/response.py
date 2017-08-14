@@ -260,7 +260,10 @@ class Response:
 			return self.__headerdict
 		headerdict = attrdict.NocaseDict ()
 		for line in self.header:
-			k, v = line.split (": ", 1)
+			try:
+				k, v = line.split (": ", 1)
+			except ValueError:
+				k, v = line.split (":", 1)
 			if k in headerdict:
 				try: headerdict [k].append (v)
 				except AttributeError:

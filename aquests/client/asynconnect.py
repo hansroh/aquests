@@ -30,8 +30,6 @@ class AsynConnect (asynchat.async_chat):
 	request_count = 0
 	active = 0
 	fifo_class = deque
-	prevent_recursion = False
-	unused_error_port = 44413
 	
 	def __init__ (self, address, lock = None, logger = None):
 		self.address = address
@@ -94,7 +92,7 @@ class AsynConnect (asynchat.async_chat):
 		if not self.errcode:
 			# disconnect intentionally
 			return
-		
+			
 		handler, self.handller = self.handler, None
 		keep_active = False
 		try:
@@ -250,16 +248,12 @@ class AsynConnect (asynchat.async_chat):
 			except:	self.handle_error (714)
 			return
 		
-		answer = answer or adns.get (self.address [0], "A")
 		ipaddr = answer and answer [-1]["data"] or None		
 		port = self.address [1]
 		
 		if not ipaddr:
-			if not self.prevent_recursion:
-				return self.handle_close (704)					
-			ipaddr = "127.0.0.1"
-			port = self.unused_error_port
 			self._dns_error = True
+			return self.handle_close (704)			
 												
 		self.create_socket (socket.AF_INET, socket.SOCK_STREAM)
 		try: asynchat.async_chat.connect (self, (ipaddr, port))									
@@ -314,11 +308,6 @@ class AsynConnect (asynchat.async_chat):
 		self.zombie_timeout = timeout
 		
 	def handle_connect (self):
-		if self._dns_error:
-			# oops, used, really?
-			self.unused_error_port += 1
-			return self.handle_close (704, "DNS Not Found")
-			
 		if hasattr (self.handler, "has_been_connected"):		
 			self.handler.has_been_connected ()
 	

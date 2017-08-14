@@ -129,7 +129,7 @@ def configure (
 	_initialized = True
 
 def _reque_first (request):
-	global _que
+	global _que	
 	_que.first (request)	
 
 def handle_status_401 (response):
@@ -165,33 +165,44 @@ def handle_status_3xx (response):
 	
 def _request_finished (handler):
 	global _cb_gateway, _currents, _concurrent, _finished_total, _logger, _bytesrecv,_force_h1
-	
-	if isinstance (handler, dbo_request.Request):
-		response = handler
-		_currents.pop (response.meta ['req_id'])
-		
-	else:
-		response = response_builder.HTTPResponse (handler)
-		_currents.pop (response.meta ['req_id'])
-		for handle_func in (handle_status_401, handle_status_3xx):
-			response = handle_func (response)
-			if not response:
-				return		
-	_finished_total += 1
-	response.logger = _logger
-	_bytesrecv += len (response.content)
-	callback = response.meta ['req_callback'] or _cb_gateway
 	try:
-		callback (response)
-	except:		
-		_logger.trace ()	
+		if isinstance (handler, dbo_request.Request):
+			response = handler
+			_currents.pop (response.meta ['req_id'])
+			
+		else:
+			response = response_builder.HTTPResponse (handler)
+			_currents.pop (response.meta ['req_id'])
+			for handle_func in (handle_status_401, handle_status_3xx):
+				response = handle_func (response)
+				if not response:
+					return		
+		_finished_total += 1
+		response.logger = _logger
+		_bytesrecv += len (response.content)
+		callback = response.meta ['req_callback'] or _cb_gateway
+		try:
+			callback (response)
+		except:		
+			_logger.trace ()	
 	
-	qsize () and _req ()
+	except RecursionError:
+		try: 
+			_currents.pop (handler.request.meta ['req_id'])
+		except KeyError: 
+			pass	
+		_logger ("too many error occured, stop requeueing", "info")	
+		
+	else:	
+		qsize () and _req ()
 		
 def _req ():
 	global _que, _logger, _currents, _request_total
 	args = _que.get ()
 	
+	if args is None:
+		return
+		
 	_request_total += 1
 	_is_request = False
 	_is_db = False
@@ -230,7 +241,6 @@ def _req ():
 			asyncon = socketpool.get (req.uri)		
 		_currents [meta ['req_id']] = [0, req.uri]
 		
-		asyncon.prevent_recursion = True
 		handler = req.handler (asyncon, req, _request_finished)
 		if asyncon.get_proto () and asyncon.isconnected ():
 			asyncon.handler.handle_request (handler)
@@ -295,7 +305,7 @@ def fetchall ():
 		lifetime.lifetime_loop (os.name == "nt" and 1.0 or _timeout / 2.0, 1)
 	
 	#for each in _currents:
-		#print ('-- unfinished', each)
+	#	print ('-- unfinished', each)
 	
 	lifetime._polling = 0	
 	_duration = timeit.default_timer () - _fetch_started
