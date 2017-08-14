@@ -288,7 +288,7 @@ def fetchall ():
 			
 	if not request_handler.RequestHandler.FORCE_HTTP_11 and http2.MAX_HTTP2_CONCURRENT_STREAMS > 1:		
 		# wait all availabale	
-		while 1:
+		while qsize ():
 			lifetime.lifetime_loop (os.name == "nt" and 1.0 or _timeout / 2.0, 1)
 			if sum ([1 for conn in asyncore.socket_map.values () if not isinstance (conn, async_dns) and conn.get_proto () in H2_PROTOCOLS and conn.connected and not conn.isactive ()]) == _workers:
 				_logger ('%d connection(s) created' % target_socks, 'info')
