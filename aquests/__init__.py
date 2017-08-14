@@ -1,6 +1,6 @@
 # 2016. 1. 10 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.7.6.29"
+__version__ = "0.7.7"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 import threading
 from . import lifetime, queue, request_builder, response_builder, stubproxy
@@ -246,7 +246,11 @@ def _req ():
 			asyncon.handler.handle_request (handler)
 		else:
 			handler.handle_request ()	
-		
+
+def workings ():
+	global _currents
+	return 	len (_currents)
+			
 def countreq ():
 	global _request_total
 	return 	_request_total
