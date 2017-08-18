@@ -35,12 +35,13 @@ class SocketPool:
 	object_timeout = 120
 	maintern_interval = 30
 	
-	def __init__ (self, logger):
+	def __init__ (self, logger, backend = False):
 		self.__socketfarm = {}
 		self.__protos = {}
 		self.__numget  = 0
 		self.__last_maintern = time.time ()
 		self.logger = logger
+		self.backend = backend
 		self.lock = threading.RLock ()
 		self.numobj = 0
 	
@@ -195,6 +196,7 @@ class SocketPool:
 		
 		self.numobj += 1			
 		asyncon = __conn_class ((addr, port), self.lock, self.logger)	
+		self.backend and asyncon.set_backend ()
 		asyncon.set_proxy (scheme == "proxy")
 		return asyncon
 				
@@ -227,10 +229,10 @@ class SocketPool:
 
 pool = None
 
-def create (logger):
+def create (logger, backend = False):
 	global pool
 	if pool is None:
-		pool = SocketPool (logger)
+		pool = SocketPool (logger, backend)
 
 def get (uri):
 	return pool.get (uri)

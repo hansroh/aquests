@@ -235,6 +235,6 @@ class AsynConnect (asynredis.AsynConnect):
 		self.set_terminator (16)
 		if not self.connected:
 			self.connect ()
-		else:
+		elif not self.backend:
 			self.add_channel ()
 		

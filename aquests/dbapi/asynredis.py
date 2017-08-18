@@ -139,7 +139,8 @@ class AsynConnect (dbconnect.AsynDBConnect, asynchat.async_chat):
 		self.set_active (False)
 	
 	def end_tran (self):
-		self.del_channel ()
+		if not self.backend:
+			self.del_channel ()
 		
 	def begin_tran (self, request):
 		dbconnect.AsynDBConnect.begin_tran (self, request)
@@ -156,6 +157,6 @@ class AsynConnect (dbconnect.AsynDBConnect, asynchat.async_chat):
 		self.set_terminator (LINE_FEED)
 		if not self.connected:
 			self.connect ()
-		else:
-			self.add_channel ()		
+		elif not self.backend:
+			self.add_channel ()
 		

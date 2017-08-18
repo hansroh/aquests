@@ -85,14 +85,15 @@ def configure (
 	force_http1 = False,
 	http2_constreams = 1,
 	allow_redirects = True,
-	qrandom = False
+	qrandom = False,
+	backend = False
 ):
 	global _logger, _cb_gateway, _concurrent, _initialized, _timeout, _workers, _que, _allow_redirects, _force_h1
 	
 	if logger is None:
 		logger = logger_f.screen_logger ()
 	_logger = logger
-
+	
 	if qrandom:		
 		_que = queue.RandomQueue ()
 	else:
@@ -122,8 +123,8 @@ def configure (
 	client.set_timeout (timeout)
 	dbapi.set_timeout (timeout)
 	
-	socketpool.create (_logger)
-	dbpool.create (_logger)
+	socketpool.create (_logger, backend = backend)
+	dbpool.create (_logger, backend = backend)
 	adns.init (_logger)
 	lifetime.init (_timeout / 2., logger) # maintern interval
 	_initialized = True
@@ -197,7 +198,7 @@ def _request_finished (handler):
 		qsize () and _req ()
 		
 def _req ():
-	global _que, _logger, _currents, _request_total
+	global _que, _logger, _currents, _request_total, _backend
 	args = _que.get ()
 	
 	if args is None:

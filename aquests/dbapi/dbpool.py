@@ -34,7 +34,9 @@ class DBPool (socketpool.SocketPool):
 			con_class = asynmongo.AsynConnect
 		elif dbtype == DB_PGSQL:
 			con_class = asynpsycopg2.AsynConnect
-		return con_class ((host, port), params, self.lock, self.logger)
+		asyncon = con_class ((host, port), params, self.lock, self.logger)
+		self.backend and asyncon.set_backend ()
+		return asyncon
 		
 	def get (self, server, dbname, auth, dbtype = DB_PGSQL):
 		serverkey = "%s/%s/%s" % (server, dbname, auth)
@@ -43,10 +45,10 @@ class DBPool (socketpool.SocketPool):
 
 pool = None
 
-def create (logger):
+def create (logger, backend):
 	global pool
 	if pool is None:
-		pool = DBPool (logger)
+		pool = DBPool (logger, backend)
 
 def get (server, dbname, auth, dbtype):	
 	return pool.get (server, dbname, auth, dbtype)

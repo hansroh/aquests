@@ -31,7 +31,7 @@ def test_load (h1, client, streams, urls):
 		for i in range (TOTAL):
 			make_example_testset ()				
 	else:
-		aquests.configure (client, callback = request_finished_and_req, force_http1 = h1, http2_constreams = streams)			
+		aquests.configure (client, callback = request_finished_and_req, force_http1 = h1, http2_constreams = streams, backend = True)			
 		for i in range (client * streams):
 			for url in urls:
 				aquests.get (url)

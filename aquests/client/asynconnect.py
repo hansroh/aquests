@@ -27,6 +27,7 @@ class AsynConnect (asynchat.async_chat):
 	ac_out_buffer_size = 65535
 	zombie_timeout = 10
 	keep_alive = 10
+	backend_keep_alive = 300
 	request_count = 0
 	active = 0
 	fifo_class = deque
@@ -46,12 +47,16 @@ class AsynConnect (asynchat.async_chat):
 		
 		self.initialize_connection ()
 		self._closed = False
+		self.backend = False
 		
 		self.ac_in_buffer = b''
 		self.incoming = []
 		self.producer_fifo = self.fifo_class ()
 		asyncore.dispatcher.__init__(self)
 	
+	def __repr__ (self):
+		return "<AsynConnect %s:%d>" % self.address
+		
 	def duplicate (self):
 		new_asyncon = self.__class__ (self.address, self.lock, self.logger)
 		# used in socketpool
@@ -59,11 +64,13 @@ class AsynConnect (asynchat.async_chat):
 		# used in skitai cluster manager
 		new_asyncon.keep_alive = self.keep_alive
 		new_asyncon.auth = self.auth
+		new_asyncon.backend = self.backend
 		return new_asyncon
-			
-	def __repr__ (self):
-		return "<AsynConnect %s:%d>" % self.address
 	
+	def set_backend (self, flag = True):
+		self.backend = flag
+		self.keep_alive = self.backend_keep_alive
+		
 	def set_auth (self, auth):
 		self.auth = auth
 	
@@ -113,7 +120,8 @@ class AsynConnect (asynchat.async_chat):
 	def end_tran (self):
 		if DEBUG:
 			self.logger ('end_tran {rid:%s} %s' % (self.handler.request.meta.get ('req_id', -1), self.handler.request.uri), 'debug')
-		self.del_channel ()
+		if not self.backend:
+			self.del_channel ()
 		self.handler = None
 		self.set_active (False)		
 				
@@ -405,12 +413,12 @@ class AsynConnect (asynchat.async_chat):
 		
 		# IMP: call add_channel () AFTER push()	otherwise threading issue will be raised
 		try:
-			if self.connected:
-				#should keep order but it seems meaningless? LOOK LATER with initiate_send
-				#self.initiate_send ()
-				self.add_channel ()
-			else:
+			if not self.connected:				
 				self.connect ()
+								
+			elif not self.backend:
+				self.add_channel ()
+				
 		except:
 			self.handle_error ()
 

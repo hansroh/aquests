@@ -12,6 +12,7 @@ class OperationalError (Exception):
 class DBConnect:
 	zombie_timeout = 120
 	keep_alive = 120
+	backend_keep_alive = 300
 	
 	def __init__ (self, address, params = None, lock = None, logger = None):
 		self.address = address
@@ -34,6 +35,7 @@ class DBConnect:
 		self.execute_count = 0
 		
 		self._cv = threading.Condition ()
+		self.backend = False
 		
 		# need if there's not any request yet
 		self.active = 0
@@ -45,9 +47,14 @@ class DBConnect:
 		
 		self.set_event_time ()
 	
+	def set_backend (self, flag = True):
+		self.backend = flag
+		self.keep_alive = self.backend_keep_alive
+		
 	def duplicate (self):
 		new_asyncon = self.__class__ (self.address, self.params, self.lock, self.logger)
 		new_asyncon.keep_alive = self.keep_alive
+		new_asyncon.backend = self.backend
 		return new_asyncon
 		
 	def get_proto (self):

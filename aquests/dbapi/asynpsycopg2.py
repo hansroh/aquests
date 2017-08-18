@@ -90,7 +90,7 @@ else:
 			self.del_channel ()
 			self.conn = self.socket
 			self.cur = self.conn.cursor()		
-			self.set_socket (self.cur.connection)			
+			self.set_socket (self.cur.connection)
 					
 		def handle_read (self):
 			state = self.poll ()
@@ -162,7 +162,8 @@ else:
 			self.set_socket (sock)
 		
 		def end_tran (self):
-			self.del_channel ()
+			if not self.backend:
+				self.del_channel ()
 
 		def begin_tran (self, request):
 			dbconnect.AsynDBConnect.begin_tran (self, request)
@@ -176,5 +177,5 @@ else:
 				state = self.poll ()
 				if state != POLL_OK:
 					self.reconnect ()
-				else:
+				elif not self.backend:
 					self.add_channel ()
