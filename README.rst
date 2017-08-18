@@ -692,12 +692,16 @@ Note: stub's methods and parameters are defined by database engines. Please read
 History
 =========
 
+- 0.7.7
+
+  - fix error handling win32 select loop
+  - add load.py for testing installation and your server
+
 - 0.7.6
   
   - fix redicting
   - fix prefetch DNS
-  - fix recursion error related to DNS query
-  - add load.py for testing installation
+  - fix recursion error related to DNS query  
   - fix early termination when making http2 connection
   - fix http2 body posting
   - fix recursion error when massive DNS Error

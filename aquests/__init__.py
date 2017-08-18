@@ -1,6 +1,6 @@
 # 2016. 1. 10 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.7.7"
+__version__ = "0.7.7.1"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 import threading
 from . import lifetime, queue, request_builder, response_builder, stubproxy
@@ -125,7 +125,7 @@ def configure (
 	socketpool.create (_logger)
 	dbpool.create (_logger)
 	adns.init (_logger)
-	lifetime.init (_timeout / 2.) # maintern interval
+	lifetime.init (_timeout / 2., logger) # maintern interval
 	_initialized = True
 
 def _reque_first (request):
@@ -275,7 +275,7 @@ def concurrent ():
 	return _concurrent
 
 def fetchall ():
-	global _workers, _logger, _que, _timeout, _max_conns, _bytesrecv, _concurrent, _finished_total, _max_conns	
+	global _workers, _logger, _que, _timeout, _max_conns, _bytesrecv, _concurrent, _finished_total, _max_conns, _force_h1	
 	
 	if not _initialized:
 		configure ()
@@ -290,7 +290,7 @@ def fetchall ():
 	for i in range (target_socks):
 		_req ()
 			
-	if not request_handler.RequestHandler.FORCE_HTTP_11 and http2.MAX_HTTP2_CONCURRENT_STREAMS > 1:		
+	if not _force_h1 and http2.MAX_HTTP2_CONCURRENT_STREAMS > 1:
 		# wait all availabale	
 		while qsize ():
 			lifetime.lifetime_loop (os.name == "nt" and 1.0 or _timeout / 2.0, 1)

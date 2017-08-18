@@ -18,6 +18,7 @@ _killed_zombies = 0
 _select_errors = 0
 _poll_count = 0
 _polling = 0
+_logger = None
 	
 class Maintern:
 	def __init__ (self):
@@ -66,8 +67,10 @@ def maintern_zombie_channel (now):
 					channel.handle_error ()
 
 maintern = None
-def init (kill_zombie_interval = 10.0):
-	global maintern
+def init (kill_zombie_interval = 10.0, logger = None):
+	global maintern, _logger
+	
+	_logger = logger
 	maintern = Maintern ()
 	maintern.sched (kill_zombie_interval, maintern_zombie_channel)
 	maintern.sched (300.0, maintern_gc)
@@ -76,6 +79,7 @@ def shutdown (exit_code, shutdown_timeout = 30.0):
 	global _shutdown_phase
 	global _shutdown_timeout
 	global _exit_code
+	
 	if _shutdown_phase:
 		# aready entered
 		return
@@ -115,9 +119,8 @@ if hasattr(select, 'poll'):
 else:
 	poll_fun = asyncore.poll
 
-
 def remove_notsocks (map):
-	global _select_errors
+	global _select_errors, _logger
 	
 	# on Windows we can get WSAENOTSOCK if the client
 	# rapidly connect and disconnects
@@ -125,48 +128,61 @@ def remove_notsocks (map):
 	for fd in list(map.keys()):
 		try:
 			select.select([fd], [], [], 0)
-		except (TypeError, ValueError, select.error):
+			
+		except:
+			_logger and _logger.trace ()
 			killed += 1
 			_select_errors += 1
+						
 			try:
 				obj = map [fd]
-				if obj:
+			except KeyError:
+				pass
+			else:
+				try:
 					try: obj.handle_expt ()
 					except: obj.handle_error ()
-				del map[fd]
-			except (KeyError, AttributeError):
-				pass
+				except:
+					_logger and _logger.trace ()
+					
+				try: del map [fd]
+				except KeyError: pass
+					
 	return killed
-	
 
 def poll_fun_wrap (timeout, map = None):
+	global _logger
+	
 	if map is None:
 		map = asyncore.socket_map
 		
 	try:		
 		poll_fun (timeout, map)
 	
-	except (TypeError, select.error) as why:
+	except (TypeError, OSError) as why:
 		# WSAENOTSOCK
 		remove_notsocks (map)
 	
-	except ValueError:		
+	except ValueError:
 		# negative file descriptor, testing all sockets
-		killed = remove_notsocks (map)		
-		if not killed:
-			# too many file descriptors in select(), divide and conquer
+		killed = remove_notsocks (map)
+		# or too many file descriptors in select(), divide and conquer
+		if not killed:			
 			half = int (len (map) / 2)
 			tmap = {}
 			cc = 0			
 			for k, v in list(map.items ()):
 				tmap [k] = v
 				cc += 1
-				if cc == half:					
+				if cc == half:
 					poll_fun_wrap (timeout, tmap)
 					tmap = {}
 			poll_fun_wrap (timeout, tmap)
-
-
+	
+	except:
+		_logger and _logger.trace ()
+		raise
+	
 def lifetime_loop (timeout = 30.0, count = 0):
 	global _last_maintern
 	global _maintern_interval
