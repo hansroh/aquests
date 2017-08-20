@@ -75,7 +75,8 @@ class http2_producer_fifo (await_fifo):
 				elif d1 == s2:
 					found_parent = 1
 			i += 1
-			self.l.append (item)
+			
+		self.l.append (item)
 
 
 class http2_producer_ts_fifo (http2_producer_fifo, await_ts_fifo):
