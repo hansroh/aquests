@@ -19,8 +19,10 @@ class await_fifo:
 				readyfunc = getattr (self.l [0], 'ready')
 			except AttributeError:
 				return 1
+				
 			if readyfunc ():
 				return 1
+				
 			self.l.rotate (-1)
 		
 		if self.has_None and not self.l:
@@ -50,6 +52,7 @@ class await_fifo:
 		if item is None:
 			self.has_None = True
 			return
+			
 		if self.has_None and index != 0:
 			return # deny adding
 		
@@ -106,3 +109,4 @@ class await_ts_fifo (await_fifo):
 	def insert (self, index, item):
 		with self._lock:
 			await_fifo.insert (self, index, item)
+			

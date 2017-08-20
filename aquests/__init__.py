@@ -1,6 +1,6 @@
 # 2016. 1. 10 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.7.7.1"
+__version__ = "0.7.7.2"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 import threading
 from . import lifetime, queue, request_builder, response_builder, stubproxy
@@ -100,7 +100,7 @@ def configure (
 		_que = queue.Queue ()
 	
 	_allow_redirects = allow_redirects
-	_force_h1 = request_handler.RequestHandler.FORCE_HTTP_11 = force_http1	
+	_force_h1 = request_handler.RequestHandler.FORCE_HTTP_11 = force_http1
 	if not _force_h1:
 		asynconnect.AsynConnect.fifo_class = await_fifo
 		asynconnect.AsynSSLConnect.fifo_class = await_fifo
