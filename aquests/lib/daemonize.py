@@ -55,16 +55,19 @@ def status (chdir, procname = None):
 	with open (pidfile) as f:
 		pid = int (f.read ())
 	return processutil.is_running (pid, procname) and pid or 0
-	
-def kill (chdir, procname = None, include_children = True):
+
+def kill (chdir, procname = None, include_children = True, signaling = True):
 	import psutil
 	
 	for i in range (2):
-		pid = status (chdir, procname)
+		pid = status (chdir, procname)		
 		if not pid:	
 			break
-		os.kill (pid, signal.SIGTERM)		
-		time.sleep (2)
+		
+		if signaling:	
+			os.kill (pid, signal.SIGTERM)
+			time.sleep (2)
+			
 		if include_children:
 			try:
 				killtree.kill (pid, True)
