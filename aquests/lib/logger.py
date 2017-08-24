@@ -109,7 +109,7 @@ class screen_logger (base_logger):
 		base_logger.__init__(self, sys.stdout, cacheline, flushnow)
 	
 	def log (self, line, type = "info", name = ""):
-		if type.startswith ("expt"):
+		if type == "expt":
 			line = trace ().replace ("] [", "\n  - ")
 			line = line.replace ("Traceback: [", "\n  -----------\n  + Traceback\n  ===========\n  - ")
 			line = line [:-1] + "\n  -----------"
