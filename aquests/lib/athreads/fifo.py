@@ -2,10 +2,11 @@ import threading
 from collections import deque
 
 class await_fifo:
-	# On http2, it is impossible to bind channel.ready function, 
-	# Because http2 channels handle multiple responses concurrently
-	# Practically USE http2_producer_fifo
-	
+	# this class has purpose handling a streaming like response
+	# as single response object not as multiple bytes stream
+	# it is questionable about efficience 
+	# but it makes possible optimization response contents - compressing, http2 framing etc - delivery but just bytes relaying
+		
 	def __init__ (self):
 		self.l = deque ()
 		self.has_None = False
@@ -78,6 +79,9 @@ class await_fifo:
 	
 	
 class await_ts_fifo (await_fifo):
+	# HTTP/1.x needn't this class, because one channel handles only one request
+	# this will be used for handling multiple requests like HTTP/2
+	
 	def __init__ (self):
 		await_fifo.__init__ (self)
 		self._lock = threading.Lock ()
@@ -109,4 +113,3 @@ class await_ts_fifo (await_fifo):
 	def insert (self, index, item):
 		with self._lock:
 			await_fifo.insert (self, index, item)
-			

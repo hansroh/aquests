@@ -693,7 +693,8 @@ History
 =========
 
 - 0.7.7
-
+  
+  - enter beta development status
   - fix error handling win32 select loop
   - add load.py for testing installation and your server
 

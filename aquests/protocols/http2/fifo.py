@@ -1,10 +1,11 @@
 from ...lib.athreads.fifo import await_fifo, await_ts_fifo
 
 class http2_producer_fifo (await_fifo):
-	# Asyncore await_fifo replacement
-	# For resorting, removeing by http2 priority, cacnel and reset features
-	# Also can handle producers has 'ready' method
-							
+	# asyncore await_fifo replacement
+	# for resorting, removeing by http2 priority, cacnel and reset features
+	# also can handle producers has 'ready' method
+	# this class can be used only at single thread environment
+
 	def remove (self, stream_id):
 		if self.l:
 			for i in range (len (self.l)):
@@ -79,7 +80,9 @@ class http2_producer_fifo (await_fifo):
 		self.l.append (item)
 
 
-class http2_producer_ts_fifo (http2_producer_fifo, await_ts_fifo):
+class http2_producer_ts_fifo (http2_producer_fifo, await_ts_fifo):	
+	# multin threads safe version	
+	
 	def remove (self, stream_id):
 		with self._lock:			
 			http2_producer_fifo.remove (self, stream_id)
