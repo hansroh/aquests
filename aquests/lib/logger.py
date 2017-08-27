@@ -9,14 +9,16 @@ import codecs
 
 PY_MAJOR_VERSION = sys.version_info.major
 
-def trace ():
-	(file,fun,line), t, v, tbinfo = asyncore.compact_traceback()
-	try:
-		v = str (v)
-	except:	
-		v = repr (v)
-		
-	return "%s %s Traceback: %s" % (t, v, tbinfo)
+def trace (multirows = False):
+	(file, fun, line), t, v, tbinfo = asyncore.compact_traceback()
+	try: v = str (v)
+	except:	v = repr (v)	
+	line = "%s %s Traceback: %s" % (t, v, tbinfo)
+	if multirows:
+		line = trace ().replace ("] [", "\n  - ")
+		line = line.replace ("Traceback: [", "\n  -----------\n  + Traceback\n  ===========\n  - ")
+		line = line [:-1] + "\n  -----------"	
+	return line
 		
 def now (detail = 1):
 	if detail: return time.strftime("%Y.%m.%d %H:%M:%S", time.localtime(time.time()))
@@ -108,13 +110,10 @@ class screen_logger (base_logger):
 	def __init__ (self, cacheline = 200, flushnow = 1):
 		base_logger.__init__(self, sys.stdout, cacheline, flushnow)
 	
-	def log (self, line, type = "info", name = ""):
-		if type == "expt":
-			line = trace ().replace ("] [", "\n  - ")
-			line = line.replace ("Traceback: [", "\n  -----------\n  + Traceback\n  ===========\n  - ")
-			line = line [:-1] + "\n  -----------"
-		base_logger.log (self, line, type, name)			
-	
+	def trace (self, name = ''):
+		return self.log (trace (True), "expt", name)
+	traceback = trace	
+		
 	def close (self): 
 		pass
 
