@@ -17,7 +17,7 @@ def trace (multirows = False):
 	if multirows:
 		line = trace ().replace ("] [", "\n  - ")
 		line = line.replace ("Traceback: [", "\n  -----------\n  + Traceback\n  ===========\n  - ")
-		line = line [:-1] + "\n  -----------"	
+		line = line [:-1] + "\n  -----------"
 	return line
 		
 def now (detail = 1):
