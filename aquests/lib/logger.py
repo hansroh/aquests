@@ -99,7 +99,7 @@ class base_logger:
 		self.out.close ()
 	
 	def trace (self, name = ''):
-		return self.log (trace (), "expt", name)	
+		return self.log (trace (True), "expt", name)	
 	traceback = trace	
 	
 	def read (self):
@@ -109,10 +109,6 @@ class base_logger:
 class screen_logger (base_logger):
 	def __init__ (self, cacheline = 200, flushnow = 1):
 		base_logger.__init__(self, sys.stdout, cacheline, flushnow)
-	
-	def trace (self, name = ''):
-		return self.log (trace (True), "expt", name)
-	traceback = trace	
 		
 	def close (self): 
 		pass
@@ -268,14 +264,12 @@ class multi_logger (base_logger):
 	def rotate (self):
 		for logger in self.loggers:
 			hasattr (logger, 'rotate') and logger.rotate ()
-			
+	
 	def log (self, line, type="info", name=""):
 		if self.filter and type not in self.filter:
 			return line
-		
 		for logger in self.loggers:
-			_lline = logger.log (line, type, name)	
-				
+			_lline = logger.log (line, type, name)				
 		self.cache (_lline)
 		
 	def add_logger (self, logger):
