@@ -86,9 +86,11 @@ def configure (
 	http2_constreams = 1,
 	allow_redirects = True,
 	qrandom = False,
-	backend = False
+	use_pool = True,
+	backend = False,
 ):
-	global _logger, _cb_gateway, _concurrent, _initialized, _timeout, _workers, _que, _allow_redirects, _force_h1
+	global _logger, _cb_gateway, _concurrent, _initialized, _timeout
+	global _workers, _que, _allow_redirects, _force_h1
 	
 	if logger is None:
 		logger = logger_f.screen_logger ()
@@ -101,10 +103,13 @@ def configure (
 	
 	_allow_redirects = allow_redirects
 	_force_h1 = request_handler.RequestHandler.FORCE_HTTP_11 = force_http1
+	
+	asynconnect.AsynConnect.keep_connect = use_pool
+	asynconnect.AsynSSLConnect.keep_connect = use_pool
 	if not _force_h1:
 		asynconnect.AsynConnect.fifo_class = await_fifo
 		asynconnect.AsynSSLConnect.fifo_class = await_fifo
-		
+			
 	http2.MAX_HTTP2_CONCURRENT_STREAMS = http2_constreams
 	_workers = workers
 	_concurrent = workers

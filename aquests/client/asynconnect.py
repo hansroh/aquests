@@ -31,6 +31,7 @@ class AsynConnect (asynchat.async_chat):
 	request_count = 0
 	active = 0
 	fifo_class = deque
+	keep_connect = True
 	
 	def __init__ (self, address, lock = None, logger = None):
 		self.address = address
@@ -65,6 +66,7 @@ class AsynConnect (asynchat.async_chat):
 		new_asyncon.keep_alive = self.keep_alive
 		new_asyncon.auth = self.auth
 		new_asyncon.backend = self.backend
+		new_asyncon.keep_connect = self.keep_connect
 		return new_asyncon
 	
 	def set_backend (self, flag = True):
@@ -124,6 +126,8 @@ class AsynConnect (asynchat.async_chat):
 			self.del_channel ()
 		self.handler = None
 		self.set_active (False)		
+		if not self.keep_connect:
+			self.close ()
 				
 	def use_sendlock (self):
 		self.__sendlock = threading.Lock ()

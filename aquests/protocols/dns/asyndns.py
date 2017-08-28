@@ -99,7 +99,7 @@ class async_dns (asyncore.dispatcher_with_send):
 	def close (self):
 		if self.closed:
 			return
-		self.closed = True	
+		self.closed = True			
 		asyncore.dispatcher_with_send.close (self)		
 		self.callback (self.servers, self.request, self.args, self.ac_in_buffer, self._timeouted)
 			
