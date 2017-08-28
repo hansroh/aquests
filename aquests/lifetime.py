@@ -5,6 +5,10 @@ import os
 import bisect
 import socket
 import time
+try:
+	from pympler import muppy, summary
+except InportError:
+	pass	
 
 if os.name == "nt":
 	from errno import WSAENOTSOCK
@@ -46,6 +50,11 @@ class Maintern:
 			self.q.append ((now + interval, interval, func, args))
 			self.q.sort (key = lambda x: x [0])
 
+def objects (self):
+	all_objects = muppy.get_objects ()
+	sum1 = summary.summarize (all_objects)
+	summary.print_ (sum1)
+		
 def maintern_gc (now):
 	gc.collect ()
 	

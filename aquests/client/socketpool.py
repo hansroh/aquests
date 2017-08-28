@@ -120,7 +120,7 @@ class SocketPool:
 					if deletable:
 						del self.__socketfarm [serverkey][_id]
 						del asyncon
-						self.numobj -= 1														
+						self.numobj -= 1
 			
 			if not self.__socketfarm [serverkey]:
 				del self.__socketfarm [serverkey]
@@ -200,7 +200,7 @@ class SocketPool:
 		asyncon.set_proxy (scheme == "proxy")
 		return asyncon
 				
-	def get (self, uri):	
+	def get (self, uri):
 		scheme, server, script, params, qs, fragment = urlparse (uri)
 		serverkey = "%s://%s" % (scheme, server)	
 		return self._get (serverkey, server, scheme)
