@@ -12,10 +12,6 @@ from hashlib import md5
 from urllib.parse import urljoin
 from . import urlinfo
 
-try:
-	from cStringIO import StringIO as BytesIO
-except ImportError:
-	from io import BytesIO
 
 class HTTPRepsonseError (Exception):
 	pass
@@ -52,6 +48,10 @@ class Response:
 		self.__lxml = None
 		self.save_cookies ()
 	
+	def __del__ (self):
+		self.decompressor = None
+		self.p, self.u = None, None
+		
 	def __repr__ (self):
 		return "<Response [%d]>" % self.status_code
 		
@@ -258,7 +258,7 @@ class Response:
 	def headers (self):
 		if self.__headerdict:
 			return self.__headerdict
-		headerdict = attrdict.NocaseDict ()
+		headerdict = attrdict.CaseInsensitiveDict ()
 		for line in self.header:
 			try:
 				k, v = line.split (": ", 1)

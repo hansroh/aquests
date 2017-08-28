@@ -119,11 +119,15 @@ class SocketPool:
 				else:
 					if deletable:
 						del self.__socketfarm [serverkey][_id]
+						asyncon.disconnect ()
+						if hasattr (asyncon, "producer_fifo"):
+							asyncon.producer_fifo = None
 						del asyncon
 						self.numobj -= 1
 			
 			if not self.__socketfarm [serverkey]:
 				del self.__socketfarm [serverkey]
+				del node
 				
 		self.__last_maintern = time.time ()
 				

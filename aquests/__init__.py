@@ -143,10 +143,12 @@ def handle_status_401 (response):
 	global _que
 	if not response.request.get_auth () or response.request.reauth_count:
 		return response
-	response.request.reauth_count = 1
 	
-	_logger ("authorization failed, %s" % response.url, "info")
-	_reque_first (response.request)
+	_logger ("authorization failed, %s" % response.url, "info")		
+	request = response.request	
+	request.reauth_count = 1	
+	del response
+	_reque_first (request)	
 
 def handle_status_3xx (response):
 	global _allow_redirects	, _que
@@ -158,21 +160,22 @@ def handle_status_3xx (response):
 
 	newloc = response.get_header ('location')	
 	oldloc = response.request.uri
-	original_request = response.request
+	request = response.request
 	
 	if newloc == oldloc:
-		response.response = http_response.FailedResponse (711, "Redirect Error", original_request)
+		response.response = http_response.FailedResponse (711, "Redirect Error", request)
 		return response
 	
-	try:
-		new_request = response.request.relocate (response.response, newloc)
+	try:		
+		request.relocate (response.response, newloc)		
 	except RuntimeError:		
-		response.response = http_response.FailedResponse (711, "Redirect Error", original_request)
+		response.response = http_response.FailedResponse (711, "Redirect Error", request)
 		return response
 	
 	_logger ("%s redirected to %s from %s" % (response.status_code, newloc, oldloc), "info")	
 	# DO NOT use relocated response.request, it is None
-	_reque_first (new_request)
+	del response
+	_reque_first (request)
 	
 def _request_finished (handler):
 	global _cb_gateway, _currents, _concurrent, _finished_total, _logger, _bytesrecv,_force_h1
@@ -206,6 +209,10 @@ def _request_finished (handler):
 		
 	else:	
 		qsize () and _req ()
+	
+	# clearing memory
+	handler.request.meta = None
+	del response
 		
 def _req ():
 	global _que, _logger, _currents, _request_total, _backend
