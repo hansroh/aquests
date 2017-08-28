@@ -94,7 +94,7 @@ def init (kill_zombie_interval = 10.0, logger = None):
 	maintern.sched (kill_zombie_interval, maintern_zombie_channel)
 	maintern.sched (300.0, maintern_gc)
 	#maintern.sched (kill_zombie_interval, summary_objects)
-	maintern.sched (kill_zombie_interval, summary_track)	
+	#maintern.sched (kill_zombie_interval, summary_track)	
 
 def shutdown (exit_code, shutdown_timeout = 30.0):
 	global _shutdown_phase
