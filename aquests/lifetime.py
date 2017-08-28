@@ -50,7 +50,7 @@ class Maintern:
 			self.q.append ((now + interval, interval, func, args))
 			self.q.sort (key = lambda x: x [0])
 
-def objects (self):
+def summary_objects (now):
 	all_objects = muppy.get_objects ()
 	sum1 = summary.summarize (all_objects)
 	summary.print_ (sum1)
@@ -83,6 +83,7 @@ def init (kill_zombie_interval = 10.0, logger = None):
 	maintern = Maintern ()
 	maintern.sched (kill_zombie_interval, maintern_zombie_channel)
 	maintern.sched (300.0, maintern_gc)
+	#maintern.sched (kill_zombie_interval, summary_objects)
 
 def shutdown (exit_code, shutdown_timeout = 30.0):
 	global _shutdown_phase

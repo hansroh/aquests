@@ -8,7 +8,7 @@ class HTTPResponse:
 	
 	def __del__ (self):
 		self.response.request = None
-		self.request = None
+		self.request = None		
 		self.handler.response = None
 		self.response = None
 		self.handler = None
