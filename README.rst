@@ -339,7 +339,8 @@ Configuration Parameters
     force_http1 = False, 
     http2_constreams = 1,
     allow_redirects = True,
-    qrandom = False
+    qrandom = False,    
+		use_pool = True    
   )
   
 - workers: number of fetching workers, it'not threads
@@ -351,7 +352,7 @@ Configuration Parameters
 - http2_constreams: if you making requests to single http2 server, how many concurrent streams per channel. BE CAREFUL, it might be useful for generating traffic load for testing your http2 web servers. and if your server doesn't provide http2, your workers will be increased to number of http2_constreams times than you really want.
 - allow_redirects: if set True, in case HTTP status code is in 301, 302, 307, 308 then redirect automatically
 - qrandom: requests will be selected by random, this is useful for load distributing to request multiple hosts.
-
+- use_pool: because aquests use socket pool, if you work with lots of sites concurrently, it may be raised error by too many open files and this can make disabling socket pooling
 
 List of Methods
 ==================
@@ -694,6 +695,9 @@ History
 
 - 0.7.7
   
+  - fix memory leaking by response_builder
+  - logger.trace () is now formatted to multi rows, if you analyze log files, should be reviewed
+  - add parameter 'use_pool' to aquests.configure, you can set False when if you meet the OS error: too many open files
   - enter beta development status
   - fix error handling win32 select loop
   - add load.py for testing installation and your server
