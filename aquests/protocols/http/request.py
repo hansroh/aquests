@@ -48,7 +48,7 @@ class XMLRPCRequest:
 		self._history = []
 		self.__xmlrpc_serialized = False
 		
-		self.headers = attrdict.NocaseDict ()
+		self.headers = attrdict.CaseInsensitiveDict ()
 		self.headers ["Accept"] = "*/*"
 		self.headers ["Accept-Encoding"] = "gzip"		
 		if headers:
@@ -84,9 +84,7 @@ class XMLRPCRequest:
 			newloc = response.get_header ('location')
 		self.uri = urljoin (self.uri, newloc)
 		self.address, self.path = self.split (self.uri)
-		self.add_history (response)
-		response.request = None # cut back ref.
-		return self
+		self.add_history (response)		
 			
 	def relocate (self, response, newloc = None):
 		if response.status_code in (301, 302):

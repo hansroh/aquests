@@ -6,7 +6,7 @@ import bisect
 import socket
 import time
 try:
-	from pympler import muppy, summary
+	from pympler import muppy, summary, tracker
 except InportError:
 	pass	
 
@@ -51,9 +51,19 @@ class Maintern:
 			self.q.sort (key = lambda x: x [0])
 
 def summary_objects (now):
+	global initial_sum
+	
 	all_objects = muppy.get_objects ()
 	sum1 = summary.summarize (all_objects)
-	summary.print_ (sum1)
+	summary.print_ (sum1)	
+
+summary_tracker = None
+def summary_track (now):
+	global summary_tracker
+	
+	if summary_tracker is None:
+		summary_tracker = tracker.SummaryTracker ()
+	summary_tracker.print_diff ()	
 		
 def maintern_gc (now):
 	gc.collect ()
@@ -84,6 +94,7 @@ def init (kill_zombie_interval = 10.0, logger = None):
 	maintern.sched (kill_zombie_interval, maintern_zombie_channel)
 	maintern.sched (300.0, maintern_gc)
 	#maintern.sched (kill_zombie_interval, summary_objects)
+	maintern.sched (kill_zombie_interval, summary_track)	
 
 def shutdown (exit_code, shutdown_timeout = 30.0):
 	global _shutdown_phase
