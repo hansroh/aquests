@@ -125,9 +125,9 @@ class AsynConnect (asynchat.async_chat):
 		if not self.backend:
 			self.del_channel ()
 		self.handler = None
-		self.set_active (False)		
+		self.set_active (False)
 		if not self.keep_connect:
-			self.close ()
+			self.disconnect ()
 				
 	def use_sendlock (self):
 		self.__sendlock = threading.Lock ()
