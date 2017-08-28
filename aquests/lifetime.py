@@ -7,7 +7,7 @@ import socket
 import time
 try:
 	from pympler import muppy, summary, tracker
-except InportError:
+except ImportError:
 	pass	
 
 if os.name == "nt":
