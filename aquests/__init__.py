@@ -149,18 +149,22 @@ def handle_status_3xx (response):
 		return response
 	if response.status_code not in (301, 302, 307, 308):
 		return response
-	
+
 	newloc = response.get_header ('location')	
 	oldloc = response.request.uri
-	
 	original_request = response.request
+	
+	if newloc == oldloc:
+		response.response = http_response.FailedResponse (711, "Redirect Error", original_request)
+		return response
+	
 	try:
 		new_request = response.request.relocate (response.response, newloc)
 	except RuntimeError:		
 		response.response = http_response.FailedResponse (711, "Redirect Error", original_request)
 		return response
 	
-	_logger ("%s redirected %s from %s" % (response.status_code, response.reason, oldloc), "info")	
+	_logger ("%s redirected to %s from %s" % (response.status_code, newloc, oldloc), "info")	
 	# DO NOT use relocated response.request, it is None
 	_reque_first (new_request)
 	

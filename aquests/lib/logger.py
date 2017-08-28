@@ -12,7 +12,7 @@ PY_MAJOR_VERSION = sys.version_info.major
 def trace (multirows = False):
 	(file, fun, line), t, v, tbinfo = asyncore.compact_traceback()
 	try: v = str (v)
-	except:	v = repr (v)	
+	except:	v = repr (v)
 	line = "%s %s Traceback: %s" % (t, v, tbinfo)
 	if multirows:
 		line = trace ().replace ("] [", "\n  - ")
@@ -278,8 +278,6 @@ class multi_logger (base_logger):
 	def close (self):
 		for logger in self.loggers:
 			logger.close ()
-
-
 
 
 if __name__ == "__main__":
