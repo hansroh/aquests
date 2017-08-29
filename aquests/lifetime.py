@@ -5,6 +5,7 @@ import os
 import bisect
 import socket
 import time
+import types
 try:
 	from pympler import muppy, summary, tracker
 except ImportError:
@@ -49,21 +50,6 @@ class Maintern:
 			#bisect.insort (self.q, (now + interval, interval, func, args))
 			self.q.append ((now + interval, interval, func, args))
 			self.q.sort (key = lambda x: x [0])
-
-def summary_objects (now):
-	global initial_sum
-	
-	all_objects = muppy.get_objects ()
-	sum1 = summary.summarize (all_objects)
-	summary.print_ (sum1)	
-
-summary_tracker = None
-def summary_track (now):
-	global summary_tracker
-	
-	if summary_tracker is None:
-		summary_tracker = tracker.SummaryTracker ()
-	summary_tracker.print_diff ()	
 		
 def maintern_gc (now):
 	gc.collect ()
@@ -93,8 +79,25 @@ def init (kill_zombie_interval = 10.0, logger = None):
 	maintern = Maintern ()
 	maintern.sched (kill_zombie_interval, maintern_zombie_channel)
 	maintern.sched (300.0, maintern_gc)
-	#maintern.sched (kill_zombie_interval, summary_objects)
-	#maintern.sched (kill_zombie_interval, summary_track)	
+
+summary_tracker = None
+def summary_track (now):
+	global summary_tracker
+	
+	all_objects = muppy.get_objects ()
+	#all_objects = muppy.filter (all_objects, Type = dict)
+	#for each in all_objects:
+	#	print (each)
+	sum1 = summary.summarize (all_objects)
+	summary.print_ (sum1)
+	print ('-' * 79)	
+	if summary_tracker is None:
+		summary_tracker = tracker.SummaryTracker ()
+	summary_tracker.print_diff ()	
+	
+def enable_memory_track (interval = 10.0):
+	global maintern	
+	maintern.sched (interval, summary_track)	
 
 def shutdown (exit_code, shutdown_timeout = 30.0):
 	global _shutdown_phase

@@ -35,13 +35,14 @@ class SocketPool:
 	object_timeout = 120
 	maintern_interval = 30
 	
-	def __init__ (self, logger, backend = False):
+	def __init__ (self, logger, backend = False, use_pool = True):
 		self.__socketfarm = {}
 		self.__protos = {}
 		self.__numget  = 0
 		self.__last_maintern = time.time ()
 		self.logger = logger
 		self.backend = backend
+		self.use_pool = use_pool
 		self.lock = threading.RLock ()
 		self.numobj = 0
 	
@@ -118,16 +119,20 @@ class SocketPool:
 					self.logger.trace ()
 				else:
 					if deletable:
+						self.__socketfarm [serverkey][_id] = None
 						del self.__socketfarm [serverkey][_id]
 						asyncon.disconnect ()
-						if hasattr (asyncon, "producer_fifo"):
-							asyncon.producer_fifo = None
-						del asyncon
 						self.numobj -= 1
 			
 			if not self.__socketfarm [serverkey]:
+				self.__socketfarm [serverkey] = None
 				del self.__socketfarm [serverkey]
-				del node
+				
+				try:
+					self.__protos [serverkey] = None
+					del self.__protos [serverkey]
+				except KeyError:
+					pass	
 				
 		self.__last_maintern = time.time ()
 				
@@ -142,8 +147,9 @@ class SocketPool:
 				self.__numget += 1
 				if serverkey not in self.__socketfarm:
 					asyncon = self.create_asyncon (server, *args)
-					self.__socketfarm [serverkey] = {}
-					self.__socketfarm [serverkey][id (asyncon)] = asyncon
+					if self.use_pool:
+						self.__socketfarm [serverkey] = {}
+						self.__socketfarm [serverkey][id (asyncon)] = asyncon
 					
 				else:		
 					asyncons = list(self.__socketfarm [serverkey].values ())
@@ -159,7 +165,8 @@ class SocketPool:
 					
 					if not asyncon:
 						asyncon = self.create_asyncon (server, *args)
-						self.__socketfarm [serverkey][id (asyncon)] = asyncon
+						if self.use_pool:
+							self.__socketfarm [serverkey][id (asyncon)] = asyncon
 				
 				asyncon.set_active (True)
 			
@@ -169,9 +176,10 @@ class SocketPool:
 		except:
 			self.logger.trace ()
 		
-		proto = self.__protos.get (serverkey)
-		if not proto and asyncon.get_proto ():
-			self.__protos [serverkey] = asyncon.get_proto ()
+		if self.use_pool:
+			proto = self.__protos.get (serverkey)
+			if not proto and asyncon.get_proto ():
+				self.__protos [serverkey] = asyncon.get_proto ()
 									
 		return asyncon
 	
@@ -204,7 +212,7 @@ class SocketPool:
 		asyncon.set_proxy (scheme == "proxy")
 		return asyncon
 				
-	def get (self, uri):
+	def get (self, uri):		
 		scheme, server, script, params, qs, fragment = urlparse (uri)
 		serverkey = "%s://%s" % (scheme, server)	
 		return self._get (serverkey, server, scheme)
@@ -233,12 +241,12 @@ class SocketPool:
 
 pool = None
 
-def create (logger, backend = False):
+def create (logger, backend = False, use_pool = True):
 	global pool
 	if pool is None:
-		pool = SocketPool (logger, backend)
+		pool = SocketPool (logger, backend, use_pool)
 
-def get (uri):
+def get (uri):	
 	return pool.get (uri)
 		
 def cleanup ():	

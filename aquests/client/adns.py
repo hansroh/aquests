@@ -1,11 +1,15 @@
 from ..protocols.dns import asyndns
 import time
+import threading
 
 class DNSCache:
+	maintern_interval = 17
 	def __init__ (self, logger = None, dns_servers = []):		
 		self.dns = asyndns.Request (logger)
 		self.logger = logger
 		self.dns_servers = dns_servers
+		self.__last_maintern = time.time ()
+		self.__lock = threading.RLock ()
 		self.cache = {}
 		self.hits = 0
 
@@ -15,41 +19,66 @@ class DNSCache:
 
 		for answer in answers:
 			name = answer ["name"].lower ()
-			if name not in self.cache:
-				self.cache [name] = {}
-			
 			if not answer ["data"]:
 				addrs = self.get (name, answer ["typename"], False)
 				if addrs and addrs [0]["data"]:
 					return
-						
-			if "ttl" in answer:
-				answer ["valid"]	= time.time () + answer ["ttl"]
-			self.cache [name][answer ["typename"]] = [answer]
+			
+			try:
+				ttl = int (answer ["ttl"])	
+			except (KeyError, ValueError):
+				ttl = 30
+			answer ["valid"]	= time.time () + min (ttl, 30)
+			
+			with self.__lock:
+				if name not in self.cache:
+					self.cache [name] = {}
+				self.cache [name][answer ["typename"]] = [answer]
 		
 	def expire (self, host):
-		try: del self.cache [host]
-		except KeyError: pass		
-
-	def get (self, host, qtype = "A", check_ttl = True):	
-		host = host.lower ()
-		try: answers = self.cache [host][qtype]
-		except KeyError: return []
+		with self.__lock:
+			try: del self.cache [host]
+			except KeyError: pass		
+	
+	def maintern (self, now):
+		deletables = []
+		with self.__lock:
+			for host in self.cache:
+				for qtype in list (self.cache [host]):
+					ans = self.cache [host][qtype][0]
+					if ans ["valid"] < now:
+						self.cache [host][qtype] = None
+						del self.cache [host][qtype]
+				if not self.cache [host]:
+					deletables.append (host)
 		
-		answer = answers [0]
-		if "valid" not in answer:
-			return [answer]
+		with self.__lock:
+			for host in deletables:
+				self.cache [host] = None
+				del self.cache [host]
+		
+		self.__last_maintern = time.time ()
+			
+	def get (self, host, qtype = "A", check_ttl = True):
+		now = time.time ()
+		if now - self.__last_maintern > self.maintern_interval:
+			self.maintern (now)
+		
+		#print ('+++++++++++++++++', len(self.cache))
+		host = host.lower ()
+		with self.__lock:
+			try: answers = self.cache [host][qtype]
+			except KeyError: return []
+		
+		answer = answers [0]		
+		if check_ttl and answer ["valid"] < now:				
+			# extend 30 seconds for other querees
+			answer ['valid'] = now + (answer ["data"] and 30 or 1)
+			# nut new query will be started
+			return []
 			
 		else:
-			now = time.time ()
-			if check_ttl and answer ["valid"] < now:				
-				# use max 5 minutes seconds for other querees
-				answer ['valid'] = now + (answer ["data"] and 300 or 1)
-				# nut new query will be started				
-				return []
-				
-			else:
-				return [answer]
+			return [answer]
 	
 	def is_ip (self, name):
 		arr = name.split (".")
