@@ -87,6 +87,7 @@ def configure (
 	allow_redirects = True,
 	qrandom = False,
 	use_pool = True,
+	tracking = False,
 	backend = False,
 ):
 	global _logger, _cb_gateway, _concurrent, _initialized, _timeout
@@ -129,10 +130,12 @@ def configure (
 	client.set_timeout (timeout)
 	dbapi.set_timeout (timeout)
 	
-	socketpool.create (_logger, backend = backend)
+	socketpool.create (_logger, backend = backend, use_pool = use_pool)
 	dbpool.create (_logger, backend = backend)
 	adns.init (_logger)
 	lifetime.init (_timeout / 2., logger) # maintern interval
+	if tracking:
+		lifetime.enable_memory_track ()
 	_initialized = True
 
 def _reque_first (request):

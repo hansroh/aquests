@@ -48,10 +48,6 @@ class Response:
 		self.__lxml = None
 		self.save_cookies ()
 	
-	def __del__ (self):
-		self.decompressor = None
-		self.p, self.u = None, None
-		
 	def __repr__ (self):
 		return "<Response [%d]>" % self.status_code
 		
