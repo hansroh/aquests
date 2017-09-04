@@ -1,5 +1,7 @@
 import os
 
+# POSIX PROCESS LOCK
+
 if os.name == "posix":
 	import fcntl
 	

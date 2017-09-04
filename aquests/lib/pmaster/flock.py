@@ -1,44 +1,7 @@
 import os, sys
-from . import pathtool
-from .pmaster import processutil
+from . import pidfile
 
-isCurrentProcess = processutil.is_running	
-	
-class PidFile:
-	def __init__ (self, path):
-		self.path = path
-	
-	def make (self):
-		import os, sys		
-		if self.isalive ():
-			raise AssertionError("process is runnig. terminated.")
-					
-		pathtool.mkdir (self.path)
-		pidfile = os.path.join (self.path, "pid")			
-		f = open (pidfile, "w")
-		f.write ("%s" % os.getpid ())
-		f.close ()
-	
-	def remove (self):		
-		pidfile = os.path.join (self.path, "pid")
-		if os.path.isfile (pidfile):
-			os.remove (pidfile)
-		
-	def getpid (self, match = None):
-		pidfile = os.path.join (self.path, "pid")
-		if os.path.isfile (pidfile):
-			f = open (pidfile)
-			pid = f.read ()
-			f.close ()
-			pid = int (pid)
-			if isCurrentProcess (pid, match):
-				return pid
-		return None
-			
-	def isalive (self):
-		return self.getpid () is not None and True or False
-				
-
+# FILE LOCK
 class Lock:
 	def __init__ (self, home):
 		self.home = home
@@ -46,11 +9,11 @@ class Lock:
 		self.create_directory ()
 	
 	def create_directory (self):
-		pathtool.mkdir (self.home)
+		pidfile.mkdir (self.home)
 	
 	def get_pidlock (self):
 		if self.pidlock is None:
-			self.pidlock = PidFile (self.home)
+			self.pidlock = pidfile.PidFile (self.home)
 		return self.pidlock
 		
 	def lock (self, name, msg = "do not delete"):

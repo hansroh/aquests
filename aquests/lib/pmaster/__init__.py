@@ -22,7 +22,7 @@ TOTAL = 0
 PUPPETS_CREATED = 0
 MAX_SLOT_ITEMS = 2
 HAS_ITEM = True
-START_TIME = time.time ()
+START_TIME = 0
 LAST_REPORT = time.time ()
 REPORT_INTERVAL = 3
 TIMEOUT = 180
@@ -46,7 +46,8 @@ def loop (make_puppet, reporter = None):
 	global PUPPETS_CREATED, SLOTS, TOTAL, HAS_ITEM
 	global START_TIME, LAST_REPORT, LOGGER
 	
-	START_TIME = time.time ()
+	if START_TIME == 0:
+		START_TIME = time.time ()
 	LAST_REPORT = time.time ()
 	HAS_ITEM = True
 	

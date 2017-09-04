@@ -9,6 +9,7 @@ class Daemonizer:
 		self.chdir = chdir
 		self.procname = procname
 		self.umask = umask
+		self.pidpath = pidpath		
 		self.pidfile = os.path.join (chdir, '.pid')
 	
 	def runAsDaemon(self):
