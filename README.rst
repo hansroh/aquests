@@ -695,7 +695,7 @@ History
 
 - 0.7.7
   
-  - fix memory leaking by response_builder
+  - add auto expiring on DNS cache
   - logger.trace () is now formatted to multi rows, if you analyze log files, should be reviewed
   - add parameter 'use_pool' to aquests.configure, you can set False when if you meet the OS error: too many open files
   - enter beta development status
