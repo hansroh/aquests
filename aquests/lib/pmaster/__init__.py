@@ -2,10 +2,12 @@ from aquests.lib import logger as lf
 import os, sys, time
 from .puppet import Puppet
 import types
+from .daemon import Daemonizer
 
-def get_due ():
+def get_due (s_time = None):
 	global START_TIME
-	s_time = START_TIME
+	if not s_time:
+		s_time = START_TIME
 	due = time.time () - s_time
 	if due <= 60:
 		due = "%d seconds" % due
@@ -74,7 +76,7 @@ def loop (make_puppet, reporter = None):
 					SLOTS.pop (sid)
 				elif SLOTS [sid].is_timeout (180):
 					LOGGER ('-- %s is timout' % SLOTS [sid])
-					SLOT [sid].kill ()
+					SLOTS [sid].kill ()
 			
 			if time.time () - LAST_REPORT > REPORT_INTERVAL:
 				LOGGER ("-- %d active slots, %d processed for %s" % (len (SLOTS), PUPPETS_CREATED, get_due ()))

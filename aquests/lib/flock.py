@@ -1,5 +1,6 @@
 import os, sys
-from . import pathtool, processutil
+from . import pathtool
+from .pmaster import processutil
 
 isCurrentProcess = processutil.is_running	
 	
