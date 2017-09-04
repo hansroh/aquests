@@ -8,7 +8,11 @@ if os.name == "nt":
 else:
 	import psutil	
 	def kill (pid, including_parent = True):	
-		parent = psutil.Process(pid)
+		try: 
+			parent = psutil.Process(pid)
+		except psutil.NoSuchProcess:
+			return
+				
 		children = parent.children(recursive=True)
 		for child in children:
 			child.kill()
