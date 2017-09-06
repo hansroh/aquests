@@ -95,13 +95,6 @@ Installation
 
   pip install aquests
 
-On posix, for compiling psycopg2 module, requires theses packages,
-
-.. code:: bash
-    
-  apt-get install libpq-dev python-dev
-
-
 Testing Installation
 =========================
 
@@ -695,6 +688,7 @@ History
 
 - 0.7.7
   
+  - merge process related modele to aquests.lib.pmaster
   - add auto expiring on DNS cache
   - logger.trace () is now formatted to multi rows, if you analyze log files, should be reviewed
   - add parameter 'use_pool' to aquests.configure, you can set False when if you meet the OS error: too many open files
