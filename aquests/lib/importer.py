@@ -1,11 +1,12 @@
 import sys, os
 from . import pathtool
 import importlib
+import importlib.machinery
 
 try: _reloader = importlib.reload
 except AttributeError: _reloader = reload
 	
-def importer (directory, libpath):
+def importer_old (directory, libpath):	
 	sys.path.insert(0, directory)	
 	__import__ (libpath, globals ())
 	libpath, abspath = pathtool.modpath (libpath)
@@ -15,6 +16,26 @@ def importer (directory, libpath):
 	sys.path.pop (0)		
 	return module, abspath
 
+def importer (directory, libpath):
+	fn = not libpath.endswith (".py") and libpath + ".py" or libpath
+	modpath = os.path.join (directory, fn)
+	hname = fn.split (".")[0]
+	p = directory.replace ("\\", "/")
+	if p.find (":") !=- 1:
+		p = "/" + p.replace (":", "")
+	while 1:
+		if hname in sys.modules:				
+			p, l = os.path.split (p)
+			if not l:
+				raise SystemError ('module %s already imported, use reload')
+			hname = l + "." + hname
+		else:
+			break	
+	
+	loader = importlib.machinery.SourceFileLoader(hname, modpath)
+	mod = loader.load_module ()	
+	return mod, mod.__file__
+	
 def reimporter (module):
 	directory, libpath = os.path.split (module.__file__)[0], module.__name__
 	del sys.modules [module.__name__]
