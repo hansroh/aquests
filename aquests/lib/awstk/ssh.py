@@ -4,10 +4,10 @@ from boto.manage.cmdshell import sshclient_from_instance
 from . import iquery
 
 class SSH:
-	def __init__ (self, instance_id, key_path):
+	def __init__ (self, instance_id, key_path, user_name = "ubuntu"):
 		self.instance_id = instance_id
 		self.instance = iquery.get_instance_by_id (instance_id)
-		self.ssh_client = sshclient_from_instance(self.instance, key_path, user_name = "ubuntu")
+		self.ssh_client = sshclient_from_instance(self.instance, key_path, user_name = user_name)
 		self.lines = []
 	
 	def __execute (self, cmd):	

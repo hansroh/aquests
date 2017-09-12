@@ -30,7 +30,7 @@ def importer (directory, libpath):
 				raise SystemError ('module %s already imported, use reload')
 			hname = l + "." + hname
 		else:
-			break	
+			break
 	
 	loader = importlib.machinery.SourceFileLoader(hname, modpath)
 	mod = loader.load_module ()	
