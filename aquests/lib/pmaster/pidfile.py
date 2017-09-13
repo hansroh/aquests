@@ -41,6 +41,7 @@ class PidFile:
 		pidfile = os.path.join (self.path, "pid")			
 		f = open (pidfile, "w")
 		f.write ("%s" % os.getpid ())
+		os.fsync (f.fileno ())
 		f.close ()
 	
 	def remove (self):		

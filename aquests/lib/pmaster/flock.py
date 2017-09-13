@@ -16,11 +16,11 @@ class Lock:
 			self.pidlock = pidfile.PidFile (self.home)
 		return self.pidlock
 		
-	def lock (self, name, msg = "do not delete"):
-		if not self.islocked (name):
-			f = open (os.path.join (self.home, "lock." + name), "w")
-			f.write ("%s\n" % msg)
-			f.close ()
+	def lock (self, name, msg = "do not delete"):	
+		f = open (os.path.join (self.home, "lock." + name), "w")
+		f.write ("%s\n" % msg)
+		os.fsync (f.fileno ())
+		f.close ()
 		return 1
 
 	def unlock (self, name):
