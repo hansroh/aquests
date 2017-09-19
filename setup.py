@@ -12,11 +12,17 @@ try:
 except ImportError:
 	from distutils.core import setup
 
+with open('aquests/__init__.py', 'r') as fd:
+	version = re.search(r'^__version__\s*=\s*"(.*?)"',fd.read(), re.M).group(1)
+	
 if sys.argv[-1] == 'publish':
+	buildopt = ['sdist', 'upload']
 	if os.name == "nt":
-		os.system('python setup.py sdist upload') # bdist_wininst --target-version=2.7
-	else:
-		os.system('python setup.py sdist upload')
+		buildopt.insert (0, 'bdist_wheel')		
+	os.system('python setup.py %s' % " ".join (buildopt))
+	#os.system('twine upload dist/aquests-%s*' % version)
+	for each in os.listdir ("dist"):
+		os.remove (os.path.join ('dist', each))
 	sys.exit()
 
 classifiers = [
@@ -83,9 +89,6 @@ install_requires = [
 if os.name == "posix":
 	install_requires.append ("psutil")
 	install_requires.append ("setproctitle")
-
-with open('aquests/__init__.py', 'r') as fd:
-	version = re.search(r'^__version__\s*=\s*"(.*?)"',fd.read(), re.M).group(1)
 
 with open ('README.rst', encoding='utf-8') as f:
 	long_description = f.read()

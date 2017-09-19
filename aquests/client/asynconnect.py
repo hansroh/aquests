@@ -26,8 +26,7 @@ class AsynConnect (asynchat.async_chat):
 	ac_in_buffer_size = 65535
 	ac_out_buffer_size = 65535
 	zombie_timeout = 10
-	keep_alive = 10
-	backend_keep_alive = 300
+	keep_alive = 10	
 	request_count = 0
 	active = 0
 	fifo_class = deque
@@ -70,8 +69,7 @@ class AsynConnect (asynchat.async_chat):
 		return new_asyncon
 	
 	def set_backend (self, flag = True):
-		self.backend = flag
-		self.keep_alive = self.backend_keep_alive
+		self.backend = flag		
 		
 	def set_auth (self, auth):
 		self.auth = auth
