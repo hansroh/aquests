@@ -308,7 +308,7 @@ class AsynConnect (asynchat.async_chat):
 			else:
 				raise
 	
-	def close_if_over_keep_live (self):
+	def close_if_over_keep_live (self):		
 		if time.time () - self.event_time > self.zombie_timeout:
 			self.disconnect ()
 		
@@ -336,7 +336,7 @@ class AsynConnect (asynchat.async_chat):
 		else:
 			self.handle_expt ()
 	
-	def maintern (self, object_timeout):
+	def maintern (self, object_timeout):		
 		if time.time () - self.event_time > object_timeout:
 			if self.handler and hasattr (self.handler, "enter_shutdown_process"):
 				self.handler.enter_shutdown ()
@@ -348,12 +348,18 @@ class AsynConnect (asynchat.async_chat):
 		
 	# proxy POST need no init_send
 	def push (self, thing, init_send = True):
+		if self.connected:
+			self.close_if_over_keep_live () # check keep-alive
+			
 		if isinstance(thing, (bytes, bytearray, memoryview)):
 			asynchat.async_chat.push (self, thing)
 		else:
 			self.push_with_producer (thing, init_send)	
 		
 	def push_with_producer (self, producer, init_send = True):
+		if self.connected:
+			self.close_if_over_keep_live () # check keep-alive
+			
 		self.producer_fifo.append (producer)
 		if init_send:
 			self.initiate_send ()
@@ -408,11 +414,8 @@ class AsynConnect (asynchat.async_chat):
 		self.handler = handler
 		if DEBUG:
 			self.logger ('begin_tran {rid:%s} %s' % (self.handler.request.meta.get ('req_id', -1), self.handler.request.uri), 'debug')
+		
 		self.set_event_time ()
-		
-		if self.connected:
-			self.close_if_over_keep_live () # check keep-alive
-		
 		# IMP: call add_channel () AFTER push()	otherwise threading issue will be raised
 		try:
 			if not self.connected:				

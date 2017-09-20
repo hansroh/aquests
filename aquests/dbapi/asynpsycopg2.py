@@ -165,7 +165,7 @@ else:
 			if not self.backend:
 				self.del_channel ()
 
-		def begin_tran (self, request):
+		def begin_tran (self, request):			
 			dbconnect.AsynDBConnect.begin_tran (self, request)
 			self.out_buffer = request.params [0]
 								

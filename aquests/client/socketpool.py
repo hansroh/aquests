@@ -106,7 +106,7 @@ class SocketPool:
 		if not self.__socketfarm: return [None] # at least one item needs
 		return list(self.__socketfarm.items ())
 		
-	def maintern (self):		
+	def maintern (self):
 		# close unused sockets
 		for serverkey, node in list(self.__socketfarm.items ()):
 			for _id, asyncon in list(node.items ()):					

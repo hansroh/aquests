@@ -46,6 +46,10 @@ class DBConnect:
 		
 		self.set_event_time ()
 	
+	def close_if_over_keep_live (self):
+		if time.time () - self.event_time > self.zombie_timeout:			
+			self.disconnect ()
+			
 	def set_backend (self, flag = True):
 		self.backend = flag		
 		
@@ -211,7 +215,8 @@ class DBConnect:
 		self.exception_str = ""
 		self.exception_class = None		
 		self.execute_count += 1
-		self.set_event_time ()		
+		self.close_if_over_keep_live ()
+		self.set_event_time ()
 		
 	def execute (self, request):		
 		self.begin_tran (request)		

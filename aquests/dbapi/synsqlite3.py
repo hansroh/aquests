@@ -15,6 +15,10 @@ class SynConnect (asynpsycopg2.AsynConnect, dbconnect.DBConnect):
 		self.conn = None
 		self.cur = None
 	
+	def close_if_over_keep_live (self):
+		# doesn't need disconnect with local file
+		pass
+			
 	def is_channel_in_map (self, map = None):
 		return False
 			
