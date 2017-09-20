@@ -688,6 +688,7 @@ History
 
 - 0.7.7
   
+  - fix sqlite3 execute ()
   - merge process related modele to aquests.lib.pmaster
   - add auto expiring on DNS cache
   - logger.trace () is now formatted to multi rows, if you analyze log files, should be reviewed
