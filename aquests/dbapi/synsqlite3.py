@@ -54,16 +54,17 @@ class SynConnect (asynpsycopg2.AsynConnect, dbconnect.DBConnect):
 		
 		tranaction = False
 		sql = request.params [0].strip ()
+		transaction = sql [:7].lower () != "select "			
 		try:
-			if sql [:7].lower () == "select ":
+			if len (request.params) > 1 or sql [:7].lower () == "select ":
 				self.cur.execute (*request.params)
 			else:	
-				tranaction = True
+				transaction = True
 				self.cur.executescript (sql)
 		except:
-			if tranaction: self.conn.rollback ()
+			if transaction: self.conn.rollback ()
 			self.handle_error ()
 		else:
-			if tranaction: self.conn.commit ()
+			if transaction: self.conn.commit ()
 			self.has_result = True
 			self.close_case ()
