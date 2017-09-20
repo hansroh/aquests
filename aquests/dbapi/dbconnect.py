@@ -47,11 +47,12 @@ class DBConnect:
 		self.set_event_time ()
 	
 	def close_if_over_keep_live (self):
-		if time.time () - self.event_time > self.zombie_timeout:			
+		if time.time () - self.event_time > max (self.keep_alive - 10, 5):			
 			self.disconnect ()
 			
-	def set_backend (self, flag = True):
-		self.backend = flag		
+	def set_backend (self, backend_keep_alive = 10):
+		self.backend = True
+		self.keep_alive = backend_keep_alive
 		
 	def duplicate (self):
 		new_asyncon = self.__class__ (self.address, self.params, self.lock, self.logger)

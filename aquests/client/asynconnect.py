@@ -68,8 +68,9 @@ class AsynConnect (asynchat.async_chat):
 		new_asyncon.keep_connect = self.keep_connect
 		return new_asyncon
 	
-	def set_backend (self, flag = True):
-		self.backend = flag		
+	def set_backend (self, backend_keep_alive = 10):
+		self.backend = True
+		self.keep_alive = backend_keep_alive
 		
 	def set_auth (self, auth):
 		self.auth = auth
@@ -309,7 +310,7 @@ class AsynConnect (asynchat.async_chat):
 				raise
 	
 	def close_if_over_keep_live (self):		
-		if time.time () - self.event_time > self.zombie_timeout:
+		if time.time () - self.event_time > max (self.keep_alive - 10, 5):
 			self.disconnect ()
 		
 	def set_timeout (self, timeout = 10):
