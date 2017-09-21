@@ -85,6 +85,7 @@ install_requires = [
 	"pymongo==3.4.0", 
 	"event_bus==1.0.2",
 	"protobuf==3.1.0.post1",
+	"html2text"
 ]
 if os.name == "posix":
 	install_requires.append ("psutil")

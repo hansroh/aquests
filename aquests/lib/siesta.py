@@ -1,4 +1,6 @@
+# ------------------------------------------------
 #	Python Siesta
+# Siesta is a REST client for python
 #
 #	Copyright (c) 2008 Rafael Xavier de Souza
 #
@@ -14,10 +16,11 @@
 #
 #	You should have received a copy of the GNU General Public License
 #	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-"""
-Siesta is a REST client for python
-"""
+# ------------------------------------------------
+#
+# Modified at Sep 20, 2017 by Hans Roh
+#
+# ------------------------------------------------
 
 __version__ = "0.5.2"
 __author__ = "Sebastian Castillo <castillobuiles@gmail.com>"
@@ -31,6 +34,10 @@ import requests
 import base64
 from urllib.parse import urlparse, urlencode
 from .attrdict import AttrDict
+import html2text
+import io
+import pprint
+
 USER_AGENT = "Python-siesta/%s" % __version__
 
 class Auth(object):
@@ -77,19 +84,32 @@ class Response (object):
 	
 	def __getattr__ (self, attr):
 		return getattr (self.__response, attr)
-			
+	
+	def __str__ (self):
+		if isinstance (self.data, str):
+			return self.data
+		s = io.StringIO()
+		pprint.pprint(self.data, s)
+		return s.getvalue()		
+		
 	def set_data (self, resp):
 		ct = resp.headers.get ('content-type')
-		if ct is None or ct.find ('text/') == 0:
-			self.data = None
+		if ct is None or ct.find ('text/html') == 0:
+			h = html2text.HTML2Text()
+			h.ignore_links = True
+			text = h.handle(resp.text)
+			self.data = text
+				
+		elif ct is None or ct.find ('text/') == 0:
+			self.data = resp.text	
 		else:
 			if not resp.text:
 				self.data = None
 			else:	
 				self.data.update (resp.json ())
 			
-		if not str(resp.status_code).startswith("2"):
-			raise Exception ("%s %s\n-----------\n%s" % (resp.status_code, resp.reason, self.data))
+		if not str(resp.status_code).startswith("2"):			
+			raise Exception ("%s %s\n-----------\n%s" % (resp.status_code, resp.reason, self))
 		
 
 class Resource(object):
@@ -112,40 +132,30 @@ class Resource(object):
 			key += '/' + id
 		return Resource(uri=key, api=self._api, logger = self._logger)		
 	
-	def _normurl (self, id = None):
+	def _request (self, method, data, **kwargs):
 		url = self._url
-		if id is not None:
-			url = self._url + '/' + str(id)
-		return url	
-			
-	def _request (self, method, __id, data, **kwargs):
-		self._response = None
-		self._attrs = {}
-		self._errors = {}
-		
-		url = self._normurl (__id)
 		if len(kwargs) > 0:
 			url = "%s?%s" % (url, urlencode(kwargs))
 		headers = {"Content-Type": "application/json"}
 		return self._continue_request(method, url, data, headers)		
 	
-	def get(self, __id = None, **kwargs):
-		return self._request ('GET', __id, None, **kwargs)
+	def get(self, **kwargs):
+		return self._request ('GET', None, **kwargs)
 	
-	def delete(self, __id = None, **kwargs):
-		return self._request ('DELETE', __id, None, **kwargs)
+	def delete(self, **kwargs):
+		return self._request ('DELETE', None, **kwargs)
 	
-	def options(self, __id = None, **kwargs):
-		return self._request ('OPTIONS', __id, None, **kwargs)	
+	def options(self, **kwargs):
+		return self._request ('OPTIONS', None, **kwargs)	
 				
-	def post(self, __id = None, data = {}, **kwargs):
-		return self._request ('POST', __id, data, **kwargs)
+	def post(self, data, **kwargs):
+		return self._request ('POST', data, **kwargs)
 	
-	def put(self, __id = None, data = {}, **kwargs):
-		return self._request ('PUT', __id, data, **kwargs)
+	def put(self, data, **kwargs):
+		return self._request ('PUT', data, **kwargs)
 	
-	def patch(self, __id = None, data = {}, **kwargs):
-		return self._request ('PATCH', __id, data, **kwargs)
+	def patch(self, data, **kwargs):
+		return self._request ('PATCH',data, **kwargs)
 
 	def _continue_request(self, method, url, data, headers):
 		if self._api.auth:
@@ -206,4 +216,3 @@ class API(object):
 
 	def __getattr__(self, name):
 		return Resource(uri=name, api=self, logger = self.logger)
-		
