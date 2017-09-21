@@ -122,7 +122,7 @@ class Resource(object):
 		self._uri = uri
 		self._logger = logger
 		self._scheme, self._host, self._url = urlparse (self._api.base_url + self._uri) [:3]
-		self._headers = {'User-Agent': USER_AGENT}
+		self._headers = {'User-Agent': USER_AGENT, "Accept": 'application/json'}
 		
 	def __getattr__(self, name):	
 		key = self._uri + '/' + name
