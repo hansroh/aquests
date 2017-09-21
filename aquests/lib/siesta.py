@@ -133,13 +133,16 @@ class Resource(object):
 			return self		
 		key = self._uri
 		for id in ids:
-			key += '/' + str (id)
+			if key:
+				key += '/' + str (id)
+			else:
+				key += str (id)	
 		return Resource(uri=key, api=self._api, logger = self._logger)		
 	
 	def _request (self, method, data, **kwargs):
 		url = self._url
 		if len(kwargs) > 0:
-			url = "%s?%s" % (url, urlencode(kwargs))
+			url = "%s?%s" % (url, urlencode(kwargs))		
 		headers = {"Content-Type": "application/json"}
 		return self._continue_request(method, url, data, headers)		
 	
@@ -219,4 +222,12 @@ class API(object):
 		self.logger = logger
 
 	def __getattr__(self, name):
+		if name in ('get', 'post', 'put', 'patch', 'delete', 'options'):
+			r = Resource(uri='', api=self, logger = self.logger)
+			return getattr (r, name)
 		return Resource(uri=name, api=self, logger = self.logger)
+	
+	def __call__(self, id):
+		r = Resource(uri='', api=self, logger = self.logger)
+		return r (id)
+		
