@@ -86,26 +86,30 @@ class Response (object):
 		return getattr (self.__response, attr)
 	
 	def __str__ (self):
-		if isinstance (self.data, str):
-			return self.data
-		s = io.StringIO()
-		pprint.pprint(self.data, s)
-		return s.getvalue()		
+		if not isinstance (self.data, str):			
+			s = io.StringIO()
+			pprint.pprint(self.data, s)
+			d = s.getvalue()		
+		else:
+			d = self.data	
+		return "response.data: %s" % d	
 		
 	def set_data (self, resp):
-		ct = resp.headers.get ('content-type')
-		if ct is None or ct.find ('text/html') == 0:
-			h = html2text.HTML2Text()
-			h.ignore_links = True
-			text = h.handle(resp.text)
-			self.data = text
+		if not resp.text.strip ():
+			self.data = None
+		
+		else:	
+			ct = resp.headers.get ('content-type')
+			if ct is None or ct.find ('text/html') == 0:
+				h = html2text.HTML2Text()
+				h.ignore_links = True
+				text = h.handle(resp.text)
+				self.data = text
+					
+			elif ct is None or ct.find ('text/') == 0:
+				self.data = resp.text.strip ()
 				
-		elif ct is None or ct.find ('text/') == 0:
-			self.data = resp.text	
-		else:
-			if not resp.text:
-				self.data = None
-			else:	
+			else:
 				self.data.update (resp.json ())
 			
 		if not str(resp.status_code).startswith("2"):			
@@ -129,7 +133,7 @@ class Resource(object):
 			return self		
 		key = self._uri
 		for id in ids:
-			key += '/' + id
+			key += '/' + str (id)
 		return Resource(uri=key, api=self._api, logger = self._logger)		
 	
 	def _request (self, method, data, **kwargs):
@@ -171,7 +175,7 @@ class Resource(object):
 			
 		func = getattr (self._api.session, method.lower ())
 		if data is not None:
-			if not isinstacne (data, str):
+			if not isinstance (data, str):
 				raise TypeError ("payload should be str or dic type")
 			resp = func (url, data, headers = headers, timeout = self._api.REQ_TIMEOUT)	
 		else:
