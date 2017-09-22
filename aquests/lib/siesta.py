@@ -108,12 +108,15 @@ class Response (object):
 					
 			elif ct is None or ct.find ('text/') == 0:
 				self.data = resp.text.strip ()
-				
 			else:
-				self.data.update (resp.json ())
+				data = resp.json ()
+				if isinstance (data, dict):
+					self.data.update (data)
+				else:
+					self.data = data
 			
 		if not str(resp.status_code).startswith("2"):			
-			raise Exception ("%s %s\n-----------\n%s" % (resp.status_code, resp.reason, self))
+			raise AssertionError ("%s %s\n%s\n%s" % (resp.status_code, resp.reason, "-" * (20 + len (resp.reason)), self))
 		
 
 class Resource(object):
@@ -230,4 +233,3 @@ class API(object):
 	def __call__(self, id):
 		r = Resource(uri='', api=self, logger = self.logger)
 		return r (id)
-		
