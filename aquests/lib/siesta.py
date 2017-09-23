@@ -183,9 +183,9 @@ class Resource(object):
 		if data is not None:
 			if not isinstance (data, str):
 				raise TypeError ("payload should be str or dic type")
-			resp = func (url, data, headers = headers, timeout = self._api.REQ_TIMEOUT)	
+			resp = func (url, data, headers = headers, timeout = self._api.REQ_TIMEOUT, verify = False)	
 		else:
-			resp = func (url, headers = headers, timeout = self._api.REQ_TIMEOUT)
+			resp = func (url, headers = headers, timeout = self._api.REQ_TIMEOUT, verify = False)
 									
 		return self._getresponse (resp)
 		
