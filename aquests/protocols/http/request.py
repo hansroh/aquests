@@ -256,7 +256,7 @@ class HTTPRequest (XMLRPCRequest):
 									
 	def serialize (self):
 		if not self.params:
-			if self.get_method () in ("POST", "PUT"):
+			if self.get_method () in ("POST", "PUT", "PATCH"):
 				self.headers ["Content-Length"] = 0
 			return b""
 		
@@ -275,11 +275,11 @@ class HTTPRequest (XMLRPCRequest):
 		header_name, content_type = self.get_header ("content-type", True)
 		
 		if not content_type:
-			content_type = "application/json"
+			content_type = "application/x-www-form-urlencoded"
 						
 		if type (self.params) is dict:			
 			if content_type.startswith ("application/json"):
-				data = json.dumps (self.params).encode ("utf8")		
+				data = json.dumps (self.params).encode ("utf8")
 				content_type = "application/json; charset=utf-8"
 			elif content_type.startswith ("application/x-www-form-urlencoded"):
 				data = self.urlencode ()				

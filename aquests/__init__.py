@@ -387,14 +387,8 @@ def add (request):
 	_que.add (request)
 			
 #----------------------------------------------------
-# REST CALL
+# HTTP CALL
 #----------------------------------------------------	
-def get (*args, **karg):
-	_add ('get', *args, **karg)
-
-def delete (*args, **karg):
-	_add ('delete', *args, **karg)
-
 def head (*args, **karg):
 	_add ('head', *args, **karg)
 
@@ -403,61 +397,68 @@ def trace (*args, **karg):
 
 def options (*args, **karg):
 	_add ('options', *args, **karg)
-				
+
+def upload (*args, **karg):
+	_add ('upload', *args, **karg)
+
+
+def get (*args, **karg):
+	_add ('get', *args, **karg)
+
+def delete (*args, **karg):
+	_add ('delete', *args, **karg)
+
 def post (*args, **karg):
 	_add ('post', *args, **karg)
 
 def patch (*args, **karg):
 	_add ('patch', *args, **karg)
 
-def patchform (*args, **karg):
-	_add ('patchform', *args, **karg)
-
-def patchxml (*args, **karg):
-	_add ('patchxml', *args, **karg)
-
-def patchjson (*args, **karg):
-	_add ('patchjson', *args, **karg)
-
-def patchnvp (*args, **karg):
-	_add ('patchnvp', *args, **karg)
-					
 def put (*args, **karg):
 	_add ('put', *args, **karg)
 
-def postform (*args, **karg):
-	_add ('postform', *args, **karg)
 
-def postxml (*args, **karg):
-	_add ('postxml', *args, **karg)
+def getjson (*args, **karg):
+	_add ('getjson', *args, **karg)
 
+def deletejson (*args, **karg):
+	_add ('deletejson', *args, **karg)
+
+def patchjson (*args, **karg):
+	_add ('patchjson', *args, **karg)
+	
 def postjson (*args, **karg):
 	_add ('postjson', *args, **karg)	
-
-def postnvp (*args, **karg):
-	_add ('postnvp', *args, **karg)	
-
-def putform (*args, **karg):
-	_add ('putform', *args, **karg)
-
-def putxml (*args, **karg):
-	_add ('putxml', *args, **karg)
-
+	
 def putjson (*args, **karg):
 	_add ('putjson', *args, **karg)	
 
-def putnvp (*args, **karg):
-	_add ('putnvp', *args, **karg)	
-	
-def upload (*args, **karg):
-	_add ('upload', *args, **karg)	
 
+def getxml (*args, **karg):
+	_add ('getxml', *args, **karg)
+
+def deletexml (*args, **karg):
+	_add ('deletexml', *args, **karg)
+
+def patchxml (*args, **karg):
+	_add ('patchxml', *args, **karg)
+	
+def postxml (*args, **karg):
+	_add ('postxml', *args, **karg)	
+	
+def putxml (*args, **karg):
+	_add ('putxml', *args, **karg)	
+	
+
+#----------------------------------------------------
+# Websocket
+#----------------------------------------------------	
 def ws (*args, **karg):
 	_add ('ws', *args, **karg)	
 
 def wss (*args, **karg):
 	_add ('wss', *args, **karg)	
-	
+
 	
 #----------------------------------------------------
 # XMLRPC, gRPC
@@ -488,7 +489,7 @@ def _adddbo (method, dbmethod, params, server, dbname = None, auth = None, callb
 	
 def postgresql (*args, **karg):
 	return stubproxy.Proxy ('postgresql', _adddbo, *args, **karg)
-pg = postgresql
+pgsql = pg = postgresql
 
 def redis (*args, **karg):
 	return stubproxy.Proxy ('redis', _adddbo, *args, **karg)

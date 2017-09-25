@@ -17,14 +17,13 @@ def make_ws (_method, url, params, auth, headers, meta, proxy, logger):
 	req.handler = handler_class	
 	return req
 
-content_types = {
-	'xml': "text/xml",
-	'json': "application/json",	
-	'form': "application/x-www-form-urlencoded",
-	'nvp': "text/namevalue"	
-}
+CONTENT_TYPES = [
+	('xml', "text/xml", "text/xml"),
+	('json', "application/json", "application/json"),
+]
+	
 def make_http (_method, url, params, auth, headers, meta, proxy, logger):
-	global content_types
+	global CONTENT_TYPES
 	if not headers:
 		headers = {}
 	if ls.g:
@@ -42,35 +41,23 @@ def make_http (_method, url, params, auth, headers, meta, proxy, logger):
 		rpcmethod, params = params
 		req = grpc_request.GRPCRequest (url, rpcmethod, params, headers, auth, logger, meta)
 	
-	else:		
-		if _method in ("get", "delete"):						
-			req = http_request.HTTPRequest (url, _method.upper (), params, headers, auth, logger, meta)
-			
-		else:	
-			if _method in ("post", "put", "patch"):
-				ct = None
-				for k, v in headers.items ():
-					if k.lower () == "content-type":
-						ct = v						
-						break
-				if not ct:
-					headers["Content-Type"] = "application/json"
-			
-			elif _method != "upload":
-				if _method [:4] == "post":					
-					cta, _method = _method [4:], "post"
-				elif _method [:4] == "patch":		
-					cta, _method = _method [5:], "patch"
-				else:
-					cta, _method = _method [3:], "put"							
-				ct = content_types.get (cta)
-				if not ct: raise TypeError ("Content Type Undefined")
-				headers ['Content-Type'] = ct
+	elif _method == "upload":
+		req = http_request.HTTPMultipartRequest (url, "POST", params, headers, auth, logger, meta)
 				
-			if _method == "upload":
-				req = http_request.HTTPMultipartRequest (url, "POST", params, headers, auth, logger, meta)
-			else:
-				req = http_request.HTTPRequest (url, _method.upper (), params, headers, auth, logger, meta)	
+	else:
+		ct = "application/x-www-form-urlencoded"
+		ac = "*/*"
+		for _alias, _ct, _ac in CONTENT_TYPES:
+			if _method.endswith (_alias):
+				_method = _method [:-len (_alias)]				
+				ct = _ct
+				ac = _ac
+				break
+		
+		headers ['Accept'] = ac
+		if params:						
+			headers ['Content-Type'] = ct
+		req = http_request.HTTPRequest (url, _method.upper (), params, headers, auth, logger, meta)		
 	
 	req.handler = handler_class
 	return req
