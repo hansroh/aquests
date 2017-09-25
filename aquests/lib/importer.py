@@ -14,12 +14,13 @@ def importer (directory, libpath, module = None):
 	if p.find (":") !=- 1:
 		p = "/" + p.replace (":", "")
 	while 1:
-		if hname in sys.modules:				
+		if "skitai.mounted." + hname in sys.modules:				
 			p, l = os.path.split (p)
 			if not l:
 				raise SystemError ('module %s already imported, use reload')
 			hname = l + "." + hname
 		else:
+			hname = "skitai.mounted." + hname
 			break
 	
 	loader = importlib.machinery.SourceFileLoader(hname, modpath)
@@ -28,11 +29,12 @@ def importer (directory, libpath, module = None):
 	return mod, mod.__file__
 	
 def reimporter (module, directory, libpath):
+	del sys.modules [module.__name__]		
 	try: 
-		del sys.modules [module.__name__]
-	except KeyError:
-		pass	
-	return importer (directory, libpath)
+		return importer (directory, libpath)
+	except:	
+		sys.modules [module.__name__] = module
+		raise
 	
 
 #----------------------------------------------

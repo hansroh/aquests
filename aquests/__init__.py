@@ -1,11 +1,14 @@
 # 2016. 1. 10 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.7.8.5b4"
+__version__ = "0.7.8.7"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
-import threading
+
+import os, sys
+import asyncore
+import timeit
+import time, math, random
 from . import lifetime, queue, request_builder, response_builder, stubproxy
 from .lib import logger as logger_f
-from .lib.athreads import trigger
 from .client import socketpool
 from .dbapi import dbpool
 from .client import adns, asynconnect
@@ -17,11 +20,6 @@ from .protocols.http import request_handler, response as http_response
 from .protocols import http2
 from .protocols.http2 import H2_PROTOCOLS
 from .dbapi import request as dbo_request
-import os
-import asyncore
-import timeit
-import time, math, random
-import sys
 
 DEBUG = 0
 
