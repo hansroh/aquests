@@ -138,10 +138,7 @@ def loop (timeout = 30.0):
 	
 	_polling = 0
 	
-if hasattr(select, 'poll'):
-	poll_fun = asyncore.poll2
-else:
-	poll_fun = asyncore.poll
+poll_fun = asyncore.poll
 
 def remove_notsocks (map):
 	global _select_errors, _logger
@@ -154,18 +151,18 @@ def remove_notsocks (map):
 		is_r = obj.readable()
 		is_w = obj.writable()
 		if is_r:
-			r = [ds]
+			r = [fd]
 		# accepting sockets should not be writable
 		if is_w and not obj.accepting:
 			w = [fd]
 		if is_r or is_w:
 			e = [fd]
-
+		
 		try:			
-			select.select(r, w, e, 0)
+			select.select (r, w, e, 0)			
 									
 		except:
-			_logger and _logger.trace ()
+			#_logger and _logger.trace ()			
 			killed += 1
 			_select_errors += 1
 						
@@ -185,10 +182,10 @@ def poll_fun_wrap (timeout, map = None):
 	
 	if map is None:
 		map = asyncore.socket_map
-		
-	try:		
-		poll_fun (timeout, map)
 	
+	try:		
+		poll_fun (timeout, map)		
+		
 	except (TypeError, OSError) as why:
 		# WSAENOTSOCK
 		remove_notsocks (map)
