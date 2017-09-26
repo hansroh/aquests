@@ -373,14 +373,7 @@ POST, PUT
     {'author': 'James Milton'}, 
     {'Content-Type': 'application/x-www-form-urlencoded'}
    )
-   
-  # is equal to:
-   
-  aquests.postform (
-    "http://127.0.0.1:5000/", 
-    {'author': 'James Milton'}    
-  )
-
+  
 Put example,
 
 .. code-block:: python
@@ -401,10 +394,8 @@ Put example,
   
 There're some shorter ways ratehr than specifing content type:
 
-- postform: application/x-www-form-urlencoded, data value should be dictionary
 - postjson: application/json, data value should be json dumpable
 - postxml: text/xml, data value should be xml string or utf-8 encoded bytes
-- postnvp: text/namevalue, data value should be dictionary 
 
 And putform (), putjson ()... is also available.
 
@@ -686,6 +677,11 @@ Note: stub's methods and parameters are defined by database engines. Please read
 History
 =========
 
+- 0.7.8
+
+  - add getjson, deletejson, this request automatically add header 'Accept: application/json'
+  - change default request content-type from json to form data, if you post/put json data, you should change postjson/putjson    
+  
 - 0.7.7
   
   - fix sqlite3 execute ()

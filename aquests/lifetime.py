@@ -149,28 +149,34 @@ def remove_notsocks (map):
 	# on Windows we can get WSAENOTSOCK if the client
 	# rapidly connect and disconnects
 	killed = 0
-	for fd in list(map.keys()):
-		try:
-			select.select([fd], [], [], 0)
-			
+	for fd, obj in list(map.items()):	
+		r = []; w = []; e = []	
+		is_r = obj.readable()
+		is_w = obj.writable()
+		if is_r:
+			r = [ds]
+		# accepting sockets should not be writable
+		if is_w and not obj.accepting:
+			w = [fd]
+		if is_r or is_w:
+			e = [fd]
+
+		try:			
+			select.select(r, w, e, 0)
+									
 		except:
 			_logger and _logger.trace ()
 			killed += 1
 			_select_errors += 1
 						
 			try:
-				obj = map [fd]
-			except KeyError:
-				pass
-			else:
-				try:
-					try: obj.handle_expt ()
-					except: obj.handle_error ()
-				except:
-					_logger and _logger.trace ()
-					
-				try: del map [fd]
-				except KeyError: pass
+				try: obj.handle_expt ()
+				except: obj.handle_error ()
+			except:
+				_logger and _logger.trace ()
+				
+			try: del map [fd]
+			except KeyError: pass
 					
 	return killed
 

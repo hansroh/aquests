@@ -321,7 +321,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 			elif self.asyncon.isconnected ():
 				upgrade = False
 			
-			for data in self.get_request_buffer ("1.1", upgrade):				
+			for data in self.get_request_buffer ("1.1", upgrade):
 				self.asyncon.push (data)
 				
 		if self._ssl and self.FORCE_HTTP_11 and self.request.initial_http_version != "2.0":
