@@ -84,7 +84,7 @@ class ConfParse:
 		else: fn = self.fn
 		
 		self.conf = {}		
-		try: fp = open (fn, 'r')
+		try: fp = open (fn, 'r', encoding = 'utf8')
 		except: raise FileNotFound
 		self._read (fp)
 		fp.close ()
@@ -289,7 +289,7 @@ class ConfParse:
 	def update (self):
 		if not self.fn:
 			raise FileNotFound
-		fp = open (self.fn, 'w')
+		fp = open (self.fn, 'w', encoding = 'utf8')
 		self.write (fp)
 		fp.close ()
 

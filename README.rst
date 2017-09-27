@@ -679,6 +679,7 @@ History
 
 - 0.7.8
 
+  - use select.select for asyncore.loop instead of select.poll for andling socket errors directly
   - add getjson, deletejson, this request automatically add header 'Accept: application/json'
   - change default request content-type from json to form data, if you post/put json data, you should change postjson/putjson    
   
