@@ -296,6 +296,10 @@ def concurrent ():
 def fetchall ():
 	global _workers, _logger, _que, _timeout, _max_conns, _bytesrecv, _concurrent, _finished_total, _max_conns, _force_h1	
 	
+	if not qsize ():
+		_logger.log ('no item in queue.')
+		return
+	
 	if not _initialized:
 		configure ()
 	

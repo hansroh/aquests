@@ -54,11 +54,18 @@ def loop (make_puppet, reporter = None):
 	try:			
 		while HAS_ITEM or SLOTS:
 			if len (SLOTS) < MAX_SLOT_ITEMS and HAS_ITEM:
-				if isinstance (make_puppet, types.GeneratorType):
+				if isinstance (make_puppet, (list, tuple)):
+					try:
+						puppet = make_puppet.pop (0)
+					except IndexError:
+						puppet = None
+				
+				elif isinstance (make_puppet, types.GeneratorType):
 					try:
 						puppet = next (make_puppet)
 					except StopIteration:
 						puppet = None
+				
 				else:
 					puppet = make_puppet ()
 				
