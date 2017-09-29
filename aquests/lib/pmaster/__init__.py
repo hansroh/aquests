@@ -43,7 +43,7 @@ def configure (puppets = 2, timeout = 180, total = 0, report_inveval = 3, logger
 		LOGGER = lf.screen_logger ()
 			
 def loop (make_puppet, reporter = None):
-	global PUPPETS_CREATED, SLOTS, TOTAL, HAS_ITEM
+	global PUPPETS_CREATED, SLOTS, TOTAL, HAS_ITEM, TIMEOUT
 	global START_TIME, LAST_REPORT, LOGGER
 	
 	if START_TIME == 0:
@@ -82,8 +82,8 @@ def loop (make_puppet, reporter = None):
 				if not SLOTS [sid].is_active ():
 					LOGGER ('-- finished %s' % SLOTS [sid])
 					SLOTS.pop (sid)
-				elif SLOTS [sid].is_timeout (180):
-					LOGGER ('-- %s is timout' % SLOTS [sid])
+				elif SLOTS [sid].is_timeout (TIMEOUT):
+					LOGGER ('-- %s is timeout' % SLOTS [sid])
 					SLOTS [sid].kill ()
 			
 			if time.time () - LAST_REPORT > REPORT_INTERVAL:
