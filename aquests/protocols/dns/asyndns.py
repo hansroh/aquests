@@ -15,7 +15,7 @@ defaults = Base.defaults
 Base.DiscoverNameServers ()
 
 class async_dns (asyncore.dispatcher_with_send):
-	zombie_timeout = 3
+	zombie_timeout = 10
 	
 	def __init__ (self, servers, request, args, callback, logger, debug_level):
 		self.servers = servers
