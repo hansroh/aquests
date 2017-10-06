@@ -117,7 +117,8 @@ def configure (
 	if not force_http1:
 		_concurrent = workers * http2_constreams
 	elif http2_constreams:
-		_logger ("parameter http2_constreams is ignored", "warn")	
+		pass
+		#_logger ("parameter http2_constreams is ignored", "warn")	
 				
 	if callback:
 		_cb_gateway = callback
@@ -173,44 +174,50 @@ def handle_status_3xx (response):
 		response.response = http_response.FailedResponse (711, "Redirect Error", request)
 		return response
 	
-	_logger ("%s redirected to %s from %s" % (response.status_code, newloc, oldloc), "info")	
+	#_logger ("%s redirected to %s from %s" % (response.status_code, newloc, oldloc), "info")	
 	# DO NOT use relocated response.request, it is None
 	del response
 	_reque_first (request)
 	
 def _request_finished (handler):
 	global _cb_gateway, _currents, _concurrent, _finished_total, _logger, _bytesrecv,_force_h1
-	try:
-		if isinstance (handler, dbo_request.Request):
-			response = handler
-			_currents.pop (response.meta ['req_id'])
-			
-		else:
-			response = response_builder.HTTPResponse (handler)
-			_currents.pop (response.meta ['req_id'])
+	
+	http_req = True
+	if isinstance (handler, dbo_request.Request):
+		response = handler
+		http_req = False
+	else:
+		response = response_builder.HTTPResponse (handler)
+	_currents.pop (response.meta ['req_id'])
+	
+	if http_req:
+		try:
 			for handle_func in (handle_status_401, handle_status_3xx):
 				response = handle_func (response)
 				if not response:
-					return		
-		_finished_total += 1
-		response.logger = _logger
-		_bytesrecv += len (response.content)
-		callback = response.meta ['req_callback'] or _cb_gateway
-		try:
-			callback (response)
-		except:		
-			_logger.trace ()	
+					return
+		
+		except:
+			_logger.trace ()
+		
+	_finished_total += 1
+	response.logger = _logger
+	_bytesrecv += len (response.content)
+	callback = response.meta ['req_callback'] or _cb_gateway
+	try:
+		callback (response)
+	except:		
+		_logger.trace ()	
 	
+	try:
+		qsize () and _req ()
 	except RecursionError:
 		try: 
 			_currents.pop (handler.request.meta ['req_id'])
 		except KeyError: 
 			pass	
-		_logger ("too many error occured, stop requeueing", "info")	
+		_logger ("too many error occured, failed requeueing", "fail")
 		
-	else:	
-		qsize () and _req ()
-	
 	# clearing memory
 	handler.request.meta = None
 	del response
@@ -308,7 +315,7 @@ def fetchall ():
 	lifetime._polling = 1
 	
 	# create initail workers	
-	_logger ("creating connection pool", "info")
+	#_logger ("creating connection pool", "info")
 	target_socks = min (_workers, qsize ())
 	for i in range (target_socks):
 		_req ()
@@ -318,7 +325,7 @@ def fetchall ():
 		while qsize ():
 			lifetime.lifetime_loop (os.name == "nt" and 1.0 or _timeout / 2.0, 1)
 			if sum ([1 for conn in asyncore.socket_map.values () if not isinstance (conn, async_dns) and conn.get_proto () in H2_PROTOCOLS and conn.connected and not conn.isactive ()]) == _workers:
-				_logger ('%d connection(s) created' % target_socks, 'info')
+				#_logger ('%d connection(s) created' % target_socks, 'info')
 				break
 			
 	# now starting
