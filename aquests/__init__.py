@@ -182,21 +182,18 @@ def handle_status_3xx (response):
 def _request_finished (handler):
 	global _cb_gateway, _currents, _concurrent, _finished_total, _logger, _bytesrecv,_force_h1
 	
-	http_req = True
 	if isinstance (handler, dbo_request.Request):
-		response = handler
-		http_req = False
+		response = handler	
+		_currents.pop (response.meta ['req_id'])
 	else:
 		response = response_builder.HTTPResponse (handler)
-	_currents.pop (response.meta ['req_id'])
-	
-	if http_req:
+		_currents.pop (response.meta ['req_id'])
+		
 		try:
 			for handle_func in (handle_status_401, handle_status_3xx):
 				response = handle_func (response)
 				if not response:
-					return
-		
+					return		
 		except:
 			_logger.trace ()
 		
@@ -210,7 +207,7 @@ def _request_finished (handler):
 		_logger.trace ()	
 	
 	try:
-		qsize () and _req ()
+		qsize () and _req ()		
 	except RecursionError:
 		try: 
 			_currents.pop (handler.request.meta ['req_id'])
