@@ -36,7 +36,7 @@ class cachable_xmlrpc_buffer:
 			return self.cdata
 		res = self.buf.close ()
 		if self.cache:
-			self.cdata = res
+			self.cdata = res		
 		return res
 	
 	def raw (self):
@@ -53,7 +53,8 @@ class list_buffer:
 		self.cache = cache
 		self.data = []
 		self.cdata = b''
-	
+		self.fp = None
+		
 	def __len__ (self):
 		return len (self.data)
 		
@@ -64,11 +65,11 @@ class list_buffer:
 	
 	def raw (self):
 		if self.cdata:
-			f = BytesIO (self.cdata)			
+			self.fp = BytesIO (self.cdata)			
 		else:
-			f = BytesIO (b"".join (self.data))
-		f.seek (0)
-		return f
+			self.fp = BytesIO (b"".join (self.data))
+		self.fp.seek (0)
+		return self.fp
 		
 	def read (self):	
 		# consume data, used by proxy response
@@ -97,7 +98,7 @@ class bytes_buffer:
 		self.fp = BytesIO ()
 		self.current_buffer_size = 0
 		self.cdata = None
-	
+		
 	def __len__ (self):
 		return self.current_buffer_size
 	
@@ -117,7 +118,7 @@ class bytes_buffer:
 			return self.cdata
 		res = self.build_data ()
 		if self.cache:
-			self.cdata = res
+			self.cdata = res		
 		return res
 	
 	def no_cache (self):

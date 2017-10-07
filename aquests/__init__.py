@@ -206,6 +206,10 @@ def _request_finished (handler):
 	except:		
 		_logger.trace ()	
 	
+	# clearing memory
+	handler.request.meta = None
+	del response
+	
 	try:
 		qsize () and _req ()		
 	except RecursionError:
@@ -214,10 +218,6 @@ def _request_finished (handler):
 		except KeyError: 
 			pass	
 		_logger ("too many error occured, failed requeueing", "fail")
-		
-	# clearing memory
-	handler.request.meta = None
-	del response
 		
 def _req ():
 	global _que, _logger, _currents, _request_total, _backend
