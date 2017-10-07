@@ -167,17 +167,14 @@ class Request:
 		async_dns (server, request, args, self.processReply, self.logger, self.debug_level)
 			
 	def processReply (self, server, request, args, data, timeouted):
+		answers = []
 		if timeouted:
 			# for retrying			
 			if server:
 				async_dns (server, request, args, self.processReply, self.logger, self.debug_level)
 				return			
-			answers = []
 			
 		else:	
-			# do not query for 1 sec
-			not_found = [{'err': True, "name": args ['name'].decode ('utf8'), "data": None, "typename": args ["qtype"], 'ttl': 1}]
-				
 			try:
 				if not data:
 					raise Base.DNSError('%s, no working nameservers found' % args ['name'])
@@ -202,22 +199,15 @@ class Request:
 				else:
 					reply = None
 			
-			if reply is None:
-				answers = not_found
-				
-			else:
+			if reply:				
 				try:	
 					u = Lib.Munpacker(reply)
 					r = Lib.DnsResult(u, args)
 					r.args = args
 					answers = r.answers
 				except:
-					self.logger.trace ()
-					answers = not_found
-					
-			if not answers:
-				answers = not_found
-		
+					self.logger.trace ()					
+			
 		callback = args.get ("callback", None)
 		#self.logger ('DNS callback %s' % callback)
 		if callback:

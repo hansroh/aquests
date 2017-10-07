@@ -27,8 +27,8 @@ class DNSCache:
 			try:
 				ttl = int (answer ["ttl"])	
 			except (KeyError, ValueError):
-				ttl = 30
-			answer ["valid"]	= time.time () + min (ttl, 30)
+				ttl = 300
+			answer ["valid"]	= time.time () + max (ttl, 300)
 			
 			with self.__lock:
 				if name not in self.cache:

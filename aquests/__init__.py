@@ -193,7 +193,7 @@ def _request_finished (handler):
 			for handle_func in (handle_status_401, handle_status_3xx):
 				response = handle_func (response)
 				if not response:
-					return		
+					return
 		except:
 			_logger.trace ()
 		
