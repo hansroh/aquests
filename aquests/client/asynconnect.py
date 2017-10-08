@@ -237,7 +237,7 @@ class AsynConnect (asynchat.async_chat):
 		if fd in map:
 			del map[fd]
             			
-	def create_socket (self, family, type):		
+	def create_socket (self, family, type):
 		self.family_and_type = family, type
 		sock = socket.socket (family, type)
 		sock.setblocking (0)

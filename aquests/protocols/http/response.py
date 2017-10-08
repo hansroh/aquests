@@ -114,7 +114,7 @@ class Response:
 			self.is_xmlrpc_return = True
 		else:			
 			self.p, self.u = buffers.getfakeparser (buffers.bytes_buffer, cache = self.max_age)
-		
+			
 		if self.get_header ("Content-Encoding") == "gzip":			
 			self.decompressor = compressors.GZipDecompressor ()
 			

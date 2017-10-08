@@ -182,12 +182,13 @@ def handle_status_3xx (response):
 def _request_finished (handler):
 	global _cb_gateway, _currents, _concurrent, _finished_total, _logger, _bytesrecv,_force_h1
 	
+	req_id = handler.request.meta ['req_id']	
 	if isinstance (handler, dbo_request.Request):
 		response = handler	
-		_currents.pop (response.meta ['req_id'])
+		_currents.pop (req_id)
 	else:
-		response = response_builder.HTTPResponse (handler)
-		_currents.pop (response.meta ['req_id'])
+		response = response_builder.HTTPResponse (handler.response)
+		_currents.pop (req_id)
 		
 		try:
 			for handle_func in (handle_status_401, handle_status_3xx):
@@ -203,18 +204,14 @@ def _request_finished (handler):
 	callback = response.meta ['req_callback'] or _cb_gateway
 	try:
 		callback (response)
-	except:		
+	except:
 		_logger.trace ()	
 	
-	# clearing memory
-	handler.request.meta = None
-	del response
-	
 	try:
-		qsize () and _req ()		
+		qsize () and _req ()
 	except RecursionError:
 		try: 
-			_currents.pop (handler.request.meta ['req_id'])
+			_currents.pop (req_id)
 		except KeyError: 
 			pass	
 		_logger ("too many error occured, failed requeueing", "fail")
