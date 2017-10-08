@@ -126,8 +126,11 @@ class RequestHandler (base_request_handler.RequestHandler):
 			return
 		if not self.response or self.asyncon.get_terminator () == b"\r\n":
 			self.buffer += data
-		else:			
-			self.response.collect_incoming_data (data)
+		else:
+			try:
+				self.response.collect_incoming_data (data)			
+			except http_response.ContentLimitReached:
+				self.asyncon.handle_error (719)
 		
 	def found_terminator (self):
 		if self.response:			
@@ -192,25 +195,17 @@ class RequestHandler (base_request_handler.RequestHandler):
 		except:
 			self.log ("response header error: `%s`" % repr (buffer [:80]), "error")
 			return self.asyncon.handle_error (715)			
-			
-		accepts = self.request.get_header ("accept", '')
-		if accepts in ("", "*/*"):
-			return
 		
-		ct = self.response.get_header ("content-type", 'text/html').split (";")[0].strip ()
-		try: 
-			mct, sct = ct.split ("/")
-		except:
-			return self.asyncon.handle_error (717)
-			
-		for accept in accepts.split (","):
-			acctype = accept.split (";")[0].strip ()
-			try: mtype, stype = acctype.split ("/", 1)
-			except ValueError: continue
-			if mtype in ("*", mct) and stype in ("*", sct):
-				return
-		
-		self.asyncon.handle_close (718)		
+		ct = self.response.check_accept ()
+		if ct:	
+			self.log ("response content-type error: `%s`" % ct, "error")
+			return self.asyncon.handle_close (718)		
+		'''	
+		cl = self.response.check_max_content_length ()
+		if cl:
+			self.log ("response content-length error: `%d`" % cl, "error")
+			return self.asyncon.handle_close (719)		
+		'''
 		
 	def handle_response_code (self):
 		# default header never has "Expect: 100-continue"

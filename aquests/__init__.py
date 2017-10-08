@@ -194,6 +194,7 @@ def _request_finished (handler):
 			for handle_func in (handle_status_401, handle_status_3xx):
 				response = handle_func (response)
 				if not response:
+					# re-requested
 					return
 		except:
 			_logger.trace ()
@@ -379,7 +380,7 @@ def _add (method, url, params = None, auth = None, headers = {}, callback = None
 			adns.query (host, "A", callback = lambda x: None)		
 		if mapsize ():
 			lifetime.poll_fun_wrap (0.05)
-		
+	
 	_que.add ((method, url, params, auth, headers, meta, proxy))
 	
 #----------------------------------------------------

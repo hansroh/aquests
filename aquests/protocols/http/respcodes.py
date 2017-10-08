@@ -61,6 +61,7 @@ responses = {
 		716: "Protocol Switching Failure",
 		717: "Invalid Cotnent Type",
 		718: "Unacceptable Content Type",	
+		719: "Too Large Content",	
 		720: "HTTP2 Connection Closed",
 		721: "HTTP2 Stream Reset"
 }

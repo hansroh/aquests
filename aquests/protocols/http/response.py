@@ -16,6 +16,10 @@ from . import urlinfo
 class HTTPRepsonseError (Exception):
 	pass
 
+class ContentLimitReached (HTTPRepsonseError):
+	pass
+
+
 RESPONSE = re.compile ('HTTP/([0-9.]+) ([0-9]{3})\s?(.*)')
 DEFAULT_PORT_MAP = {'http': 80, 'https': 443, 'ws': 80, 'wss': 443}
 	
@@ -37,6 +41,7 @@ class Response:
 		self._header_cache = {}
 		self.version, self.code, self.msg = crack_response (self.response)
 		self.size = 0
+		self.mcl = self.get_mcl ()
 		self.got_all_data = False
 		self.max_age = 0
 		self.decompressor = None
@@ -47,10 +52,48 @@ class Response:
 		self.__data_cache = None
 		self.__lxml = None
 		self.save_cookies ()
-	
+		
 	def __repr__ (self):
 		return "<Response [%d]>" % self.status_code
+	
+	def get_mcl (self):
+		mcl = self.request.get_header ('accept-content-length')
+		if mcl:			
+			return int (mcl)
+		return 0
+			
+	def check_max_content_length (self):
+		if not self.mcl:		
+			return
+						
+		cl = self.get_header ('content-length', 0)		
+		if not cl:
+			return
+		try:
+			cl = int (cl)
+		except ValueError:
+			return
+					
+		if cl > self.mcl:
+			return cl
 		
+	def check_accept (self):
+		ac = self.request.get_header ('accept')
+		if not ac or ac == "*/*":
+			return			
+		ct = self.get_header ('content-type')
+		if not ct:
+			return
+		
+		ct = ct.split (";")[0].strip ()
+		m, s = ct.split ("/", 1)
+		for each in ac.split (","):
+			a = each.split (";", 1)[0]
+			m1, s1 = a.split ("/")
+			if m == m1 and (s == "*" or s == s1):
+				return
+		return ct
+			
 	def set_max_age (self):
 		self.max_age = 0
 		if self.code != 200:
@@ -123,6 +166,9 @@ class Response:
 			self.init_buffer ()
 		self.size += len (data)
 		
+		if self.mcl and self.size > self.mcl:			
+			raise ContentLimitReached ("content-length is over %s" % self.mcl)
+			
 		if self.decompressor:
 			data = self.decompressor.decompress (data)
 		
