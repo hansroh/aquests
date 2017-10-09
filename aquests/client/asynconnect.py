@@ -380,15 +380,17 @@ class AsynConnect (asynchat.async_chat):
 							
 	def collect_incoming_data (self, data):
 		if not self.handler:
-			self.logger ("recv data but no handler, droping data %d" % len (data), "warn")
-			self.disconnect ()
+			if self.connected:
+				self.logger ("recv data but no handler, droping data %d" % len (data), "warn")
+				self.disconnect ()
 			return
 		self.handler.collect_incoming_data (data)
 	
 	def found_terminator (self):
 		if not self.handler:
-			self.logger ("found terminator but no handler", "warn")
-			self.disconnect ()
+			if self.connected:
+				self.logger ("found terminator but no handler", "warn")
+				self.disconnect ()
 			return # already closed
 		self.handler.found_terminator ()
 	

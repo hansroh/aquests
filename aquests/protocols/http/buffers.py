@@ -28,10 +28,7 @@ class cachable_xmlrpc_buffer:
 		self.cdata = None
 	
 	def __del__ (self):
-		self.fp.truncate ()
 		self.fp.close ()
-		self.fp = None
-		self.cdata = None
 		
 	def feed (self, data):
 		self.fp.write (data)
@@ -63,11 +60,8 @@ class list_buffer:
 	
 	def __del__ (self):
 		if self.fp:
-			self.fp.truncate ()
 			self.fp.close ()
 			self.fp = None
-		self.data = []
-		self.cdata = b''
 			
 	def __len__ (self):
 		return len (self.data)
@@ -114,10 +108,7 @@ class bytes_buffer:
 		self.cdata = None
 	
 	def __del__ (self):
-		self.fp.truncate ()
-		self.fp.close ()
-		self.fp = None
-		self.cdata = None
+		self.fp.close ()		
 			
 	def __len__ (self):
 		return self.current_buffer_size

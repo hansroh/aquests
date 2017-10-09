@@ -199,13 +199,12 @@ class RequestHandler (base_request_handler.RequestHandler):
 		ct = self.response.check_accept ()
 		if ct:	
 			self.log ("response content-type error: `%s`" % ct, "error")
-			return self.asyncon.handle_close (718)		
-		'''	
+			return self.asyncon.handle_close (718)
+		
 		cl = self.response.check_max_content_length ()
 		if cl:
 			self.log ("response content-length error: `%d`" % cl, "error")
-			return self.asyncon.handle_close (719)		
-		'''
+			return self.asyncon.handle_close (719)
 		
 	def handle_response_code (self):
 		# default header never has "Expect: 100-continue"
@@ -294,7 +293,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 					self.asyncon.push (data)
 	
 	def handle_rerequest (self):
-		# init for redirexting or reauth
+		# init for redirecting or reauth
 		self.response = None
 		self.end_of_data = False
 		self.buffer = b''

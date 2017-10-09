@@ -84,13 +84,17 @@ class Response:
 		ct = self.get_header ('content-type')
 		if not ct:
 			return
+			
+		acs = []
+		for each in ac.split (","):
+			a = each.split (";", 1)[0].strip ()
+			m1, s1 = a.split ("/")
+			acs.append ((m1, s1))
 		
 		ct = ct.split (";")[0].strip ()
 		m, s = ct.split ("/", 1)
-		for each in ac.split (","):
-			a = each.split (";", 1)[0]
-			m1, s1 = a.split ("/")
-			if m == m1 and (s == "*" or s == s1):
+		for m1, s1 in acs:
+			if m == m1 and (s1 == "*" or s1 == s):
 				return
 		return ct
 			
