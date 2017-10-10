@@ -698,6 +698,7 @@ History
 
 - 0.7.9
 
+  - fix losting request handler
   - response content type and length validating using request headers
   
 - 0.7.8

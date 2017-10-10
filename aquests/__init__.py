@@ -1,6 +1,6 @@
 # 2016. 1. 10 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.7.9"
+__version__ = "0.7.9.2"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 
 import os, sys
@@ -269,7 +269,10 @@ def _req ():
 
 		_currents [meta ['req_id']] = [0, req.uri]		
 		handler = req.handler (asyncon, req, _request_finished)
-		handler.handle_request ()
+		if asyncon.get_proto () and asyncon.isconnected ():
+			asyncon.handler.handle_request (handler)
+		else:
+			handler.handle_request ()	
 		
 
 def workings ():
