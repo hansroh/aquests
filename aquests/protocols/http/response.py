@@ -92,7 +92,11 @@ class Response:
 			acs.append ((m1, s1))
 		
 		ct = ct.split (";")[0].strip ()
-		m, s = ct.split ("/", 1)
+		try:
+			m, s = ct.split ("/", 1)
+		except ValueError:
+			m, s = ct, ''
+				
 		for m1, s1 in acs:
 			if m == m1 and (s1 == "*" or s1 == s):
 				return

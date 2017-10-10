@@ -55,11 +55,10 @@ class SocketPool:
 	def status (self):
 		info = {}
 		cluster = {}
-		self.lock.acquire ()
 		info ["numget"] = self.__numget
 				
 		try:
-			try:	
+			with self.lock:
 				for serverkey, node in list(self.__socketfarm.items ()):	
 					nnode = {}
 					nnode ["numactives"] = len ([x for x in list(node.values ()) if x.isactive ()])
@@ -89,10 +88,7 @@ class SocketPool:
 													
 					nnode ["connections"] = conns
 					cluster [serverkey] = nnode
-					
-			finally:
-				self.lock.release ()
-				
+			
 		except:
 			self.logger.trace ()
 					
@@ -103,84 +99,75 @@ class SocketPool:
 		pass # for competitable
 	
 	def get_nodes (self):
-		if not self.__socketfarm: return [None] # at least one item needs
-		return list(self.__socketfarm.items ())
+		with self.lock:
+			if not self.__socketfarm: return [None] # at least one item needs
+			return list(self.__socketfarm.items ())
 		
 	def maintern (self):
-		# close unused sockets
+		# close unused sockets				
 		for serverkey, node in list(self.__socketfarm.items ()):
-			for _id, asyncon in list(node.items ()):					
+			for _id, asyncon in list(node.items ()):
 				if not hasattr (asyncon, "maintern"):
 					continue
 				
 				try:
-					deletable = asyncon.maintern (self.object_timeout)					
+					deletable = asyncon.maintern (self.object_timeout)
 				except:
 					self.logger.trace ()
 				else:
 					if deletable:
-						self.__socketfarm [serverkey][_id] = None
 						del self.__socketfarm [serverkey][_id]
-						asyncon.disconnect ()
 						self.numobj -= 1
 			
+			# KeyError, WHY?
 			if not self.__socketfarm [serverkey]:
-				self.__socketfarm [serverkey] = None
 				del self.__socketfarm [serverkey]
-				
 				try:
 					self.__protos [serverkey] = None
 					del self.__protos [serverkey]
 				except KeyError:
-					pass	
+					pass
 				
 		self.__last_maintern = time.time ()
 				
 	def _get (self, serverkey, server, *args):
-		asyncon = None
-		self.lock.acquire ()
-		try:
-			try:
-				if time.time () - self.__last_maintern > self.maintern_interval:					
-					self.maintern ()
-							
-				self.__numget += 1
-				if serverkey not in self.__socketfarm:
-					asyncon = self.create_asyncon (server, *args)
-					if self.use_pool:
-						self.__socketfarm [serverkey] = {}
-						self.__socketfarm [serverkey][id (asyncon)] = asyncon
+		asyncon = None	
+		if self.use_pool and time.time () - self.__last_maintern > self.maintern_interval:
+			try:				
+				self.maintern ()
+			except:
+				self.logger.trace ()	
 					
-				else:		
-					asyncons = list(self.__socketfarm [serverkey].values ())
-					#print (self.__protos.get (serverkey), PROTO_CONCURRENT_STREAMS)
-					if self.__protos.get (serverkey) in PROTO_CONCURRENT_STREAMS:
-						asyncon = select_channel (asyncons)
-						#print (len (asyncons), asyncon)
-					else:
-						for each in asyncons:								
-							if not each.isactive ():
-								asyncon = each
-								break
-					
-					if not asyncon:
-						asyncon = self.create_asyncon (server, *args)
-						if self.use_pool:
-							self.__socketfarm [serverkey][id (asyncon)] = asyncon
-				
-				asyncon.set_active (True)
+		self.__numget += 1
+		if not self.use_pool:
+			asyncon = self.create_asyncon (server, *args)
 			
-			finally:
-				self.lock.release ()
-		
-		except:
-			self.logger.trace ()
-		
-		if self.use_pool:
+		else:	
+			if serverkey not in self.__socketfarm:
+				self.__socketfarm [serverkey] = {}
+				asyncon = self.create_asyncon (server, *args)
+				self.__socketfarm [serverkey][id (asyncon)] = asyncon
+				
+			else:		
+				asyncons = list(self.__socketfarm [serverkey].values ())
+				if self.__protos.get (serverkey) in PROTO_CONCURRENT_STREAMS:
+					asyncon = select_channel (asyncons)
+					
+				else:
+					for each in asyncons:								
+						if not each.isactive ():
+							asyncon = each
+							break
+				
+				if not asyncon:
+					asyncon = self.create_asyncon (server, *args)
+					self.__socketfarm [serverkey][id (asyncon)] = asyncon
+			
 			proto = self.__protos.get (serverkey)
 			if not proto and asyncon.get_proto ():
 				self.__protos [serverkey] = asyncon.get_proto ()
-									
+				
+		asyncon.set_active (True)
 		return asyncon
 	
 	def create_asyncon (self, server, scheme):
@@ -214,27 +201,36 @@ class SocketPool:
 				
 	def get (self, uri):		
 		scheme, server, script, params, qs, fragment = urlparse (uri)
-		serverkey = "%s://%s" % (scheme, server)	
-		return self._get (serverkey, server, scheme)
-	
+		serverkey = "%s://%s" % (scheme, server)
+		try:
+			with self.lock:
+				return self._get (serverkey, server, scheme)
+		except:
+			self.logger.trace ()
+			return None
+			
 	def noop (self):
+		if not self.use_pool:
+			return 
+			
 		with self.lock:
 			for server in list(self.__socketfarm.keys ()):					
 				for asyncon in list(self.__socketfarm [server].values ()):
 					asyncon.set_event_time ()
 			
 	def cleanup (self):
-		self.lock.acquire ()
+		if not self.use_pool:
+			return 
+			
 		try:
-			try:
+			with self.lock:
 				for server in list(self.__socketfarm.keys ()):					
 					for asyncon in list(self.__socketfarm [server].values ()):
 						asyncon.disconnect ()
 						del asyncon
 				self.__socketfarm = {}
 				self.__protos = {}
-			finally:
-				self.lock.release ()
+							
 		except:
 			self.logger.trace ()
 

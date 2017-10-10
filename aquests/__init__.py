@@ -138,7 +138,8 @@ def configure (
 	_initialized = True
 
 def _reque_first (request):
-	global _que	
+	global _que
+	
 	_que.first (request)	
 
 def handle_status_401 (response):
@@ -149,9 +150,8 @@ def handle_status_401 (response):
 	_logger ("authorization failed, %s" % response.url, "info")		
 	request = response.request	
 	request.reauth_count = 1	
-	del response
 	_reque_first (request)	
-
+	
 def handle_status_3xx (response):
 	global _allow_redirects	, _que
 	
@@ -176,7 +176,6 @@ def handle_status_3xx (response):
 	
 	#_logger ("%s redirected to %s from %s" % (response.status_code, newloc, oldloc), "info")	
 	# DO NOT use relocated response.request, it is None
-	del response
 	_reque_first (request)
 	
 def _request_finished (handler):
@@ -194,8 +193,8 @@ def _request_finished (handler):
 			for handle_func in (handle_status_401, handle_status_3xx):
 				response = handle_func (response)
 				if not response:
-					# re-requested
-					return
+					# re-requested					
+					return req_if_queue (req_id)					
 		except:
 			_logger.trace ()
 		
@@ -205,8 +204,13 @@ def _request_finished (handler):
 	callback = response.meta ['req_callback'] or _cb_gateway
 	try:
 		callback (response)
-	except:
+	except:		
 		_logger.trace ()	
+	
+	req_if_queue (req_id)
+	
+def req_if_queue (req_id):
+	global _logger, _currents
 	
 	try:
 		qsize () and _req ()
@@ -245,7 +249,8 @@ def _req ():
 			asyncon = dbpool.get (server, dbname, auth, "*" + _method)
 			req = request_builder.make_dbo (_method, server, dbmethod, params, dbname, auth, meta, _logger)
 		else:
-			asyncon = dbpool.get (req.server, req.dbname, req.auth, "*" + req.dbtype)				
+			asyncon = dbpool.get (req.server, req.dbname, req.auth, "*" + req.dbtype)
+			
 		_currents [meta ['req_id']] = [0, req.server]
 		req.set_callback (_request_finished)
 		asyncon.execute (req)
@@ -258,15 +263,14 @@ def _req ():
 				req = request_builder.make_ws (_method, url, params, auth, headers, meta, proxy, _logger)
 			else:
 				req = request_builder.make_http (_method, url, params, auth, headers, meta, proxy, _logger)			
+		
 		else:
 			asyncon = socketpool.get (req.uri)		
-		_currents [meta ['req_id']] = [0, req.uri]
-		
+
+		_currents [meta ['req_id']] = [0, req.uri]		
 		handler = req.handler (asyncon, req, _request_finished)
-		if asyncon.get_proto () and asyncon.isconnected ():
-			asyncon.handler.handle_request (handler)
-		else:
-			handler.handle_request ()	
+		handler.handle_request ()
+		
 
 def workings ():
 	global _currents
@@ -282,7 +286,7 @@ def qsize ():
 
 def mapsize ():
 	return len (asyncore.socket_map)
-	
+
 def countfin ():	
 	global _finished_total
 	return _finished_total
@@ -370,18 +374,17 @@ def _add (method, url, params = None, auth = None, headers = {}, callback = None
 	meta ['req_id'] = _que.req_id
 	meta ['req_method'] = method
 	meta ['req_callback'] = callback
-	host = urlparse (url) [1].split (":")[0]
+	_que.add ((method, url, params, auth, headers, meta, proxy))
 	
 	# DNS query for caching and massive
 	if not lifetime._polling:
+		host = urlparse (url) [1].split (":")[0]
 		if _dns_reqs < _workers and host not in _dns_query_req:
 			_dns_query_req [host] = None
 			_dns_reqs += 1
 			adns.query (host, "A", callback = lambda x: None)		
 		if mapsize ():
 			lifetime.poll_fun_wrap (0.05)
-	
-	_que.add ((method, url, params, auth, headers, meta, proxy))
 	
 #----------------------------------------------------
 # Add Reuqest (protocols.*.request) Object
@@ -404,7 +407,6 @@ def options (*args, **karg):
 
 def upload (*args, **karg):
 	_add ('upload', *args, **karg)
-
 
 def get (*args, **karg):
 	_add ('get', *args, **karg)

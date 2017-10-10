@@ -96,11 +96,13 @@ class AsynConnect (asynchat.async_chat):
 			
 		if not self.handler:
 			# return to the pool
-			return self.set_active (False)		
+			return self.set_active (False)
+		
+		#print (self.handler.request.meta ['sid'], 'close...')	
 		if not self.errcode:
 			# disconnect intentionally
 			return
-			
+		
 		handler, self.handller = self.handler, None
 		keep_active = False
 		try:
@@ -109,21 +111,21 @@ class AsynConnect (asynchat.async_chat):
 			self.trace ()
 		
 		if not keep_active:
+			#print (handler.request.meta ['sid'], 'not keepalive...')
 			self.set_active (False)	
-			if self.errcode not in (704, 712):
+			if self.errcode not in (704, 712, 722):
 				# controlled shutdown
 				self.logger (
 					".....socket %s has been closed (reason: %d)" % ("%s:%d" % self.address, self.errcode),
 					"info"
-				)
+				)					
 		# DO NOT Change any props, because may be request has been restarted	
-	
+		
 	def end_tran (self):
 		if DEBUG:
 			self.logger ('end_tran {rid:%s} %s' % (self.handler.request.meta.get ('req_id', -1), self.handler.request.uri), 'debug')
-		if not self.backend:
+		if not self.backend:			
 			self.del_channel ()
-		self.handler = None
 		self.set_active (False)
 		if not self.keep_connect:
 			self.disconnect ()
@@ -249,7 +251,7 @@ class AsynConnect (asynchat.async_chat):
 		else:			
 			self.continue_connect (True)
 		
-	def continue_connect (self, answer = None):		
+	def continue_connect (self, answer = None):
 		self.initialize_connection ()
 		
 		if not adns.query:
@@ -259,13 +261,13 @@ class AsynConnect (asynchat.async_chat):
 			return
 		
 		ipaddr = answer and answer [-1]["data"] or None		
-		port = self.address [1]
-		
+		#print (self.handler.request.meta ['sid'], ipaddr, 'continue_connect...')
 		if not ipaddr:			
 			return self.handle_close (704)			
-												
+		
+		port = self.address [1]										
 		self.create_socket (socket.AF_INET, socket.SOCK_STREAM)
-		try: asynchat.async_chat.connect (self, (ipaddr, port))									
+		try: asynchat.async_chat.connect (self, (ipaddr, port))
 		except:	self.handle_error (714)
 		
 	def recv (self, buffer_size):
@@ -339,12 +341,13 @@ class AsynConnect (asynchat.async_chat):
 	
 	def maintern (self, object_timeout):		
 		if time.time () - self.event_time > object_timeout:
-			if self.handler and hasattr (self.handler, "enter_shutdown_process"):
-				self.handler.enter_shutdown ()
-				return True
+			if self.handler:
+				if hasattr (self.handler, "on_close"):
+					self.handler.on_close ()
+				self.handle_close (722)
 			else:	
 				self.disconnect ()
-				return True		
+			return True
 		return False
 		
 	# proxy POST need no init_send
@@ -367,7 +370,7 @@ class AsynConnect (asynchat.async_chat):
 	
 	def handle_abort (self):
 		self.handler = None
-		self.close ()
+		self.close ()		
 		
 	def handle_close (self, code = 700, msg = ""):
 		if code == 0: msg = ""
@@ -422,9 +425,11 @@ class AsynConnect (asynchat.async_chat):
 		# IMP: call add_channel () AFTER push()	otherwise threading issue will be raised
 		try:
 			if not self.connected:				
+				#print (self.handler.request.meta ['sid'], 'connecting...')
 				self.connect ()
 								
 			elif not self.backend:
+				#print (self.handler.request.meta ['sid'], 'add channel...')
 				self.add_channel ()
 				
 		except:

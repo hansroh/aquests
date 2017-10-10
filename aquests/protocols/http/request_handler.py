@@ -9,16 +9,17 @@ from hyperframe.frame import SettingsFrame
 from ..http2 import H2_PROTOCOLS
 from ...client import socketpool
 from ...lib.cbutil import tuple_cb
+import asyncore
 
 class ProtocolSwitchError (Exception):
 	pass
-	
-	
+
+
 class RequestHandler (base_request_handler.RequestHandler):
 	FORCE_HTTP_11 = False	
 	
 	def __init__ (self, asyncon, request, callback, connection = "keep-alive"):
-		self.asyncon = asyncon
+		self.asyncon = asyncon		
 		self.wrap_in_chunk = False
 		self.end_of_data = False
 		self.expect_disconnect = False
@@ -244,7 +245,10 @@ class RequestHandler (base_request_handler.RequestHandler):
 		if self.will_be_close ():
 			self.asyncon.disconnect ()		
 		self.close_case_with_end_tran ()
-				
+	
+	def enter_shutdown_process (self):		
+		self.asyncon.handle_close (705)
+		
 	def connection_closed (self, why, msg):		
 		if self.response and self.expect_disconnect:
 			self.close_case ()
@@ -261,8 +265,9 @@ class RequestHandler (base_request_handler.RequestHandler):
 		if hasattr (self.asyncon, "begin_tran"):
 			self.close_case ()
 			
-	def close_case_with_end_tran (self):
+	def close_case_with_end_tran (self):		
 		self.asyncon.end_tran ()
+		#print (self.request.meta ['sid'], 'end_tran')
 		self.close_case ()
 		
 	def handle_callback (self):
@@ -270,10 +275,15 @@ class RequestHandler (base_request_handler.RequestHandler):
 			return
 		tuple_cb (self, self.callback)
 		self.callbacked = 1
-			
-	def close_case (self):
+	
+	def on_close (self):
 		if self.asyncon:
-			self.asyncon.handler = None # unlink back ref.		
+			self.asyncon.handler = None # unlink back ref.
+		
+	def close_case (self):
+		#print (self.request.meta ['sid'], 'close_case')
+		#if self.asyncon:
+		#	self.asyncon.handler = None # unlink back ref.
 		self.handle_callback ()
 	
 	def switch_to_http2 (self):		
@@ -302,6 +312,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 						
 	def handle_request (self):
 		if self.asyncon.isconnected () and self.asyncon.get_proto ():			
+			#print (self.request.meta ['sid'], 'switch_to_http2')
 			return self.switch_to_http2 ()
 		
 		self.buffer, self.response = b"", None
@@ -322,6 +333,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 			self.asyncon.negotiate_http2 (False)
 			
 		self.asyncon.begin_tran (self)
+		#print (self.request.meta ['sid'], 'begin tran')
 	
 	def will_be_close (self):
 		if self.connection == "close": #server misbehavior ex.paxnet
