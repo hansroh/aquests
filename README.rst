@@ -184,6 +184,25 @@ If timeout occured, response status_code will be 702. Also note above 700 codes 
 2. Cause of aquests' single thread coroutine feature, timeout will not work with exactly timeout seconds.
 
 
+Set Response Validators For Content-Type and Content-Length
+--------------------------------------------------------------
+
+You can set response validators using headers.
+
+.. code-block:: python
+  
+  aquests.configure (20, timeout = 10) # 10 seconds
+  aquests.get (
+    "https://www.google.co.kr/?gfe_rd=cr&ei=3y14WPCTG4XR8gfSjoK4DQ",
+    headers = {
+      "Accept": 'text/html',
+      "Accept-Content-Length": 100000, # max 100Kb
+    }
+  )
+  aquests.fetchall ()
+
+Accept-Content-Length is not standard HTTP header but used by aquests. aquests returns status code 718 for unaccpetable content and code 719 for too large content.
+
 Mixed Requests
 ----------------
 
@@ -677,8 +696,15 @@ Note: stub's methods and parameters are defined by database engines. Please read
 History
 =========
 
+- 0.7.9
+
+  - response content type and length validating using request headers
+  
 - 0.7.8
   
+  - fix memory leaking cause by exception handling
+  - set DNS minimum ttl value to 300
+  - remove 1 second delay when DNS query failed
   - increase DNS query timeout
   - use select.select for asyncore.loop instead of select.poll for andling socket errors directly
   - add getjson, deletejson, this request automatically add header 'Accept: application/json'
