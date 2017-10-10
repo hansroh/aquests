@@ -116,6 +116,7 @@ class SocketPool:
 					self.logger.trace ()
 				else:
 					if deletable:
+						asyncon.handler = None # break back ref.
 						del self.__socketfarm [serverkey][_id]
 						self.numobj -= 1
 			

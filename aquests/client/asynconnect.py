@@ -118,7 +118,7 @@ class AsynConnect (asynchat.async_chat):
 				self.logger (
 					".....socket %s has been closed (reason: %d)" % ("%s:%d" % self.address, self.errcode),
 					"info"
-				)					
+				)
 		# DO NOT Change any props, because may be request has been restarted	
 		
 	def end_tran (self):
@@ -342,8 +342,8 @@ class AsynConnect (asynchat.async_chat):
 	def maintern (self, object_timeout):		
 		if time.time () - self.event_time > object_timeout:
 			if self.handler:
-				if hasattr (self.handler, "on_close"):
-					self.handler.on_close ()
+				if hasattr (self.handler, "control_shutdown"):
+					self.handler.control_shutdown ()
 				self.handle_close (722)
 			else:	
 				self.disconnect ()

@@ -276,10 +276,6 @@ class RequestHandler (base_request_handler.RequestHandler):
 		tuple_cb (self, self.callback)
 		self.callbacked = 1
 	
-	def on_close (self):
-		if self.asyncon:
-			self.asyncon.handler = None # unlink back ref.
-		
 	def close_case (self):
 		#print (self.request.meta ['sid'], 'close_case')
 		#if self.asyncon:
