@@ -22,7 +22,6 @@ class async_dns (asyncore.dispatcher_with_send):
 		if not self.servers:
 			raise OSError ("DNS Server Required")
 		random.shuffle (self.servers)
-		#self.servers = [("156.154.71.3", 513), ("156.154.71.9", 543)]
 		self.addr = self.servers.pop (0)		
 		self.request = request
 		self.callback = callback		
@@ -100,7 +99,7 @@ class async_dns (asyncore.dispatcher_with_send):
 		if self.closed:
 			return
 		self.closed = True			
-		asyncore.dispatcher_with_send.close (self)		
+		asyncore.dispatcher_with_send.close (self)
 		self.callback (self.servers, self.request, self.args, self.ac_in_buffer, self._timeouted)
 			
 	def handle_close (self):
@@ -150,8 +149,7 @@ class Request:
 		else:
 			qtype = args ['qtype']
 			
-		qname = args ['name']
-		
+		qname = args ['name']		
 		#print 'QTYPE %d(%s)' % (qtype, Type.typestr(qtype))
 		m = Lib.Mpacker()
 		# jesus. keywords and default args would be good. TODO.
@@ -166,7 +164,7 @@ class Request:
 		server = [(x, args ["port"]) for x in server]
 		async_dns (server, request, args, self.processReply, self.logger, self.debug_level)
 			
-	def processReply (self, server, request, args, data, timeouted):
+	def processReply (self, server, request, args, data, timeouted):		
 		answers = []
 		if timeouted:
 			# for retrying			
@@ -208,8 +206,7 @@ class Request:
 				except:
 					self.logger.trace ()					
 			
-		callback = args.get ("callback", None)
-		#self.logger ('DNS callback %s' % callback)
+		callback = args.get ("callback", None)		
 		if callback:
 			if type (callback) != type ([]):
 				callback = [callback]

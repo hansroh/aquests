@@ -9,16 +9,17 @@ from hyperframe.frame import SettingsFrame
 from ..http2 import H2_PROTOCOLS
 from ...client import socketpool
 from ...lib.cbutil import tuple_cb
+import asyncore
 
 class ProtocolSwitchError (Exception):
 	pass
-	
-	
+
+
 class RequestHandler (base_request_handler.RequestHandler):
 	FORCE_HTTP_11 = False	
 	
 	def __init__ (self, asyncon, request, callback, connection = "keep-alive"):
-		self.asyncon = asyncon
+		self.asyncon = asyncon		
 		self.wrap_in_chunk = False
 		self.end_of_data = False
 		self.expect_disconnect = False
@@ -126,8 +127,11 @@ class RequestHandler (base_request_handler.RequestHandler):
 			return
 		if not self.response or self.asyncon.get_terminator () == b"\r\n":
 			self.buffer += data
-		else:			
-			self.response.collect_incoming_data (data)
+		else:
+			try:
+				self.response.collect_incoming_data (data)			
+			except http_response.ContentLimitReached:
+				self.asyncon.handle_error (719)
 		
 	def found_terminator (self):
 		if self.response:			
@@ -192,25 +196,16 @@ class RequestHandler (base_request_handler.RequestHandler):
 		except:
 			self.log ("response header error: `%s`" % repr (buffer [:80]), "error")
 			return self.asyncon.handle_error (715)			
-			
-		accepts = self.request.get_header ("accept", '')
-		if accepts in ("", "*/*"):
-			return
 		
-		ct = self.response.get_header ("content-type", 'text/html').split (";")[0].strip ()
-		try: 
-			mct, sct = ct.split ("/")
-		except:
-			return self.asyncon.handle_error (717)
-			
-		for accept in accepts.split (","):
-			acctype = accept.split (";")[0].strip ()
-			try: mtype, stype = acctype.split ("/", 1)
-			except ValueError: continue
-			if mtype in ("*", mct) and stype in ("*", sct):
-				return
+		ct = self.response.check_accept ()
+		if ct:	
+			self.log ("response content-type error: `%s`" % ct, "error")
+			return self.asyncon.handle_close (718)
 		
-		self.asyncon.handle_close (718)		
+		cl = self.response.check_max_content_length ()
+		if cl:
+			self.log ("response content-length error: `%d`" % cl, "error")
+			return self.asyncon.handle_close (719)
 		
 	def handle_response_code (self):
 		# default header never has "Expect: 100-continue"
@@ -250,7 +245,10 @@ class RequestHandler (base_request_handler.RequestHandler):
 		if self.will_be_close ():
 			self.asyncon.disconnect ()		
 		self.close_case_with_end_tran ()
-				
+	
+	def enter_shutdown_process (self):		
+		self.asyncon.handle_close (705)
+		
 	def connection_closed (self, why, msg):		
 		if self.response and self.expect_disconnect:
 			self.close_case ()
@@ -267,8 +265,9 @@ class RequestHandler (base_request_handler.RequestHandler):
 		if hasattr (self.asyncon, "begin_tran"):
 			self.close_case ()
 			
-	def close_case_with_end_tran (self):
+	def close_case_with_end_tran (self):		
 		self.asyncon.end_tran ()
+		#print (self.request.meta ['sid'], 'end_tran')
 		self.close_case ()
 		
 	def handle_callback (self):
@@ -276,10 +275,11 @@ class RequestHandler (base_request_handler.RequestHandler):
 			return
 		tuple_cb (self, self.callback)
 		self.callbacked = 1
-			
+	
 	def close_case (self):
-		if self.asyncon:
-			self.asyncon.handler = None # unlink back ref.		
+		#print (self.request.meta ['sid'], 'close_case')
+		#if self.asyncon:
+		#	self.asyncon.handler = None # unlink back ref.
 		self.handle_callback ()
 	
 	def switch_to_http2 (self):		
@@ -299,7 +299,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 					self.asyncon.push (data)
 	
 	def handle_rerequest (self):
-		# init for redirexting or reauth
+		# init for redirecting or reauth
 		self.response = None
 		self.end_of_data = False
 		self.buffer = b''
@@ -308,6 +308,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 						
 	def handle_request (self):
 		if self.asyncon.isconnected () and self.asyncon.get_proto ():			
+			#print (self.request.meta ['sid'], 'switch_to_http2')
 			return self.switch_to_http2 ()
 		
 		self.buffer, self.response = b"", None
@@ -328,6 +329,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 			self.asyncon.negotiate_http2 (False)
 			
 		self.asyncon.begin_tran (self)
+		#print (self.request.meta ['sid'], 'begin tran')
 	
 	def will_be_close (self):
 		if self.connection == "close": #server misbehavior ex.paxnet

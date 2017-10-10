@@ -16,6 +16,10 @@ from . import urlinfo
 class HTTPRepsonseError (Exception):
 	pass
 
+class ContentLimitReached (HTTPRepsonseError):
+	pass
+
+
 RESPONSE = re.compile ('HTTP/([0-9.]+) ([0-9]{3})\s?(.*)')
 DEFAULT_PORT_MAP = {'http': 80, 'https': 443, 'ws': 80, 'wss': 443}
 	
@@ -37,6 +41,7 @@ class Response:
 		self._header_cache = {}
 		self.version, self.code, self.msg = crack_response (self.response)
 		self.size = 0
+		self.mcl = self.get_mcl ()
 		self.got_all_data = False
 		self.max_age = 0
 		self.decompressor = None
@@ -47,10 +52,56 @@ class Response:
 		self.__data_cache = None
 		self.__lxml = None
 		self.save_cookies ()
-	
+		
 	def __repr__ (self):
 		return "<Response [%d]>" % self.status_code
+	
+	def get_mcl (self):
+		mcl = self.request.get_header ('accept-content-length')
+		if mcl:			
+			return int (mcl)
+		return 0
+			
+	def check_max_content_length (self):
+		if not self.mcl:		
+			return
+						
+		cl = self.get_header ('content-length', 0)		
+		if not cl:
+			return
+		try:
+			cl = int (cl)
+		except ValueError:
+			return
+					
+		if cl > self.mcl:
+			return cl
 		
+	def check_accept (self):
+		ac = self.request.get_header ('accept')
+		if not ac or ac == "*/*":
+			return			
+		ct = self.get_header ('content-type')
+		if not ct:
+			return
+			
+		acs = []
+		for each in ac.split (","):
+			a = each.split (";", 1)[0].strip ()
+			m1, s1 = a.split ("/")
+			acs.append ((m1, s1))
+		
+		ct = ct.split (";")[0].strip ()
+		try:
+			m, s = ct.split ("/", 1)
+		except ValueError:
+			m, s = ct, ''
+				
+		for m1, s1 in acs:
+			if m == m1 and (s1 == "*" or s1 == s):
+				return
+		return ct
+			
 	def set_max_age (self):
 		self.max_age = 0
 		if self.code != 200:
@@ -114,7 +165,7 @@ class Response:
 			self.is_xmlrpc_return = True
 		else:			
 			self.p, self.u = buffers.getfakeparser (buffers.bytes_buffer, cache = self.max_age)
-		
+			
 		if self.get_header ("Content-Encoding") == "gzip":			
 			self.decompressor = compressors.GZipDecompressor ()
 			
@@ -123,6 +174,9 @@ class Response:
 			self.init_buffer ()
 		self.size += len (data)
 		
+		if self.mcl and self.size > self.mcl:			
+			raise ContentLimitReached ("content-length is over %s" % self.mcl)
+			
 		if self.decompressor:
 			data = self.decompressor.decompress (data)
 		

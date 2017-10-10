@@ -54,8 +54,9 @@ def make_http (_method, url, params, auth, headers, meta, proxy, logger):
 				ac = _ac
 				break
 		
-		headers ['Accept'] = ac
-		if params:						
+		if headers.get ("Accept") is None:
+			headers ['Accept'] = ac
+		if params:
 			headers ['Content-Type'] = ct
 		req = http_request.HTTPRequest (url, _method.upper (), params, headers, auth, logger, meta)		
 	

@@ -51,7 +51,7 @@ class XMLRPCRequest:
 		self.headers = attrdict.CaseInsensitiveDict ()
 		self.headers ["Accept"] = "*/*"
 		self.headers ["Accept-Encoding"] = "gzip"		
-		if headers:
+		if headers:			
 			for k, v in type (headers) is dict and headers.items () or headers:
 				n = k.lower ()
 				if n in ("accept-encoding	", "content-length", "connection"):

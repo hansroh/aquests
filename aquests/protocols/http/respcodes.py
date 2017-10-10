@@ -52,7 +52,7 @@ responses = {
 		707: "HTTP Header/Body Error",
 		708: "No Data Recieved",
 		709: "Invalid Content",
-		710: "Channel Closed",	
+		710: "Channel Closed",
 		711: "Redirect Error",
 		712: "Controlled Shutdown",
 		713: "SSL Handshake Failure",
@@ -61,8 +61,10 @@ responses = {
 		716: "Protocol Switching Failure",
 		717: "Invalid Cotnent Type",
 		718: "Unacceptable Content Type",	
+		719: "Too Large Content",	
 		720: "HTTP2 Connection Closed",
-		721: "HTTP2 Stream Reset"
+		721: "HTTP2 Stream Reset",
+		722: "Object timeout"	
 }
 
 def get (code, default = "Undefined Error"):

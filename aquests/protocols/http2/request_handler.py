@@ -120,9 +120,8 @@ class RequestHandler (base_request_handler.RequestHandler):
 		self.send_data ()
 		self.channel.close_when_done ()	
 		
-	def enter_shutdown_process (self, err = 0):
-		self.go_away (ErrorCodes.NO_ERROR)
-		self.asyncon.handler = None # unlink
+	def control_shutdown (self, err = 0):
+		self.go_away (ErrorCodes.NO_ERROR)		
 				
 	def add_request (self, stream_id, handler):		
 		handler.asyncon = self.fakecon
