@@ -168,7 +168,7 @@ class SocketPool:
 			if not proto and asyncon.get_proto ():
 				self.__protos [serverkey] = asyncon.get_proto ()
 				
-		asyncon.set_active (True)
+		asyncon.set_active (True)		
 		return asyncon
 	
 	def create_asyncon (self, server, scheme):
