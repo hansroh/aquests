@@ -35,9 +35,23 @@ class async_dns (asyncore.dispatcher_with_send):
 		self.ac_in_buffer = b""
 		self.closed = False
 		
-		asyncore.dispatcher_with_send.__init__ (self)		
+		asyncore.dispatcher_with_send.__init__ (self)
+		
+		if args ["protocol"] == "tcp":
+			self.query_tcp ()
+		else:
+			self.query_udp ()
+			
+	def query_udp (self):		
+		# TODO, IS IT POSSIBLE?
+		self.create_socket (socket.AF_INET, socket.SOCK_DGRAM)
+		self.query ()
+	
+	def query_tcp (self):
 		self.create_socket (socket.AF_INET, socket.SOCK_STREAM)				
-				
+		self.query ()		
+	
+	def query (self):
 		try:
 			self.connect (self.addr)
 		except:
@@ -76,10 +90,13 @@ class async_dns (asyncore.dispatcher_with_send):
 		self.handle_close ()
 					
 	def handle_connect (self):	
-		self.send (self.request)
-		
+		if self.args ["protocol"] == "tcp":
+			self.send (Lib.pack16bit(len(self.request))+self.request)
+		else:	
+			self.send (self.request)
+			
 	def handle_write (self):
-		if not self.closed:
+		if self.args ["protocol"] == "tcp" and not self.closed:
 			self.socket.shutdown (1)
 		
 	def handle_read (self):
@@ -89,8 +106,8 @@ class async_dns (asyncore.dispatcher_with_send):
 			return
 		except OSError as why:
 			self.handle_close()
-			return
-		self.ac_in_buffer += data		
+			return		
+		self.ac_in_buffer += data				
 		
 	def handle_expt (self):
 		self.handle_close ()
@@ -159,7 +176,7 @@ class Request:
 		
 		m.addQuestion (qname, qtype, Class.IN)
 		request = m.getbuf ()
-		request = Lib.pack16bit (len(request)) + request
+		#request = Lib.pack16bit (len(request)) + request
 		
 		server = [(x, args ["port"]) for x in server]
 		async_dns (server, request, args, self.processReply, self.logger, self.debug_level)
@@ -219,9 +236,9 @@ if __name__	== "__main__":
 	import pprint
 	f = Request (logger.screen_logger ())
 	f.req ("www.yahoo.com", protocol = "tcp", callback = pprint.pprint, qtype="a")
-	f.req ("www.hungryboarder.com", protocol = "tcp", callback = pprint.pprint, qtype="a")
-	f.req ("www.alexa.com", protocol = "tcp", callback = pprint.pprint, qtype="a")
-	f.req ("www.google.com", protocol = "tcp", callback = pprint.pprint, qtype="mx")
+	#f.req ("www.hungryboarder.com", protocol = "tcp", callback = pprint.pprint, qtype="a")
+	#f.req ("www.alexa.com", protocol = "tcp", callback = pprint.pprint, qtype="a")
+	#f.req ("www.google.com", protocol = "tcp", callback = pprint.pprint, qtype="mx")
 	asyncore.loop (timeout = 1)
 	
 	
