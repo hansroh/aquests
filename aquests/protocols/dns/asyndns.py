@@ -2,7 +2,7 @@
 2008 added for asynchronous DNS query by Hans Roh
 """
 
-import asyncore
+import asynchat, asyncore
 import socket
 import time
 import types
@@ -10,152 +10,132 @@ import random
 import types
 from .pydns import Base, Type, Class, Lib, Opcode
 import random
+import threading
 
 defaults = Base.defaults
 Base.DiscoverNameServers ()
 
-class async_dns (asyncore.dispatcher_with_send):
-	zombie_timeout = 10
+socket_map = {}
+
+class async_dns (asynchat.async_chat):
+	zombie_timeout = 2
 	
-	def __init__ (self, servers, request, args, callback, logger, debug_level):
-		self.servers = servers
-		if not self.servers:
-			raise OSError ("DNS Server Required")
-		random.shuffle (self.servers)
-		self.addr = self.servers.pop (0)		
-		self.request = request
-		self.callback = callback		
-		self.args = args		
+	def __init__ (self, addr, logger):
+		self.addr = addr				
 		self.logger = logger
-		self.debug_level = debug_level
-		self.qname = self.args ["name"].decode ("utf8")
-		
-		self.creation_time = time.time ()
+		self.active = False
+		self.creation_time = time.time ()		
+		self._timeouted = 0
 		self.event_time = time.time ()
-		self.ac_in_buffer = b""
+		self.reply = b""
+		self.header = None
 		self.closed = False
+		asynchat.async_chat.__init__ (self, None, socket_map)
 		
-		asyncore.dispatcher_with_send.__init__ (self)
+	def query (self, request, args, callback):		
+		self.callback = callback		
+		self.request = request
+		self.args = args				
+		self.qname = self.args ["name"].decode ("utf8")
+		args ['addr'] = self.addr
 		
 		if args ["protocol"] == "tcp":
-			self.query_tcp ()
+			self.set_terminator (2)
+			self.connect_tcp ()
 		else:
-			self.query_udp ()
+			self.set_terminator (None)
+			self.connect_udp ()
+		
+		if self.args ["protocol"] == "tcp":
+			self.push (Lib.pack16bit(len(request)) + request)
+		else:	
+			self.push (request)
 			
-	def query_udp (self):		
-		# TODO, IS IT POSSIBLE?
+	def connect_udp (self):				
 		self.create_socket (socket.AF_INET, socket.SOCK_DGRAM)
-		self.query ()
+		self._connect ()
 	
-	def query_tcp (self):
+	def connect_tcp (self):
 		self.create_socket (socket.AF_INET, socket.SOCK_STREAM)				
-		self.query ()		
+		self._connect ()
 	
-	def query (self):
+	def _connect (self):		
 		try:
 			self.connect (self.addr)
 		except:
 			self.handle_error ()
-	
-	def __repr__ (self):
-		return "<async_dns: %s>" % self.qname
-				
+					
 	def trace (self):
 		self.logger.trace (self.qname)
 	
 	def log_info (self, line, level = 'info'):
 		self.log ("[%s:%s] %s" % (level, self.qname, line))
-	
+	          
 	def log (self, line):
 		self.logger (line)
-	
-	def create_socket (self, family, type):
-		sock_class = socket.socket			
-		self.family_and_type = family, type
-		self.socket = sock_class (family, type)
-		self.socket.setblocking (0)
-		self._fileno = self.socket.fileno ()
-		self._timeouted = 0
-		self.add_channel()
 		
 	def handle_error (self):
-		if self.debug_level: 
-			self.trace ()
+		self.trace ()
 		self.close ()
 	
 	def handle_timeout (self):
-		if self.debug_level: 
-			self.log_info ('DNS query timeout %s' % self.qname, 'error')
-		self._timeouted = 1
+		self._timeouted = True
 		self.handle_close ()
 					
 	def handle_connect (self):	
-		if self.args ["protocol"] == "tcp":
-			self.send (Lib.pack16bit(len(self.request))+self.request)
-		else:	
-			self.send (self.request)
-			
-	def handle_write (self):
-		if self.args ["protocol"] == "tcp" and not self.closed:
-			self.socket.shutdown (1)
-		
-	def handle_read (self):
-		try:
-			data = self.recv (4096)
-		except BlockingIOError:
-			return
-		except OSError as why:
-			self.handle_close()
-			return		
-		self.ac_in_buffer += data				
-		
+		self.event_time = time.time ()		
+	
 	def handle_expt (self):
 		self.handle_close ()
 	
-	def close (self):
-		if self.closed:
-			return
-		self.closed = True			
-		asyncore.dispatcher_with_send.close (self)
-		self.callback (self.servers, self.request, self.args, self.ac_in_buffer, self._timeouted)
+	def collect_incoming_data (self, data):
+		self.reply += data
+		if self.args ["protocol"] == "udp":
+			self.callback (self.args, self.reply, self._timeouted)
+			self.callback = None
+			self.close ()
+			
+	def found_terminator (self):
+		if self.args ["protocol"] == "tcp":
+			if self.header:
+				if self.callback:
+					self.callback (self.args, self.header + self.reply, self._timeouted)
+					self.callback = None
+				self.close ()
+				
+			else:
+				self.header, self.reply = self.reply, b""
+				count = Lib.unpack16bit(self.header)
+				self.set_terminator (count)			
 			
 	def handle_close (self):
-		self.close ()
-	
-	
-class Request:
-	def __init__(self, logger, server = [], debug_level = 1):
-		if type (server) is bytes:
-			server = [server]
+		if self.callback:
+			self.callback (self.args, b'', self._timeouted)
+			self.callback = None
+		self.close ()		
 		
-		defaults ["server"] += server		
-		self.logger = logger
-		self.debug_level = debug_level		
+		
+class Request:
+	def __init__(self, name, **args):
+		self.req (name, **args)				
 		
 	def argparse (self, name, args):
-		args['name']=name
+		args['name'] = name
 		for i in list(defaults.keys()):
 			if i not in args:
-				if i == "server": 
-					args[i]=defaults[i][:]
-				else:	
-					args[i]=defaults[i]
-				
-		if type (args['server']) == bytes:
-			args ['server'] = [args['server']]
-			
+				args[i]=defaults[i]
 		return args
 		
 	def req (self, name, **args):
-		name = name.encode ("utf8")
+		global pool
+		
+		if isinstance (name, str):
+			name = name.encode ("utf8")
 		args = self.argparse (name, args)
 		
 		protocol = args ['protocol']
-		port = args ['port']
 		opcode = args ['opcode']
 		rd = args ['rd']
-		server = args ['server'][:]
-		#server = ['127.0.0.1:6000']
 		
 		if type(args['qtype']) in (bytes, str):
 			try:
@@ -167,61 +147,68 @@ class Request:
 			qtype = args ['qtype']
 			
 		qname = args ['name']		
-		#print 'QTYPE %d(%s)' % (qtype, Type.typestr(qtype))
 		m = Lib.Mpacker()
-		# jesus. keywords and default args would be good. TODO.
 		m.addHeader(0,
 			  0, opcode, 0, 0, rd, 0, 0, 0,
 			  1, 0, 0, 0)
 		
 		m.addQuestion (qname, qtype, Class.IN)
 		request = m.getbuf ()
-		#request = Lib.pack16bit (len(request)) + request
 		
-		server = [(x, args ["port"]) for x in server]
-		async_dns (server, request, args, self.processReply, self.logger, self.debug_level)
-			
-	def processReply (self, server, request, args, data, timeouted):		
+		args ['retry'] += 1
+		conn = pool.get (args ['addr'])
+		conn.query (request, args, self.processReply)
+		
+	def processReply (self, args, data, timeouted):		
+		global pool
+		
+		err = None
 		answers = []
-		if timeouted:
-			# for retrying			
-			if server:
-				async_dns (server, request, args, self.processReply, self.logger, self.debug_level)
-				return			
+		qname = args ['name'].decode ('utf8')
+		if timeouted and self.retry < 3:
+			err = 'timeout'
 			
 		else:	
 			try:
 				if not data:
-					raise Base.DNSError('%s, no working nameservers found' % args ['name'])
-			
-				if args ["protocol"] == "tcp":
-					header = data [:2]
-					if len (header) < 2:
-						raise Base.DNSError('%s, EOF' % args ['name'])
-					count = Lib.unpack16bit(header)		
-					reply = data [2: 2 + count]
-					if len (reply) != count:
-						raise Base.DNSError('%s, incomplete reply' % args ['name'])
-				
-				else:
-					reply = data
-				
-			except:					
-				if server:
-					async_dns (server, request, args, self.processReply, self.logger, self.debug_level)
-					return
+					err = "no reply"
 					
-				else:
-					reply = None
+				else:	
+					if args ["protocol"] == "tcp":
+						header = data [:2]
+						if len (header) < 2:
+							raise Base.DNSError('%s, EOF' % qname)
+						count = Lib.unpack16bit(header)		
+						reply = data [2: 2 + count]
+						if len (reply) != count:
+							err = "incomplete reply"					
+					else:
+						reply = data
+					
+			except:
+				pool.logger.trace ()
+				err = 'exception'	
 			
-			if reply:				
+			if not err:
 				try:	
 					u = Lib.Munpacker(reply)
 					r = Lib.DnsResult(u, args)
 					r.args = args
-					answers = r.answers
+					if r.header ['tc']:
+						err = 'trucate'
+						args ['protocol'] = 'tcp'
+					else:
+						if r.header ['status'] != 'NOERROR':
+							pool.logger ('%s, status %s' % (qname, r.header ['status']), 'warn')
+						answers = r.answers
 				except:
-					self.logger.trace ()					
+					pool.logger.trace ()
+			
+			if err:
+				if args ['retry'] < 3:
+					self.req (**args)					
+					return
+				raise Base.DNSError('%s, %s' % (qname, err))
 			
 		callback = args.get ("callback", None)		
 		if callback:
@@ -229,16 +216,63 @@ class Request:
 				callback = [callback]
 			for cb in callback:				
 				cb (answers)
-			
 
+
+class Pool:
+	def __init__ (self, servers, logger):
+		self.servers = [(x, 53) for x in servers]
+		self.logger = logger
+		
+	def get (self, exclude = None):
+		if len (self.servers) > 1:			
+			while 1:
+				addr = random.choice (self.servers)
+				if addr != exclude:
+					break
+		else:			
+			addr = self.servers [0]
+			
+		return async_dns (addr, self.logger)
+			
+		
+PUBLIC_DNS_SERVERS = [
+	'8.8.8.8', 
+	'8.8.4.4'
+]
+pool = None			
+def create_pool (dns_servers, logger):
+	global pool, PUBLIC_DNS_SERVERS
+	if not dns_servers:
+		dns_servers = PUBLIC_DNS_SERVERS
+	pool = Pool (dns_servers, logger)
+
+
+testset = [
+	"www.alexa.com",
+	"www.yahoo.com",
+	"www.microsoft.com",
+	"www.amazon.com",
+	"www.cnn.com",
+	"www.gitlab.com",
+	"www.github.com",
+	"hub.docker.com",
+]
+
+def test_callback (ans):
+	global testset, pool
+	
+	pprint.pprint (ans)	
+	if testset:
+		item = testset.pop ()		
+		Request (item, protocol = "udp", callback = test_callback, qtype = "a")		
+
+	
 if __name__	== "__main__":
 	from aquests.lib import logger
 	import pprint
-	f = Request (logger.screen_logger ())
-	f.req ("www.yahoo.com", protocol = "tcp", callback = pprint.pprint, qtype="a")
-	#f.req ("www.hungryboarder.com", protocol = "tcp", callback = pprint.pprint, qtype="a")
-	#f.req ("www.alexa.com", protocol = "tcp", callback = pprint.pprint, qtype="a")
-	#f.req ("www.google.com", protocol = "tcp", callback = pprint.pprint, qtype="mx")
-	asyncore.loop (timeout = 1)
+	
+	create_pool (PUBLIC_DNS_SERVERS, logger.screen_logger ())
+	r = Request ("www.advancedeyecenter.com", protocol = "udp", callback = test_callback, qtype="a")
+	asyncore.loop (timeout = 0.1, map = socket_map)
 	
 	

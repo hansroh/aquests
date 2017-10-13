@@ -4,10 +4,8 @@ import threading
 
 class DNSCache:
 	maintern_interval = 17
-	def __init__ (self, logger = None, dns_servers = []):		
-		self.dns = asyndns.Request (logger)
+	def __init__ (self, logger = None):
 		self.logger = logger
-		self.dns_servers = dns_servers
 		self.__last_maintern = time.time ()
 		self.__lock = threading.RLock ()
 		self.cache = {}
@@ -16,25 +14,18 @@ class DNSCache:
 	def set (self, answers):
 		if not answers:
 			return
-
-		for answer in answers:
-			name = answer ["name"].lower ()
-			if not answer ["data"]:
-				addrs = self.get (name, answer ["typename"], False)
-				if addrs and addrs [0]["data"]:
-					return
-			
-			try:
-				ttl = int (answer ["ttl"])	
-			except (KeyError, ValueError):
-				ttl = 300
-			answer ["valid"]	= time.time () + max (ttl, 300)
-			
-			with self.__lock:
-				if name not in self.cache:
-					self.cache [name] = {}
-				self.cache [name][answer ["typename"]] = [answer]
 		
+		with self.__lock:
+			for answer in answers:
+				name = answer['name'].lower ()			
+				try:
+					ttl = int (answer ["ttl"])	
+				except (KeyError, ValueError):
+					ttl = 300
+				answer ["valid"]	= time.time () + max (ttl, 300)
+				if name not in self.cache:					
+					self.cache [name] = answer
+			
 	def expire (self, host):
 		with self.__lock:
 			try: del self.cache [host]
@@ -43,18 +34,11 @@ class DNSCache:
 	def maintern (self, now):
 		deletables = []
 		with self.__lock:
-			for host in self.cache:
-				for qtype in list (self.cache [host]):
-					ans = self.cache [host][qtype][0]
-					if ans ["valid"] < now:
-						self.cache [host][qtype] = None
-						del self.cache [host][qtype]
-				if not self.cache [host]:
-					deletables.append (host)
-		
-		with self.__lock:
+			for host in self.cache:			
+				ans = self.cache [host]
+				if ans ["valid"] < now:
+					deletables.append (host)					
 			for host in deletables:
-				self.cache [host] = None
 				del self.cache [host]
 		
 		self.__last_maintern = time.time ()
@@ -63,18 +47,25 @@ class DNSCache:
 		now = time.time ()
 		if now - self.__last_maintern > self.maintern_interval:
 			self.maintern (now)
-		
-		#print ('+++++++++++++++++', len(self.cache))
+
 		host = host.lower ()
 		with self.__lock:
-			try: answers = self.cache [host][qtype]
-			except KeyError: return []
+			while 1:
+				try: 
+					answer = self.cache [host]
+				except KeyError: 
+					return []
+				else:
+					tn = answer ['typename']
+					if tn == "CNAME":
+						host = answer ['data'].lower ()
+					elif tn == qtype:	
+						break
 		
-		answer = answers [0]		
 		if check_ttl and answer ["valid"] < now:				
 			# extend 30 seconds for other querees
 			answer ['valid'] = now + (answer ["data"] and 30 or 1)
-			# nut new query will be started
+			# new query will be started
 			return []
 			
 		else:
@@ -94,13 +85,13 @@ class DNSCache:
 		hit = self.get (host, qtype, True)		
 		if hit: 
 			return callback (hit)
-	
+		
 		if self.is_ip (host):
 			self.set ([{"name": host, "data": host, "typename": qtype}])
 			return callback ([{"name": host, "data": host, "typename": qtype}])
 		
 		try:
-			self.dns.req (host, server = self.dns_servers, qtype = qtype, protocol = "tcp", callback = [self.set, callback])
+			asyndns.Request (host, qtype = qtype, protocol = "udp", callback = [self.set, callback])			
 		except:
 			self.logger.trace (host)
 			hit = [{"name": host, "data": None, "typename": qtype, 'ttl': 60}]
@@ -108,15 +99,13 @@ class DNSCache:
 			callback (hit)
 
 
-PUBLIC_DNS_SERVERS = ['8.8.8.8', '8.8.4.4']
 query = None
 
 def init (logger, dns_servers = []):
-	if not dns_servers:
-		dns_servers = PUBLIC_DNS_SERVERS
+	asyndns.create_pool (dns_servers, logger)
 	global query
 	if query is None:
-		query = DNSCache (logger, dns_servers)	
+		query = DNSCache (logger)
 
 def get (name, qtype = "A"):	
 	global query

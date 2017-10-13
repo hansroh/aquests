@@ -14,6 +14,7 @@ from .dbapi import dbpool
 from .client import adns, asynconnect
 from .lib.athreads.fifo import await_fifo
 from . import client, dbapi
+from aquests.protocols.dns import asyndns
 from aquests.protocols.dns.asyndns import async_dns
 from .protocols.http import localstorage as ls
 from .protocols.http import request_handler, response as http_response
@@ -182,12 +183,16 @@ def _request_finished (handler):
 	global _cb_gateway, _currents, _concurrent, _finished_total, _logger, _bytesrecv,_force_h1
 	
 	req_id = handler.request.meta ['req_id']	
+	try: 
+		_currents.pop (req_id)
+	except KeyError:
+		pass
+			
 	if isinstance (handler, dbo_request.Request):
 		response = handler	
-		_currents.pop (req_id)
+		
 	else:
-		response = response_builder.HTTPResponse (handler.response)
-		_currents.pop (req_id)
+		response = response_builder.HTTPResponse (handler.response)		
 		
 		try:
 			for handle_func in (handle_status_401, handle_status_3xx):
@@ -302,6 +307,11 @@ def concurrent ():
 	global _concurrent
 	return _concurrent
 
+def _dns_query ():	
+	while asyndns.socket_map:
+		print (len (asyndns.socket_map))
+		asyncore.loop (map = asyndns.socket_map)
+		
 def fetchall ():
 	global _workers, _logger, _que, _timeout, _max_conns, _bytesrecv, _concurrent, _finished_total, _max_conns, _force_h1	
 	
@@ -320,13 +330,14 @@ def fetchall ():
 	#_logger ("creating connection pool", "info")
 	target_socks = min (_workers, qsize ())
 	for i in range (target_socks):
-		_req ()
-			
+		_req ()		
+	_dns_query ()
+		
 	if not _force_h1 and http2.MAX_HTTP2_CONCURRENT_STREAMS > 1:
 		# wait all availabale	
 		while qsize ():
 			lifetime.lifetime_loop (os.name == "nt" and 1.0 or _timeout / 2.0, 1)
-			if sum ([1 for conn in asyncore.socket_map.values () if not isinstance (conn, async_dns) and conn.get_proto () in H2_PROTOCOLS and conn.connected and not conn.isactive ()]) == _workers:
+			if sum ([1 for conn in asyncore.socket_map.values () if not isinstance (conn, asyndns.async_dns) and conn.get_proto () in H2_PROTOCOLS and conn.connected and not conn.isactive ()]) == _workers:
 				#_logger ('%d connection(s) created' % target_socks, 'info')
 				break
 			
@@ -337,7 +348,8 @@ def fetchall ():
 		_max_conns = max (_max_conns, mapsize ())	
 		#print ('--', len (_currents), mapsize (), qsize ())
 		if not mapsize ():
-			break
+			break		
+		_dns_query ()
 		lifetime.lifetime_loop (os.name == "nt" and 1.0 or _timeout / 2.0, 1)
 	
 	#for each in _currents:
@@ -386,8 +398,10 @@ def _add (method, url, params = None, auth = None, headers = {}, callback = None
 			_dns_query_req [host] = None
 			_dns_reqs += 1
 			adns.query (host, "A", callback = lambda x: None)		
-		if mapsize ():
-			lifetime.poll_fun_wrap (0.05)
+		if _dns_reqs % 10 == 0:
+			_dns_query ()
+	
+	#print ('~~~~~~~~~~~~~~~', asyndns.pool.connections)
 	
 #----------------------------------------------------
 # Add Reuqest (protocols.*.request) Object
