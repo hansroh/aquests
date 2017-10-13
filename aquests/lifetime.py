@@ -185,10 +185,10 @@ def remove_notsocks (map):
 def poll_fun_wrap (timeout, map = None):
 	global _logger
 	
+	poll_dns ()
 	if map is None:
-		map = asyncore.socket_map
-	
-	try:
+		map = asyncore.socket_map	
+	try:		
 		poll_fun (timeout, map)
 	except (TypeError, OSError) as why:
 		# WSAENOTSOCK
@@ -216,10 +216,8 @@ def poll_fun_wrap (timeout, map = None):
 
 def poll_dns ():
 	map = asyndns.socket_map
-	while asyndns.pool:
-		asyncore.loop (0.5, map = map)
-		if asyndns:
-			maintern_zombie_channel (time.time (), map)
+	if asyndns.pool:
+		asyncore.loop (0.1, map = map, count = 2)		
 		
 def lifetime_loop (timeout = 30.0, count = 0):
 	global _last_maintern
@@ -227,8 +225,8 @@ def lifetime_loop (timeout = 30.0, count = 0):
 
 	map = asyncore.socket_map
 	loop = 0
-	while map and _shutdown_phase == 0:		
-		poll_dns ()
+	while map and _shutdown_phase == 0:			
+		poll_dns ()	
 		poll_fun_wrap (timeout, map)
 		now = time.time()
 		if (now - _last_maintern) > _maintern_interval:

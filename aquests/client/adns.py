@@ -91,7 +91,7 @@ class DNSCache:
 			self.set ([{"name": host, "data": host, "typename": qtype}])
 			return callback ([{"name": host, "data": host, "typename": qtype}])
 		
-		try:
+		try:			
 			asyndns.Request (host, qtype = qtype, protocol = self.prefer_protocol, callback = [self.set, callback])			
 		except:
 			self.logger.trace (host)

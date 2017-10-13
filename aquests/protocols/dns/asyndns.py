@@ -115,8 +115,8 @@ class async_dns (asynchat.async_chat):
 				callback, starttime = self.callbacks.pop (data [:2])
 			except KeyError:
 				pass
-			else:			
-				callback (self.args, data, self._timeouted)			
+			else:							
+				callback (self.args, data, 0)			
 		else:
 			self.reply += data	
 			
@@ -128,7 +128,7 @@ class async_dns (asynchat.async_chat):
 				except KeyError:
 					pass		
 				else:
-					callback (self.args, self.header + self.reply, self._timeouted)				
+					callback (self.args, self.header + self.reply, 0)				
 				self.close ()
 				
 			else:
@@ -241,7 +241,7 @@ class Request:
 					self.req (**args)					
 					return
 				raise Base.DNSError('%s, %s' % (qname, err))
-			
+		
 		callback = args.get ("callback", None)		
 		if callback:
 			if type (callback) != type ([]):
@@ -283,7 +283,6 @@ def create_pool (dns_servers, logger):
 	if not dns_servers:
 		dns_servers = PUBLIC_DNS_SERVERS
 	pool = Pool (dns_servers, logger)
-
 
 testset = [
 	"www.alexa.com",
