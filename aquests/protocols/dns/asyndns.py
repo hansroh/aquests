@@ -11,11 +11,12 @@ import types
 from .pydns import Base, Type, Class, Lib, Opcode
 import random
 import threading
+from ...lib.athreads.socket_map import thread_safe_socket_map
 
 defaults = Base.defaults
 Base.DiscoverNameServers ()
 
-socket_map = {}
+socket_map = thread_safe_socket_map ()
 
 class async_dns (asynchat.async_chat):
 	zombie_timeout = 2

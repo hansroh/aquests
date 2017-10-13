@@ -277,8 +277,9 @@ def _req ():
 		if asyncon.get_proto () and asyncon.isconnected ():
 			asyncon.handler.handle_request (handler)
 		else:
-			handler.handle_request ()	
-		
+			handler.handle_request ()		
+	
+	lifetime.poll_dns ()
 
 def workings ():
 	global _currents
@@ -306,11 +307,6 @@ def countcli ():
 def concurrent ():
 	global _concurrent
 	return _concurrent
-
-def _dns_query ():	
-	while asyndns.socket_map:
-		print (len (asyndns.socket_map))
-		asyncore.loop (map = asyndns.socket_map)
 		
 def fetchall ():
 	global _workers, _logger, _que, _timeout, _max_conns, _bytesrecv, _concurrent, _finished_total, _max_conns, _force_h1	
@@ -330,8 +326,7 @@ def fetchall ():
 	#_logger ("creating connection pool", "info")
 	target_socks = min (_workers, qsize ())
 	for i in range (target_socks):
-		_req ()		
-	_dns_query ()
+		_req ()
 		
 	if not _force_h1 and http2.MAX_HTTP2_CONCURRENT_STREAMS > 1:
 		# wait all availabale	
@@ -348,8 +343,7 @@ def fetchall ():
 		_max_conns = max (_max_conns, mapsize ())	
 		#print ('--', len (_currents), mapsize (), qsize ())
 		if not mapsize ():
-			break		
-		_dns_query ()
+			break				
 		lifetime.lifetime_loop (os.name == "nt" and 1.0 or _timeout / 2.0, 1)
 	
 	#for each in _currents:
@@ -399,7 +393,7 @@ def _add (method, url, params = None, auth = None, headers = {}, callback = None
 			_dns_reqs += 1
 			adns.query (host, "A", callback = lambda x: None)		
 		if _dns_reqs % 10 == 0:
-			_dns_query ()
+			lifetime.poll_dns ()
 	
 	#print ('~~~~~~~~~~~~~~~', asyndns.pool.connections)
 	

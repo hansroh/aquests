@@ -68,3 +68,4 @@ if not hasattr (asyncore, "_socket_map"):
 	asyncore._socket_map = asyncore.socket_map
 	del asyncore.socket_map
 	asyncore.socket_map = thread_safe_socket_map ()
+	

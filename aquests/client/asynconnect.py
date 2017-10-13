@@ -249,7 +249,7 @@ class AsynConnect (asynchat.async_chat):
 		if adns.query:
 			adns.query (self.address [0], "A", callback = self.continue_connect)
 		else:			
-			self.continue_connect (True)
+			self.continue_connect ()
 		
 	def continue_connect (self, answer = None):
 		self.initialize_connection ()
@@ -262,7 +262,7 @@ class AsynConnect (asynchat.async_chat):
 		
 		ipaddr = answer and answer [-1]["data"] or None		
 		#print (self.handler.request.meta ['sid'], ipaddr, 'continue_connect...')
-		if not ipaddr:			
+		if not ipaddr:
 			return self.handle_close (704)			
 		
 		port = self.address [1]										

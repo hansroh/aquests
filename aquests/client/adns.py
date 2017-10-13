@@ -91,7 +91,7 @@ class DNSCache:
 			return callback ([{"name": host, "data": host, "typename": qtype}])
 		
 		try:
-			asyndns.Request (host, qtype = qtype, protocol = "udp", callback = [self.set, callback])			
+			asyndns.Request (host, qtype = qtype, protocol = "tcp", callback = [self.set, callback])			
 		except:
 			self.logger.trace (host)
 			hit = [{"name": host, "data": None, "typename": qtype, 'ttl': 60}]

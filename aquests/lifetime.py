@@ -6,6 +6,8 @@ import bisect
 import socket
 import time
 import types
+from .protocols.dns import asyndns
+
 try:
 	from pympler import muppy, summary, tracker
 except ImportError:
@@ -57,7 +59,7 @@ def maintern_gc (now):
 def maintern_zombie_channel (now):
 	global _killed_zombies
 		
-	for channel in list(asyncore.socket_map.values()):
+	for channel in list(asyncore.socket_map.values()) + list (asyndns.socket_map.values ()):
 		if hasattr (channel, "handle_timeout"):
 			try:
 				# +3 is make gap between server & client
@@ -183,9 +185,8 @@ def poll_fun_wrap (timeout, map = None):
 	if map is None:
 		map = asyncore.socket_map
 	
-	try:		
-		poll_fun (timeout, map)		
-		
+	try:
+		poll_fun (timeout, map)
 	except (TypeError, OSError) as why:
 		# WSAENOTSOCK
 		remove_notsocks (map)
@@ -209,6 +210,11 @@ def poll_fun_wrap (timeout, map = None):
 	except:
 		_logger and _logger.trace ()
 		raise
+
+def poll_dns ():
+	map = 	asyndns.socket_map
+	while map:
+		asyncore.loop (map = map)
 	
 def lifetime_loop (timeout = 30.0, count = 0):
 	global _last_maintern
@@ -217,6 +223,7 @@ def lifetime_loop (timeout = 30.0, count = 0):
 	map = asyncore.socket_map
 	loop = 0
 	while map and _shutdown_phase == 0:		
+		poll_dns ()
 		poll_fun_wrap (timeout, map)
 		now = time.time()
 		if (now - _last_maintern) > _maintern_interval:
