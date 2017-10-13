@@ -103,10 +103,10 @@ class DNSCache:
 query = None
 
 def init (logger, dns_servers = [], prefer_protocol = 'udp'):
-	asyndns.create_pool (dns_servers, prefer_protocol, logger)
+	asyndns.create_pool (dns_servers, logger)
 	global query
 	if query is None:
-		query = DNSCache (logger)
+		query = DNSCache (prefer_protocol, logger)
 
 def get (name, qtype = "A"):	
 	global query
