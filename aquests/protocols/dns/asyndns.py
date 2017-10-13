@@ -21,35 +21,55 @@ socket_map = thread_safe_socket_map ()
 class async_dns (asynchat.async_chat):
 	zombie_timeout = 2
 	
-	def __init__ (self, addr, logger):
-		self.addr = addr				
+	def __init__ (self, addr, protocol, logger):
+		self.addr = addr
 		self.logger = logger
+		self.protocol = protocol
+		if protocol == 'udp':
+			self.zombie_timeout = 1200
 		self.active = False
 		self.creation_time = time.time ()		
 		self._timeouted = 0
+		self.closed = False
+		self.callbacks = {}
+		self.last_maintern = time.time ()
+		asynchat.async_chat.__init__ (self, None, socket_map)
+	
+	def __repr__ (self):	
+		return "<async_dns: connected %s:%d with %s>" % (self.addr [0], self.addr [1], self.protocol)
+	
+	def maintern (self):
+		now = time.time ()
+		for id, (callback, starttime) in list (self.callbacks.items ()):
+			if now - starttime > 2:
+				callback (self.args, b'', True)
+				del self.callbacks [id]
+		self.last_maintern = time.time ()
+				
+	def query (self, request, args, callback):	
 		self.event_time = time.time ()
 		self.reply = b""
 		self.header = None
-		self.closed = False
-		asynchat.async_chat.__init__ (self, None, socket_map)
 		
-	def query (self, request, args, callback):		
-		self.callback = callback		
-		self.request = request
+		self.callbacks [request [:2]] = (callback, time.time ())
 		self.args = args				
 		self.qname = self.args ["name"].decode ("utf8")
 		args ['addr'] = self.addr
 		
-		if args ["protocol"] == "tcp":
-			self.set_terminator (2)
-			self.connect_tcp ()
-		else:
-			self.set_terminator (None)
-			self.connect_udp ()
+		if not self.connected:
+			if args ["protocol"] == "tcp":
+				self.set_terminator (2)
+				self.connect_tcp ()
+			else:
+				self.set_terminator (None)
+				self.connect_udp ()
 		
 		if self.args ["protocol"] == "tcp":
 			self.push (Lib.pack16bit(len(request)) + request)
 		else:	
+			now = time.time ()
+			if now - self.last_maintern > 2:
+				self.maintern ()
 			self.push (request)
 			
 	def connect_udp (self):				
@@ -85,23 +105,30 @@ class async_dns (asynchat.async_chat):
 					
 	def handle_connect (self):	
 		self.event_time = time.time ()		
-	
+		
 	def handle_expt (self):
 		self.handle_close ()
 	
-	def collect_incoming_data (self, data):
-		self.reply += data
+	def collect_incoming_data (self, data):		
 		if self.args ["protocol"] == "udp":
-			self.callback (self.args, self.reply, self._timeouted)
-			self.callback = None
-			self.close ()
+			try:
+				callback, starttime = self.callbacks.pop (data [:2])
+			except KeyError:
+				pass
+			else:			
+				callback (self.args, data, self._timeouted)			
+		else:
+			self.reply += data	
 			
 	def found_terminator (self):
 		if self.args ["protocol"] == "tcp":
 			if self.header:
-				if self.callback:
-					self.callback (self.args, self.header + self.reply, self._timeouted)
-					self.callback = None
+				try:
+					callback, starttime = self.callbacks.pop (self.reply [:2])
+				except KeyError:
+					pass		
+				else:
+					callback (self.args, self.header + self.reply, self._timeouted)				
 				self.close ()
 				
 			else:
@@ -109,14 +136,14 @@ class async_dns (asynchat.async_chat):
 				count = Lib.unpack16bit(self.header)
 				self.set_terminator (count)			
 			
-	def handle_close (self):
-		if self.callback:
-			self.callback (self.args, b'', self._timeouted)
-			self.callback = None
+	def handle_close (self):	
+		for callback, starttime in self.callbacks.values ():
+			callback (self.args, b'', self._timeouted)				
 		self.close ()		
 		
 		
 class Request:
+	id = 0
 	def __init__(self, name, **args):
 		self.req (name, **args)				
 		
@@ -149,7 +176,10 @@ class Request:
 			
 		qname = args ['name']		
 		m = Lib.Mpacker()
-		m.addHeader(0,
+		Request.id += 1
+		if Request.id == 32768:
+			Request.id = 1
+		m.addHeader(Request.id,
 			  0, opcode, 0, 0, rd, 0, 0, 0,
 			  1, 0, 0, 0)
 		
@@ -157,7 +187,7 @@ class Request:
 		request = m.getbuf ()
 		
 		args ['retry'] += 1
-		conn = pool.get (args ['addr'])
+		conn = getattr (pool, args ['protocol']) ()
 		conn.query (request, args, self.processReply)
 		
 	def processReply (self, args, data, timeouted):		
@@ -166,7 +196,7 @@ class Request:
 		err = None
 		answers = []
 		qname = args ['name'].decode ('utf8')
-		if timeouted and self.retry < 3:
+		if timeouted and args ['retry'] < 3:
 			err = 'timeout'
 			
 		else:	
@@ -196,8 +226,9 @@ class Request:
 					r = Lib.DnsResult(u, args)
 					r.args = args
 					if r.header ['tc']:
-						err = 'trucate'
+						err = 'truncate'
 						args ['protocol'] = 'tcp'
+						pool.logger ('%s, trucated switch to TCP' % qname, 'warn')
 					else:
 						if r.header ['status'] != 'NOERROR':
 							pool.logger ('%s, status %s' % (qname, r.header ['status']), 'warn')
@@ -221,19 +252,25 @@ class Request:
 
 class Pool:
 	def __init__ (self, servers, logger):
-		self.servers = [(x, 53) for x in servers]
+		#self.servers = [(x, 53) for x in servers]
 		self.logger = logger
+		self.udps = [async_dns ((x, 53), 'udp', self.logger) for x in servers]
+		self.servers = [(x, 53) for x in servers]
+	
+	def __len__ (self):	
+		for each in list (socket_map.values ()):
+			if each.protocol == 'tcp':
+				return 1				
+			elif each.callbacks:
+				return 1
+		return 0		
 		
-	def get (self, exclude = None):
-		if len (self.servers) > 1:			
-			while 1:
-				addr = random.choice (self.servers)
-				if addr != exclude:
-					break
-		else:			
-			addr = self.servers [0]
-			
-		return async_dns (addr, self.logger)
+	def tcp (self):
+		addr = random.choice (self.servers)		
+		return async_dns (addr, 'tcp', self.logger)
+		
+	def udp (self):
+		return random.choice (self.udps)
 			
 		
 PUBLIC_DNS_SERVERS = [
@@ -273,7 +310,18 @@ if __name__	== "__main__":
 	import pprint
 	
 	create_pool (PUBLIC_DNS_SERVERS, logger.screen_logger ())
-	r = Request ("www.advancedeyecenter.com", protocol = "udp", callback = test_callback, qtype="a")
-	asyncore.loop (timeout = 0.1, map = socket_map)
+	#Request ("www.microsoft.com", protocol = "tcp", callback = print, qtype="a")
+	#Request ("www.cnn.com", protocol = "tcp", callback = print, qtype="a")
+	#Request ("www.gitlab.com", protocol = "tcp", callback = print, qtype="a")
+	#Request ("www.alexa.com", protocol = "tcp", callback = print, qtype="a")
+	Request ("www.yahoo.com", protocol = "udp", callback = print, qtype="a")
+	Request ("www.github.com", protocol = "udp", callback = print, qtype="a")
+	Request ("www.google.com", protocol = "udp", callback = print, qtype="a")
+	Request ("www.amazon.com", protocol = "udp", callback = print, qtype="a")
+	print (socket_map)
+	for i in range (10):
+		asyncore.loop (timeout = 0.1, map = socket_map, count = 1)
+		print (len (pool), socket_map)
+		
 	
 	

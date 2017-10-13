@@ -4,8 +4,9 @@ import threading
 
 class DNSCache:
 	maintern_interval = 17
-	def __init__ (self, logger = None):
+	def __init__ (self, prefer_protocol, logger = None):
 		self.logger = logger
+		self.prefer_protocol = prefer_protocol
 		self.__last_maintern = time.time ()
 		self.__lock = threading.RLock ()
 		self.cache = {}
@@ -91,7 +92,7 @@ class DNSCache:
 			return callback ([{"name": host, "data": host, "typename": qtype}])
 		
 		try:
-			asyndns.Request (host, qtype = qtype, protocol = "tcp", callback = [self.set, callback])			
+			asyndns.Request (host, qtype = qtype, protocol = self.prefer_protocol, callback = [self.set, callback])			
 		except:
 			self.logger.trace (host)
 			hit = [{"name": host, "data": None, "typename": qtype, 'ttl': 60}]
@@ -101,8 +102,8 @@ class DNSCache:
 
 query = None
 
-def init (logger, dns_servers = []):
-	asyndns.create_pool (dns_servers, logger)
+def init (logger, dns_servers = [], prefer_protocol = 'udp'):
+	asyndns.create_pool (dns_servers, prefer_protocol, logger)
 	global query
 	if query is None:
 		query = DNSCache (logger)

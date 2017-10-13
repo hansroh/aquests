@@ -216,9 +216,9 @@ def poll_fun_wrap (timeout, map = None):
 
 def poll_dns ():
 	map = asyndns.socket_map
-	while map:
+	while asyndns.pool:
 		asyncore.loop (0.5, map = map)
-		if map:
+		if asyndns:
 			maintern_zombie_channel (time.time (), map)
 		
 def lifetime_loop (timeout = 30.0, count = 0):
