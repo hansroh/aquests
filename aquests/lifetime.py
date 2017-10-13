@@ -56,10 +56,13 @@ class Maintern:
 def maintern_gc (now):
 	gc.collect ()
 	
-def maintern_zombie_channel (now):
+def maintern_zombie_channel (now, map = None):
 	global _killed_zombies
-		
-	for channel in list(asyncore.socket_map.values()) + list (asyndns.socket_map.values ()):
+	
+	if map is None:
+		map = asyncore.socket_map
+			
+	for channel in list(map.values()):
 		if hasattr (channel, "handle_timeout"):
 			try:
 				# +3 is make gap between server & client
@@ -212,10 +215,12 @@ def poll_fun_wrap (timeout, map = None):
 		raise
 
 def poll_dns ():
-	map = 	asyndns.socket_map
+	map = asyndns.socket_map
 	while map:
-		asyncore.loop (map = map)
-	
+		asyncore.loop (0.5, map = map)
+		if map:
+			maintern_zombie_channel (time.time (), map)
+		
 def lifetime_loop (timeout = 30.0, count = 0):
 	global _last_maintern
 	global _maintern_interval
