@@ -254,13 +254,15 @@ class RequestHandler (base_request_handler.RequestHandler):
 			self.close_case ()
 			return
 		
+		'''
 		# possibly disconnected cause of keep-alive timeout
 		# but works only HTTP 1.1
 		if not self.http2_handler and why == 700 and self.response is None and self.retry_count == 0:
 			self.retry_count = 1
+			print ('RRRRRRRRRRRRRTTTTTTTTTRRRRRRRRRRRRYYYYYYYYYYYY')
 			self.handle_rerequest ()
 			return True
-		
+		'''
 		self.response = http_response.FailedResponse (why, msg, self.request)
 		if hasattr (self.asyncon, "begin_tran"):
 			self.close_case ()

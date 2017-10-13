@@ -316,8 +316,12 @@ class AsynConnect (asynchat.async_chat):
 			self.disconnect ()
 		
 	def set_timeout (self, timeout = 10):
-		self.zombie_timeout = timeout
-		
+		# CAUTION: used at proxy.tunnel_handler
+		self.zombie_timeout = timeout		
+	
+	def set_keep_alive (self, keep_alive = 10):
+		self.keep_alive = keep_alive
+			
 	def handle_connect (self):
 		if hasattr (self.handler, "has_been_connected"):		
 			self.handler.has_been_connected ()
