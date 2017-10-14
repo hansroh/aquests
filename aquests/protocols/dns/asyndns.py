@@ -184,7 +184,8 @@ class Request:
 		err = None
 		answers = []
 		qname = args ['name'].decode ('utf8')
-		if timeouted and args ['retry'] < 3:
+		
+		if timeouted:
 			err = 'timeout'
 			
 		else:	
@@ -196,8 +197,8 @@ class Request:
 					if args ["protocol"] == "tcp":
 						header = data [:2]
 						if len (header) < 2:
-							raise Base.DNSError('%s, EOF' % qname)
-						count = Lib.unpack16bit(header)		
+							err = '%s, EOF' % qname
+						count = Lib.unpack16bit(header)
 						reply = data [2: 2 + count]
 						if len (reply) != count:
 							err = "incomplete reply"					
@@ -217,20 +218,22 @@ class Request:
 						err = 'truncate'
 						args ['protocol'] = 'tcp'
 						pool.logger ('%s, trucated switch to TCP' % qname, 'warn')
+						
 					else:
 						if r.header ['status'] != 'NOERROR':
 							pool.logger ('%s, status %s' % (qname, r.header ['status']), 'warn')
 						answers = r.answers
+						
 				except:
 					pool.logger.trace ()
-			
-			if err:
-				if args ['retry'] < 3:
-					self.req (**args)					
-					return
-				raise Base.DNSError('%s, %s' % (qname, err))
 		
-		callback = args.get ("callback", None)		
+		if err:
+			if args ['retry'] < 3:					
+				self.req (**args)					
+				return
+			pool.logger ('%s, DNS %s error' % (qname, err), 'warn')
+		
+		callback = args.get ("callback", None)
 		if callback:
 			if type (callback) != type ([]):
 				callback = [callback]
@@ -251,19 +254,19 @@ class Pool:
 				return 1				
 			elif each.callbacks:
 				return 1
-		return 0		
+		return 0
 	
 	def maintern (self, now):
 		for each in socket_map.values ():
 			if each.protocol == 'udp':
 				for id, (callback, starttime) in list (each.callbacks.items ()):
-					if now - starttime > 1:
+					if now - starttime > 1:						
 						del each.callbacks [id]
 						callback (each.args, b'', True)
 						
 			else:
 				if now - each.event_time > 1:				
-					self.handle_timeout ()
+					each.handle_timeout ()
 				
 	def tcp (self):
 		addr = random.choice (self.servers)		
@@ -310,9 +313,9 @@ if __name__	== "__main__":
 	
 	create_pool (PUBLIC_DNS_SERVERS, logger.screen_logger ())
 	#Request ("www.microsoft.com", protocol = "tcp", callback = print, qtype="a")
-	#Request ("www.cnn.com", protocol = "tcp", callback = print, qtype="a")
-	#Request ("www.gitlab.com", protocol = "tcp", callback = print, qtype="a")
-	#Request ("www.alexa.com", protocol = "tcp", callback = print, qtype="a")
+	#Request ("www.cnn.com", protocol = "udp", callback = print, qtype="a")
+	#Request ("www.gitlab.com", protocol = "udp", callback = print, qtype="a")
+	#Request ("www.alexa.com", protocol = "udp", callback = print, qtype="a")
 	Request ("www.yahoo.com", protocol = "udp", callback = print, qtype="a")
 	Request ("www.github.com", protocol = "udp", callback = print, qtype="a")
 	Request ("www.google.com", protocol = "udp", callback = print, qtype="a")
