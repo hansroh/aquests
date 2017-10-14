@@ -699,7 +699,7 @@ History
 - 0.7.9
   
   - DNS query ops has super priority to avoid network timeout, it makes reducing queury failures
-  - change DNS query protocol from TCP to UDP
+  - change DNS query protocol from TCP to UDP pipelining
   - fix losting request handler
   - response content type and length validating using request headers
   
