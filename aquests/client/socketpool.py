@@ -117,23 +117,23 @@ class SocketPool:
 				else:
 					if deletable:
 						asyncon.handler = None # break back ref.
-						del node [_id]
+						try: del node [_id]
+						except KeyError: pass
 						self.numobj -= 1
 			
 			# KeyError, WHY?
 			if not node:
-				del self.__socketfarm [serverkey]
-				try:
-					self.__protos [serverkey] = None
-					del self.__protos [serverkey]
-				except KeyError:
-					pass
-				
-		self.__last_maintern = time.time ()
+				try: del self.__socketfarm [serverkey]
+				except KeyError: pass						
+				try: del self.__protos [serverkey]
+				except KeyError: pass
+		
+		self.logger ('mainterned %d socket pool' % len (self.__socketfarm), 'info')
 				
 	def _get (self, serverkey, server, *args):
 		asyncon = None	
 		if self.use_pool and time.time () - self.__last_maintern > self.maintern_interval:
+			self.__last_maintern = time.time ()
 			try:				
 				self.maintern ()
 			except:

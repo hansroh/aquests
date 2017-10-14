@@ -325,7 +325,7 @@ def fetchall ():
 	target_socks = min (_workers, qsize ())
 	for i in range (target_socks):
 		_req ()
-	lifetime.poll_dns ()
+	lifetime.poll_dns (True)
 		
 	if not _force_h1 and http2.MAX_HTTP2_CONCURRENT_STREAMS > 1:
 		# wait all availabale	
@@ -343,7 +343,7 @@ def fetchall ():
 		#print ('--', len (_currents), mapsize (), qsize ())
 		if not mapsize ():
 			break	
-		lifetime.poll_dns ()
+		lifetime.poll_dns (True)
 		lifetime.lifetime_loop (os.name == "nt" and 1.0 or _timeout / 2.0, 1)
 	
 	#for each in _currents:
@@ -392,8 +392,7 @@ def _add (method, url, params = None, auth = None, headers = {}, callback = None
 			_dns_query_req [host] = None
 			_dns_reqs += 1
 			adns.query (host, "A", callback = lambda x: None)		
-		if _dns_reqs % 10 == 0:
-			lifetime.poll_dns ()
+		lifetime.poll_dns (True)
 	
 	#print ('~~~~~~~~~~~~~~~', asyndns.pool.connections)
 	

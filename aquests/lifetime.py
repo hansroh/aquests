@@ -213,12 +213,16 @@ def poll_fun_wrap (timeout, map = None):
 		_logger and _logger.trace ()
 		raise
 
-def poll_dns ():
+def poll_dns (exhaust = False):
 	map = asyndns.socket_map
-	while asyndns.pool:
-		asyncore.loop (0.5, map = map, count = 1)
-		now = time.time ()
-		asyndns.pool.maintern (now)		
+	if exhaust:
+		while asyndns.pool:
+			asyncore.loop (0.5, map = map, count = 1)						
+			asyndns.pool.maintern (time.time ())
+	else:	
+		if asyndns.pool:
+			# asyndns.pool.maintern () is scheduled by skitai
+			asyncore.loop (0.1, map = map, count = 2)
 		
 def lifetime_loop (timeout = 30.0, count = 0):
 	global _last_maintern
