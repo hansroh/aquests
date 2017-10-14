@@ -219,6 +219,7 @@ def poll_dns (exhaust = False):
 		while asyndns.pool:
 			asyncore.loop (0.5, map = map, count = 1)						
 			asyndns.pool.maintern (time.time ())
+			
 	else:	
 		if asyndns.pool:
 			# asyndns.pool.maintern () is scheduled by skitai

@@ -137,7 +137,7 @@ class SocketPool:
 			try:				
 				self.maintern ()
 			except:
-				self.logger.trace ()	
+				self.logger.trace ()
 					
 		self.__numget += 1
 		if not self.use_pool:

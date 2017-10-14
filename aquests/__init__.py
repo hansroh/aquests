@@ -198,7 +198,7 @@ def _request_finished (handler):
 			for handle_func in (handle_status_401, handle_status_3xx):
 				response = handle_func (response)
 				if not response:
-					# re-requested					
+					# re-requested
 					return req_if_queue (req_id)					
 		except:
 			_logger.trace ()

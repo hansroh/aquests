@@ -431,12 +431,9 @@ class FailedResponse (Response):
 	@property
 	def text (self):
 		return ''
-	
-	def json (self):
-		raise ValueError ('Response Failed')
 				
-	def collect_incoming_data (self, data):
-		raise IOError("This Is Failed Response")
+	def collect_incoming_data (self, data):		
+		pass
 	
 	def more (self):
 		return b""

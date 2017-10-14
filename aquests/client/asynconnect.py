@@ -79,9 +79,9 @@ class AsynConnect (asynchat.async_chat):
 		return self.auth
 				
 	def close (self):
-		if self._closed:
-			return
-		
+		#if self._closed:
+		#	return
+				
 		if self.socket:
 			# self.socket is still None, when DNS not found
 			asynchat.async_chat.close (self)
@@ -98,7 +98,6 @@ class AsynConnect (asynchat.async_chat):
 			# return to the pool
 			return self.set_active (False)
 		
-		#print (self.handler.request.meta ['sid'], 'close...')	
 		if not self.errcode:
 			# disconnect intentionally
 			return
@@ -453,7 +452,7 @@ class AsynSSLConnect (AsynConnect):
 		if not self._handshaking:
 			err = self.socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
 			if err != 0:
-				raise socket.error(err, os.strerror(err))
+				raise OSError(err, asyncore._strerror(err))
 				
 			ssl_context = create_urllib3_context(ssl_version=resolve_ssl_version(None), cert_reqs=resolve_cert_reqs(None))
 			if self.ac_negotiate_http2:
@@ -482,12 +481,9 @@ class AsynSSLConnect (AsynConnect):
 			if not self._handshaked and not self.handshake ():
 				return
 		except:
-			self.handle_error (713)
-			return
-					
-		# handshaking done
-		self.handle_connect()
-		self.connected = True
+			print ('2222222222', self.addr, id (self), self.connected, self._closed)
+			return self.handle_error (713)
+		AsynConnect.handle_connect_event (self)		
 		
 	def recv (self, buffer_size):
 		if self._closed:
