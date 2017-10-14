@@ -79,8 +79,9 @@ class AsynConnect (asynchat.async_chat):
 		return self.auth
 				
 	def close (self):
-		#if self._closed:
-		#	return
+		# sometimes socket is not closed at once
+		# possibly related with SSL socket
+		# then prevent doble callbacking in request_handler
 				
 		if self.socket:
 			# self.socket is still None, when DNS not found
