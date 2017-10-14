@@ -105,8 +105,8 @@ class SocketPool:
 		
 	def maintern (self):
 		# close unused sockets				
-		for serverkey, node in list(self.__socketfarm.items ()):
-			for _id, asyncon in list(node.items ()):
+		for serverkey, node in list (self.__socketfarm.items ()):
+			for _id, asyncon in list (node.items ()):
 				if not hasattr (asyncon, "maintern"):
 					continue
 				
@@ -117,23 +117,23 @@ class SocketPool:
 				else:
 					if deletable:
 						asyncon.handler = None # break back ref.
-						del self.__socketfarm [serverkey][_id]
+						try: del node [_id]
+						except KeyError: pass
 						self.numobj -= 1
 			
 			# KeyError, WHY?
-			if not self.__socketfarm [serverkey]:
-				del self.__socketfarm [serverkey]
-				try:
-					self.__protos [serverkey] = None
-					del self.__protos [serverkey]
-				except KeyError:
-					pass
-				
-		self.__last_maintern = time.time ()
+			if not node:
+				try: del self.__socketfarm [serverkey]
+				except KeyError: pass						
+				try: del self.__protos [serverkey]
+				except KeyError: pass
+		
+		self.logger ('mainterned %d socket pool' % len (self.__socketfarm), 'info')
 				
 	def _get (self, serverkey, server, *args):
 		asyncon = None	
 		if self.use_pool and time.time () - self.__last_maintern > self.maintern_interval:
+			self.__last_maintern = time.time ()
 			try:				
 				self.maintern ()
 			except:

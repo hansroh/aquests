@@ -16,6 +16,7 @@ from ..lib.athreads.fifo import await_fifo
 from ..lib.ssl_ import resolve_cert_reqs, resolve_ssl_version, create_urllib3_context
 from collections import deque
 from ..protocols.http import respcodes
+import random
 
 DEBUG = 0
 	
@@ -44,7 +45,6 @@ class AsynConnect (asynchat.async_chat):
 		
 		self.auth = None
 		self.proxy = False
-		
 		self.initialize_connection ()
 		self._closed = False
 		self.backend = False
@@ -92,7 +92,7 @@ class AsynConnect (asynchat.async_chat):
 		self.incoming = []
 		self.producer_fifo.clear()
 		self._proto = None
-		self._closed = True
+		self._closed = True		
 			
 		if not self.handler:
 			# return to the pool
@@ -262,13 +262,16 @@ class AsynConnect (asynchat.async_chat):
 		
 		ipaddr = answer and answer [-1]["data"] or None		
 		#print (self.handler.request.meta ['sid'], ipaddr, 'continue_connect...')
-		if not ipaddr:
+		if not ipaddr:			
 			return self.handle_close (704)			
+		else:	
+			port = self.address [1]
 		
-		port = self.address [1]										
 		self.create_socket (socket.AF_INET, socket.SOCK_STREAM)
-		try: asynchat.async_chat.connect (self, (ipaddr, port))
-		except:	self.handle_error (714)
+		try: 
+			asynchat.async_chat.connect (self, (ipaddr, port))
+		except:	
+			self.handle_error (714)
 		
 	def recv (self, buffer_size):
 		try:
@@ -321,8 +324,8 @@ class AsynConnect (asynchat.async_chat):
 	
 	def set_keep_alive (self, keep_alive = 10):
 		self.keep_alive = keep_alive
-			
-	def handle_connect (self):
+		
+	def handle_connect (self):		
 		if hasattr (self.handler, "has_been_connected"):		
 			self.handler.has_been_connected ()
 					

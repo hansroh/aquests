@@ -1,6 +1,7 @@
 from ..protocols.dns import asyndns
 import time
 import threading
+import os
 
 class DNSCache:
 	maintern_interval = 17
@@ -102,7 +103,7 @@ class DNSCache:
 
 query = None
 
-def init (logger, dns_servers = [], prefer_protocol = 'udp'):
+def init (logger, dns_servers = [], prefer_protocol = os.name == "nt" and "tcp" or "udp"):
 	asyndns.create_pool (dns_servers, logger)
 	global query
 	if query is None:

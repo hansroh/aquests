@@ -184,8 +184,7 @@ def remove_notsocks (map):
 
 def poll_fun_wrap (timeout, map = None):
 	global _logger
-	
-	poll_dns ()
+
 	if map is None:
 		map = asyncore.socket_map	
 	try:		
@@ -214,10 +213,16 @@ def poll_fun_wrap (timeout, map = None):
 		_logger and _logger.trace ()
 		raise
 
-def poll_dns ():
+def poll_dns (exhaust = False):
 	map = asyndns.socket_map
-	if asyndns.pool:
-		asyncore.loop (0.1, map = map, count = 2)		
+	if exhaust:
+		while asyndns.pool:
+			asyncore.loop (0.5, map = map, count = 1)						
+			asyndns.pool.maintern (time.time ())
+	else:	
+		if asyndns.pool:
+			# asyndns.pool.maintern () is scheduled by skitai
+			asyncore.loop (0.1, map = map, count = 2)
 		
 def lifetime_loop (timeout = 30.0, count = 0):
 	global _last_maintern
@@ -225,8 +230,7 @@ def lifetime_loop (timeout = 30.0, count = 0):
 
 	map = asyncore.socket_map
 	loop = 0
-	while map and _shutdown_phase == 0:			
-		poll_dns ()	
+	while map and _shutdown_phase == 0:		
 		poll_fun_wrap (timeout, map)
 		now = time.time()
 		if (now - _last_maintern) > _maintern_interval:
