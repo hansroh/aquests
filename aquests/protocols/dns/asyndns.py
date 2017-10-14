@@ -32,20 +32,11 @@ class async_dns (asynchat.async_chat):
 		self._timeouted = 0
 		self.closed = False
 		self.callbacks = {}
-		self.last_maintern = time.time ()
 		asynchat.async_chat.__init__ (self, None, socket_map)
 	
 	def __repr__ (self):	
 		return "<async_dns: connected %s:%d with %s>" % (self.addr [0], self.addr [1], self.protocol)
-	
-	def maintern (self):
-		now = time.time ()
-		for id, (callback, starttime) in list (self.callbacks.items ()):
-			if now - starttime > 2:
-				callback (self.args, b'', True)
-				del self.callbacks [id]
-		self.last_maintern = time.time ()
-				
+							
 	def query (self, request, args, callback):	
 		self.event_time = time.time ()
 		self.reply = b""
@@ -67,9 +58,6 @@ class async_dns (asynchat.async_chat):
 		if self.args ["protocol"] == "tcp":
 			self.push (Lib.pack16bit(len(request)) + request)
 		else:	
-			now = time.time ()
-			if now - self.last_maintern > 2:
-				self.maintern ()
 			self.push (request)
 			
 	def connect_udp (self):				
@@ -264,7 +252,19 @@ class Pool:
 			elif each.callbacks:
 				return 1
 		return 0		
-		
+	
+	def maintern (self, now):
+		for each in socket_map.values ():
+			if each.protocol == 'udp':
+				for id, (callback, starttime) in list (each.callbacks.items ()):
+					if now - starttime > 1:
+						del each.callbacks [id]
+						callback (each.args, b'', True)
+						
+			else:
+				if now - each.event_time > 1:				
+					self.handle_timeout ()
+				
 	def tcp (self):
 		addr = random.choice (self.servers)		
 		return async_dns (addr, 'tcp', self.logger)
