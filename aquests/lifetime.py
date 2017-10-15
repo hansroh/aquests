@@ -26,6 +26,8 @@ _select_errors = 0
 _poll_count = 0
 _polling = 0
 _logger = None
+
+EXHAUST_DNS = True
 	
 class Maintern:
 	def __init__ (self):
@@ -187,6 +189,8 @@ def poll_fun_wrap (timeout, map = None):
 
 	if map is None:
 		map = asyncore.socket_map	
+	
+	asyndns.pop_all (EXHAUST_DNS)
 	try:		
 		poll_fun (timeout, map)
 	except (TypeError, OSError) as why:

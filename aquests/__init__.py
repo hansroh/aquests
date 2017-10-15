@@ -133,7 +133,7 @@ def configure (
 	dbpool.create (_logger, backend = backend)
 	adns.init (_logger)
 	lifetime.init (_timeout / 2., logger) # maintern interval
-	lifetime.maintern.sched (2.0, asyndns.pool.maintern)
+	lifetime.maintern.sched (6.0, asyndns.pool.maintern)
 	if tracking:
 		lifetime.enable_memory_track ()
 	_initialized = True
@@ -325,7 +325,7 @@ def fetchall ():
 	target_socks = min (_workers, qsize ())
 	for i in range (target_socks):
 		_req ()	
-		
+	
 	if not _force_h1 and http2.MAX_HTTP2_CONCURRENT_STREAMS > 1:
 		# wait all availabale	
 		while qsize ():
@@ -390,6 +390,7 @@ def _add (method, url, params = None, auth = None, headers = {}, callback = None
 			_dns_query_req [host] = None
 			_dns_reqs += 1
 			adns.query (host, "A", callback = lambda x: None)		
+		asyndns.pop_all ()
 		asyncore.loop (0.1, count = 2)
 	
 	#print ('~~~~~~~~~~~~~~~', asyndns.pool.connections)
