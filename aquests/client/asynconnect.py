@@ -482,7 +482,6 @@ class AsynSSLConnect (AsynConnect):
 			if not self._handshaked and not self.handshake ():
 				return
 		except:
-			print ('2222222222', self.addr, id (self), self.connected, self._closed)
 			return self.handle_error (713)
 		AsynConnect.handle_connect_event (self)		
 		
