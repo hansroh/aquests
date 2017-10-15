@@ -133,6 +133,7 @@ def configure (
 	dbpool.create (_logger, backend = backend)
 	adns.init (_logger)
 	lifetime.init (_timeout / 2., logger) # maintern interval
+	lifetime.maintern.sched (2.0, asyndns.pool.maintern)
 	if tracking:
 		lifetime.enable_memory_track ()
 	_initialized = True
