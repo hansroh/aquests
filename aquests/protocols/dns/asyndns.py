@@ -267,6 +267,8 @@ class Pool:
 		return 0		
 		
 	def pop_all (self, exhaust = False):
+		# DNS query maybe not allowed delay between request and send
+		# maybe they just drop response packet for delaying
 		with self.lock:
 			count = len (self.queue)
 			while self.queue:
@@ -282,7 +284,8 @@ class Pool:
 				map [client._fileno] = client						
 		fds = list (map.keys ())
 		
-		safeguard = exhaust and count * 2 or 2
+		# maybe 2 is enough
+		safeguard = exhaust and count * 2 or 2		
 		while self.ongoing () and safeguard:
 			safeguard -= 1
 			asyncore.loop (0.1, map, count = 1)				
