@@ -698,6 +698,9 @@ History
 
 - 0.7.9
   
+  - re-unify DNS sockets with main socket_map, it was bad idea
+  - make keeping number of UDP DNS Client per DNS server
+  - re-enginering DNS query and fix passing calllback args
   - DNS query ops has super priority to avoid network timeout, it makes reducing queury failures
   - change DNS query protocol from TCP to UDP pipelining
   - fix losting request handler
