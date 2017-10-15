@@ -215,8 +215,11 @@ def poll_fun_wrap (timeout, map = None):
 
 def poll_dns (exhaust = False):
 	map = asyndns.socket_map
+	
 	if exhaust:
-		while asyndns.pool:
+		safe_guard = 10
+		while asyndns.pool and safe_guard:
+			safe_guard -= 1
 			asyncore.loop (0.5, map = map, count = 1)						
 			asyndns.pool.maintern (time.time ())
 			

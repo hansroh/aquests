@@ -80,11 +80,11 @@ class UDPClient (asynchat.async_chat):
 		except KeyError:
 			pass
 		else:
-			callback (args, data, not data)
+			callback (args, data, len (data) == 2)
 			
 	def handle_close (self):	
 		for callback, args, starttime in self.callbacks.values ():
-			callback (args, b'', self._timeouted)				
+			callback (args, b'', True)
 		self.close ()
 
 		
@@ -119,7 +119,7 @@ class TCPClient (UDPClient):
 			
 	def found_terminator (self):	
 		if self.header:
-			self.callback (self.args, self.header + self.reply, self._timeouted)				
+			self.callback (self.args, self.header + self.reply, self._timeouted)
 			self.close ()
 			
 		else:
@@ -245,6 +245,7 @@ class Request:
 
 class Pool:
 	zombie_timeout = 2
+	
 	def __init__ (self, servers, logger):
 		#self.servers = [(x, 53) for x in servers]
 		self.logger = logger
@@ -254,7 +255,7 @@ class Pool:
 	def __len__ (self):	
 		for each in list (socket_map.values ()):
 			if isinstance (each, TCPClient):
-				return 1				
+				return 1
 			elif each.callbacks:
 				return 1
 		return 0
@@ -269,7 +270,7 @@ class Pool:
 				for id, (callback, args, starttime) in list (each.callbacks.items ()):
 					if now - starttime > self.zombie_timeout:						
 						# timeout
-						each.collect_incoming_data (b'')						
+						each.collect_incoming_data (id)
 				
 	def tcp (self):
 		addr = random.choice (self.servers)		
