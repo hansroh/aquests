@@ -277,16 +277,16 @@ class Pool:
 				t.extend (list (client.callbacks.keys ()))
 		return t	
 			
-	def pop_all (self, exhaust = False):
+	def pop_all (self):
 		# DNS query maybe not allowed delay between request and send
 		# maybe they just drop response packet for delaying
 		with self.lock:
 			count = len (self.queue)
 			while self.queue:
 				name, args = self.queue.pop (0)
-				Request (name, **args)
+				Request (name, **args)		
 		
-		if not exhaust or (not count and not self.has_job ()):
+		if (not count and not self.has_job ()):
 			return
 		
 		map = {}
@@ -324,13 +324,16 @@ class Pool:
 		return random.choice (self.udps)
 
 
+def query_nowait (name, **args):
+	Request (name, **args)
+	
 def query (name, **args):
 	global pool	
 	pool.add ((name, args))
 
-def pop_all (exhaust = False):	
+def pop_all ():	
 	global pool
-	pool.pop_all (exhaust)
+	pool.pop_all ()
 	
 		
 PUBLIC_DNS_SERVERS = [
