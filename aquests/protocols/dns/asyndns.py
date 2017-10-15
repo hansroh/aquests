@@ -285,11 +285,14 @@ class Pool:
 		fds = list (map.keys ())
 		
 		# maybe 2 is enough
-		safeguard = exhaust and count * 2 or 2		
+		safeguard = exhaust and count * 2 or 2
 		while self.ongoing () and safeguard:
 			safeguard -= 1
-			asyncore.loop (0.1, map, count = 1)				
-			
+			asyncore.loop (0.1, map, count = 1)
+			if safeguard % 5 == 0:
+				self.maintern (time.time ())		
+		self.maintern (time.time ())
+							
 		for fd in fds:
 			if fd not in map:
 				# resync 
@@ -299,12 +302,11 @@ class Pool:
 	def maintern (self, now):
 		for client in self.udps:
 			for id, (callback, args, starttime) in list (client.callbacks.items ()):
-				if now - starttime > self.query_timeout:						
-					# timeout					
+				if now - starttime > self.query_timeout:					
 					client.collect_incoming_data (b'', id)
 			
 	def tcp (self):
-		addr = random.choice (self.servers)		
+		addr = random.choice (self.servers)
 		return TCPClient (addr, self.logger)
 		
 	def udp (self):
@@ -324,6 +326,7 @@ PUBLIC_DNS_SERVERS = [
 	'8.8.8.8', 
 	'8.8.4.4'
 ]
+
 pool = None			
 def create_pool (dns_servers, logger):
 	global pool, PUBLIC_DNS_SERVERS
