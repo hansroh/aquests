@@ -248,7 +248,7 @@ class Pool:
 	def __init__ (self, servers, logger):
 		#self.servers = [(x, 53) for x in servers]
 		self.logger = logger
-		self.udps = [UDPClient ((x, 53), self.logger) for x in (servers * 2)]		
+		self.udps = [UDPClient ((x, 53), self.logger) for x in servers]		
 		self.servers = [(x, 53) for x in servers]
 	
 	def __len__ (self):	
@@ -265,7 +265,7 @@ class Pool:
 				if now - each.event_time > self.zombie_timeout:
 					each.handle_timeout ()
 					
-			else:	
+			else:
 				for id, (callback, args, starttime) in list (each.callbacks.items ()):
 					if now - starttime > self.zombie_timeout:						
 						# timeout
