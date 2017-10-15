@@ -15,7 +15,6 @@ from .client import adns, asynconnect
 from .lib.athreads.fifo import await_fifo
 from . import client, dbapi
 from aquests.protocols.dns import asyndns
-from aquests.protocols.dns.asyndns import async_dns
 from .protocols.http import localstorage as ls
 from .protocols.http import request_handler, response as http_response
 from .protocols import http2
@@ -331,7 +330,7 @@ def fetchall ():
 		# wait all availabale	
 		while qsize ():
 			lifetime.lifetime_loop (os.name == "nt" and 1.0 or _timeout / 2.0, 1)
-			if sum ([1 for conn in asyncore.socket_map.values () if not isinstance (conn, asyndns.async_dns) and conn.get_proto () in H2_PROTOCOLS and conn.connected and not conn.isactive ()]) == _workers:
+			if sum ([1 for conn in asyncore.socket_map.values () if conn.get_proto () in H2_PROTOCOLS and conn.connected and not conn.isactive ()]) == _workers:
 				#_logger ('%d connection(s) created' % target_socks, 'info')
 				break
 			

@@ -18,56 +18,33 @@ Base.DiscoverNameServers ()
 
 socket_map = thread_safe_socket_map ()
 
-class async_dns (asynchat.async_chat):
-	zombie_timeout = 2
+class UDPClient (asynchat.async_chat):
+	protocol = "udp"
 	
-	def __init__ (self, addr, protocol, logger):
+	def __init__ (self, addr, logger):
 		self.addr = addr
-		self.logger = logger
-		self.protocol = protocol
-		if protocol == 'udp':
-			self.zombie_timeout = 1200
-		self.active = False
+		self.logger = logger				
+		self.event_time = time.time ()
 		self.creation_time = time.time ()		
-		self._timeouted = 0
 		self.closed = False
+		self._timeouted = False
 		self.callbacks = {}
 		asynchat.async_chat.__init__ (self, None, socket_map)
-	
-	def __repr__ (self):	
-		return "<async_dns: connected %s:%d with %s>" % (self.addr [0], self.addr [1], self.protocol)
 							
 	def query (self, request, args, callback):	
-		self.event_time = time.time ()
-		self.reply = b""
+		self.event_time = time.time ()		
 		self.header = None
 		
-		self.callbacks [request [:2]] = (callback, time.time ())
-		self.args = args				
-		self.qname = self.args ["name"].decode ("utf8")
+		self.callbacks [request [:2]] = [callback, args, time.time ()]
+		qname = args ["name"].decode ("utf8")
 		args ['addr'] = self.addr
-		
-		if not self.connected:
-			if args ["protocol"] == "tcp":
-				self.set_terminator (2)
-				self.connect_tcp ()
-			else:
-				self.set_terminator (None)
-				self.connect_udp ()
-		
-		if self.args ["protocol"] == "tcp":
-			self.push (Lib.pack16bit(len(request)) + request)
-		else:	
-			self.push (request)
+		self.push (request)
 			
-	def connect_udp (self):				
-		self.create_socket (socket.AF_INET, socket.SOCK_DGRAM)
-		self._connect ()
-	
-	def connect_tcp (self):
-		self.create_socket (socket.AF_INET, socket.SOCK_STREAM)				
-		self._connect ()
-	
+		if not self.connected:
+			self.set_terminator (None)
+			self.create_socket (socket.AF_INET, socket.SOCK_DGRAM)
+			self._connect ()
+				
 	def _connect (self):		
 		try:
 			self.connect (self.addr)
@@ -75,14 +52,14 @@ class async_dns (asynchat.async_chat):
 			self.handle_error ()
 					
 	def trace (self):
-		self.logger.trace (self.qname)
+		self.logger.trace ()
 	
 	def log_info (self, line, level = 'info'):
-		self.log ("[%s:%s] %s" % (level, self.qname, line))
+		self.log ("[%s] %s" % (level, line))
 	          
 	def log (self, line):
 		self.logger (line)
-		
+			
 	def handle_error (self):
 		self.trace ()
 		self.close ()
@@ -96,44 +73,69 @@ class async_dns (asynchat.async_chat):
 		
 	def handle_expt (self):
 		self.handle_close ()
-	
+		
 	def collect_incoming_data (self, data):		
-		if self.args ["protocol"] == "udp":
-			try:
-				callback, starttime = self.callbacks.pop (data [:2])
-			except KeyError:
-				pass
-			else:							
-				callback (self.args, data, 0)			
+		try:
+			callback, args, starttime = self.callbacks.pop (data [:2])				
+		except KeyError:
+			pass
 		else:
-			self.reply += data	
-			
-	def found_terminator (self):
-		if self.args ["protocol"] == "tcp":
-			if self.header:
-				try:
-					callback, starttime = self.callbacks.pop (self.reply [:2])
-				except KeyError:
-					pass		
-				else:
-					callback (self.args, self.header + self.reply, 0)				
-				self.close ()
-				
-			else:
-				self.header, self.reply = self.reply, b""
-				count = Lib.unpack16bit(self.header)
-				self.set_terminator (count)			
+			callback (args, data, not data)
 			
 	def handle_close (self):	
-		for callback, starttime in self.callbacks.values ():
-			callback (self.args, b'', self._timeouted)				
-		self.close ()		
+		for callback, args, starttime in self.callbacks.values ():
+			callback (args, b'', self._timeouted)				
+		self.close ()
+
+		
+class TCPClient (UDPClient):
+	protocol = "tcp"
+	
+	def __init__ (self, addr, logger):		
+		UDPClient.__init__ (self, addr, logger)
+		self.callback = None
+		self.args = None
+		self.request = None
+		self.header = None
+		self.reply = b''
+							
+	def query (self, request, args, callback):	
+		self.event_time = time.time ()
+		self.reply = b""
+		self.header = None
+		self.request = request
+		self.args = args
+		self.callback = callback
+		
+		args ['addr'] = self.addr		
+		self.push (Lib.pack16bit(len(request)) + request)
+		if not self.connected:
+			self.set_terminator (2)
+			self.create_socket (socket.AF_INET, socket.SOCK_STREAM)				
+			self._connect ()
+		
+	def collect_incoming_data (self, data):		
+		self.reply += data
+			
+	def found_terminator (self):	
+		if self.header:
+			self.callback (self.args, self.header + self.reply, self._timeouted)				
+			self.close ()
+			
+		else:
+			self.header, self.reply = self.reply, b""
+			count = Lib.unpack16bit(self.header)
+			self.set_terminator (count)			
+		
+	def handle_close (self):	
+		self.callback (self.args, b'', self._timeouted)				
+		self.close ()
 		
 		
 class Request:
 	id = 0
 	def __init__(self, name, **args):
-		self.req (name, **args)				
+		self.req (name, **args)
 		
 	def argparse (self, name, args):
 		args['name'] = name
@@ -242,35 +244,36 @@ class Request:
 
 
 class Pool:
+	zombie_timeout = 2
 	def __init__ (self, servers, logger):
 		#self.servers = [(x, 53) for x in servers]
 		self.logger = logger
-		self.udps = [async_dns ((x, 53), 'udp', self.logger) for x in servers]
+		self.udps = [UDPClient ((x, 53), self.logger) for x in (servers * 2)]		
 		self.servers = [(x, 53) for x in servers]
 	
 	def __len__ (self):	
 		for each in list (socket_map.values ()):
-			if each.protocol == 'tcp':
+			if isinstance (each, TCPClient):
 				return 1				
 			elif each.callbacks:
 				return 1
 		return 0
 	
 	def maintern (self, now):
-		for each in socket_map.values ():
-			if each.protocol == 'udp':
-				for id, (callback, starttime) in list (each.callbacks.items ()):
-					if now - starttime > 1:						
-						del each.callbacks [id]
-						callback (each.args, b'', True)
-						
-			else:
-				if now - each.event_time > 1:				
+		for each in list (socket_map.values ()):
+			if isinstance (each, TCPClient):
+				if now - each.event_time > self.zombie_timeout:
 					each.handle_timeout ()
+					
+			else:	
+				for id, (callback, args, starttime) in list (each.callbacks.items ()):
+					if now - starttime > self.zombie_timeout:						
+						# timeout
+						each.collect_incoming_data (b'')						
 				
 	def tcp (self):
 		addr = random.choice (self.servers)		
-		return async_dns (addr, 'tcp', self.logger)
+		return TCPClient (addr, self.logger)
 		
 	def udp (self):
 		return random.choice (self.udps)
@@ -312,10 +315,10 @@ if __name__	== "__main__":
 	import pprint
 	
 	create_pool (PUBLIC_DNS_SERVERS, logger.screen_logger ())
-	#Request ("www.microsoft.com", protocol = "tcp", callback = print, qtype="a")
-	#Request ("www.cnn.com", protocol = "udp", callback = print, qtype="a")
-	#Request ("www.gitlab.com", protocol = "udp", callback = print, qtype="a")
-	#Request ("www.alexa.com", protocol = "udp", callback = print, qtype="a")
+	Request ("www.microsoft.com", protocol = "tcp", callback = print, qtype="a")
+	Request ("www.cnn.com", protocol = "tcp", callback = print, qtype="a")
+	Request ("www.gitlab.com", protocol = "tcp", callback = print, qtype="a")
+	Request ("www.alexa.com", protocol = "udp", callback = print, qtype="a")
 	Request ("www.yahoo.com", protocol = "udp", callback = print, qtype="a")
 	Request ("www.github.com", protocol = "udp", callback = print, qtype="a")
 	Request ("www.google.com", protocol = "udp", callback = print, qtype="a")
