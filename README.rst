@@ -352,7 +352,9 @@ Configuration Parameters
     http2_constreams = 1,
     allow_redirects = True,
     qrandom = False,    
-		use_pool = True    
+		use_pool = True,
+		dns = [], 
+		tracking = False		    
   )
   
 - workers: number of fetching workers, it'not threads
@@ -365,6 +367,9 @@ Configuration Parameters
 - allow_redirects: if set True, in case HTTP status code is in 301, 302, 307, 308 then redirect automatically
 - qrandom: requests will be selected by random, this is useful for load distributing to request multiple hosts.
 - use_pool: because aquests use socket pool, if you work with lots of sites concurrently, it may be raised error by too many open files and this can make disabling socket pooling
+- dns: DNS server list
+- tracking: False, show Python object memory allocation status
+
 
 List of Methods
 ==================
@@ -698,6 +703,7 @@ History
 
 - 0.7.9
   
+  - add dns param to aquests.configure for user defined DSN server list
   - re-unify DNS sockets with main socket_map, it was bad idea
   - make keeping number of UDP DNS Client per DNS server
   - re-enginering DNS query and fix passing calllback args

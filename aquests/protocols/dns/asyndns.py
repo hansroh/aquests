@@ -11,15 +11,13 @@ import types
 from .pydns import Base, Type, Class, Lib, Opcode
 import random
 import threading
-from ...lib.athreads.socket_map import thread_safe_socket_map
 
 defaults = Base.defaults
 Base.DiscoverNameServers ()
 
-socket_map = thread_safe_socket_map ()
-
 class UDPClient (asynchat.async_chat):
 	protocol = "udp"
+	zombie_timeout = 1200
 	
 	def __init__ (self, addr, logger):
 		self.addr = addr
@@ -29,7 +27,7 @@ class UDPClient (asynchat.async_chat):
 		self.closed = False
 		self._timeouted = False
 		self.callbacks = {}
-		asynchat.async_chat.__init__ (self, None, socket_map)
+		asynchat.async_chat.__init__ (self)
 							
 	def query (self, request, args, callback):	
 		self.event_time = time.time ()		
@@ -74,22 +72,24 @@ class UDPClient (asynchat.async_chat):
 	def handle_expt (self):
 		self.handle_close ()
 		
-	def collect_incoming_data (self, data):		
+	def collect_incoming_data (self, data, id = None):		
 		try:
-			callback, args, starttime = self.callbacks.pop (data [:2])				
+			callback, args, starttime = self.callbacks.pop (id or data [:2])				
 		except KeyError:
+			# alerady timeouted
 			pass
 		else:
-			callback (args, data, not data)
+			callback (args, data, id is not None)
 			
 	def handle_close (self):	
 		for callback, args, starttime in self.callbacks.values ():
-			callback (args, b'', self._timeouted)				
+			callback (args, b'', True)
 		self.close ()
 
 		
 class TCPClient (UDPClient):
 	protocol = "tcp"
+	zombie_timeout = 10
 	
 	def __init__ (self, addr, logger):		
 		UDPClient.__init__ (self, addr, logger)
@@ -119,7 +119,7 @@ class TCPClient (UDPClient):
 			
 	def found_terminator (self):	
 		if self.header:
-			self.callback (self.args, self.header + self.reply, self._timeouted)				
+			self.callback (self.args, self.header + self.reply, self._timeouted)
 			self.close ()
 			
 		else:
@@ -136,9 +136,12 @@ class Request:
 	id = 0
 	def __init__(self, name, **args):
 		self.req (name, **args)
-		
+	
 	def argparse (self, name, args):
 		args['name'] = name
+		if 'errors' not in args:
+			args ['errors'] = []
+			
 		for i in list(defaults.keys()):
 			if i not in args:
 				args[i]=defaults[i]
@@ -176,7 +179,6 @@ class Request:
 		m.addQuestion (qname, qtype, Class.IN)
 		request = m.getbuf ()
 		
-		args ['retry'] += 1
 		conn = getattr (pool, args ['protocol']) ()
 		conn.query (request, args, self.processReply)
 		
@@ -230,10 +232,11 @@ class Request:
 					pool.logger.trace ()
 		
 		if err:
-			if args ['retry'] < 3:					
+			if len (args ['errors']) < 3:
+				args ['errors'].append (err)
 				self.req (**args)					
-				return
-			pool.logger ('%s, DNS %s error' % (qname, err), 'warn')
+				return			
+			pool.logger ('%s, DNS %s errors' % (qname, args ['errors']), 'warn')
 		
 		callback = args.get ("callback", None)
 		if callback:
@@ -244,45 +247,86 @@ class Request:
 
 
 class Pool:
-	zombie_timeout = 2
+	query_timeout = 5
+	
 	def __init__ (self, servers, logger):
-		#self.servers = [(x, 53) for x in servers]
 		self.logger = logger
-		self.udps = [UDPClient ((x, 53), self.logger) for x in servers]		
+		self.lock = threading.Lock ()
 		self.servers = [(x, 53) for x in servers]
+		self.udps = [UDPClient (x, self.logger) for x in self.servers]						
+		self.queue = []
+		
+	def add (self, item):
+		with self.lock:
+			self.queue.append (item)
 	
-	def __len__ (self):	
-		for each in list (socket_map.values ()):
-			if isinstance (each, TCPClient):
-				return 1				
-			elif each.callbacks:
-				return 1
-		return 0
-	
+	def ongoing (self):
+		with self.lock:
+			for client in self.udps:
+				return len (client.callbacks)
+		return 0		
+		
+	def pop_all (self, exhaust = False):
+		# DNS query maybe not allowed delay between request and send
+		# maybe they just drop response packet for delaying
+		with self.lock:
+			count = len (self.queue)
+			while self.queue:
+				name, args = self.queue.pop (0)
+				Request (name, **args)
+		
+		if not count and not self.ongoing ():
+			return
+		
+		map = {}
+		with self.lock:
+			for client in self.udps:
+				map [client._fileno] = client						
+		fds = list (map.keys ())
+		
+		# maybe 2 is enough
+		safeguard = exhaust and count * 2 or 2
+		while self.ongoing () and safeguard:
+			safeguard -= 1
+			asyncore.loop (0.1, map, count = 1)
+			if safeguard % 5 == 0:
+				self.maintern (time.time ())		
+		self.maintern (time.time ())
+							
+		for fd in fds:
+			if fd not in map:
+				# resync 
+				try: del asyncore.socket_map [fd]
+				except KeyError: pass	
+		
 	def maintern (self, now):
-		for each in list (socket_map.values ()):
-			if isinstance (each, TCPClient):
-				if now - each.event_time > self.zombie_timeout:
-					each.handle_timeout ()
-					
-			else:
-				for id, (callback, args, starttime) in list (each.callbacks.items ()):
-					if now - starttime > self.zombie_timeout:						
-						# timeout
-						each.collect_incoming_data (b'')						
-				
+		for client in self.udps:
+			for id, (callback, args, starttime) in list (client.callbacks.items ()):
+				if now - starttime > self.query_timeout:					
+					client.collect_incoming_data (b'', id)
+			
 	def tcp (self):
-		addr = random.choice (self.servers)		
+		addr = random.choice (self.servers)
 		return TCPClient (addr, self.logger)
 		
 	def udp (self):
 		return random.choice (self.udps)
-			
+
+
+def query (name, **args):
+	global pool	
+	pool.add ((name, args))
+
+def pop_all (exhaust = False):	
+	global pool
+	pool.pop_all (exhaust)
+	
 		
 PUBLIC_DNS_SERVERS = [
 	'8.8.8.8', 
 	'8.8.4.4'
 ]
+
 pool = None			
 def create_pool (dns_servers, logger):
 	global pool, PUBLIC_DNS_SERVERS
@@ -315,18 +359,24 @@ if __name__	== "__main__":
 	import pprint
 	
 	create_pool (PUBLIC_DNS_SERVERS, logger.screen_logger ())
-	Request ("www.microsoft.com", protocol = "tcp", callback = print, qtype="a")
-	Request ("www.cnn.com", protocol = "tcp", callback = print, qtype="a")
-	Request ("www.gitlab.com", protocol = "tcp", callback = print, qtype="a")
-	Request ("www.alexa.com", protocol = "udp", callback = print, qtype="a")
-	Request ("www.yahoo.com", protocol = "udp", callback = print, qtype="a")
-	Request ("www.github.com", protocol = "udp", callback = print, qtype="a")
-	Request ("www.google.com", protocol = "udp", callback = print, qtype="a")
-	Request ("www.amazon.com", protocol = "udp", callback = print, qtype="a")
-	print (socket_map)
+	query ("www.microsoft.com", protocol = "tcp", callback = print, qtype="a")
+	query ("www.cnn.com", protocol = "tcp", callback = print, qtype="a")
+	query ("www.gitlab.com", protocol = "tcp", callback = print, qtype="a")
+	query ("www.alexa.com", protocol = "udp", callback = print, qtype="a")
+	query ("www.yahoo.com", protocol = "udp", callback = print, qtype="a")
+	query ("www.github.com", protocol = "udp", callback = print, qtype="a")
+	query ("www.google.com", protocol = "udp", callback = print, qtype="a")
+	query ("www.amazon.com", protocol = "udp", callback = print, qtype="a")
+	query ("www.almec.com", protocol = "udp", callback = print, qtype="a")
+	query ("www.alamobeauty.com", protocol = "udp", callback = print, qtype="a")
+	query ("www.alphaworld.com", protocol = "udp", callback = print, qtype="a")
+	query ("www.allrightsales.com", protocol = "udp", callback = print, qtype="a")
+	
+	pop_all ()
+	print ('------------------------')	
 	for i in range (10):
-		asyncore.loop (timeout = 0.1, map = socket_map, count = 1)
-		print (len (pool), socket_map)
+		asyncore.loop (timeout = 0.1, count = 1)
+		print (asyncore.socket_map)
 		
 	
 	

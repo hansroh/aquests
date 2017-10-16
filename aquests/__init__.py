@@ -87,6 +87,7 @@ def configure (
 	use_pool = True,
 	tracking = False,
 	backend = False,
+	dns = []
 ):
 	global _logger, _cb_gateway, _concurrent, _initialized, _timeout
 	global _workers, _que, _allow_redirects, _force_h1
@@ -131,8 +132,8 @@ def configure (
 	
 	socketpool.create (_logger, backend = backend, use_pool = use_pool)
 	dbpool.create (_logger, backend = backend)
-	adns.init (_logger)
-	lifetime.init (_timeout / 2., logger) # maintern interval
+	adns.init (_logger, dns)
+	lifetime.init (_timeout / 2., logger) # maintern interval	
 	if tracking:
 		lifetime.enable_memory_track ()
 	_initialized = True
@@ -323,14 +324,13 @@ def fetchall ():
 	#_logger ("creating connection pool", "info")
 	target_socks = min (_workers, qsize ())
 	for i in range (target_socks):
-		_req ()
-	lifetime.poll_dns (True)
-		
+		_req ()	
+	
 	if not _force_h1 and http2.MAX_HTTP2_CONCURRENT_STREAMS > 1:
 		# wait all availabale	
 		while qsize ():
 			lifetime.lifetime_loop (os.name == "nt" and 1.0 or _timeout / 2.0, 1)
-			if sum ([1 for conn in asyncore.socket_map.values () if conn.get_proto () in H2_PROTOCOLS and conn.connected and not conn.isactive ()]) == _workers:
+			if sum ([1 for conn in asyncore.socket_map.values () if not isinstance (conn, [asyndns.UDPClient, asyndns.TCPClient]) and conn.get_proto () in H2_PROTOCOLS and conn.connected and not conn.isactive ()]) == _workers:
 				#_logger ('%d connection(s) created' % target_socks, 'info')
 				break
 			
@@ -342,7 +342,6 @@ def fetchall ():
 		#print ('--', len (_currents), mapsize (), qsize ())
 		if not mapsize ():
 			break	
-		lifetime.poll_dns (True)
 		lifetime.lifetime_loop (os.name == "nt" and 1.0 or _timeout / 2.0, 1)
 	
 	#for each in _currents:
@@ -391,7 +390,8 @@ def _add (method, url, params = None, auth = None, headers = {}, callback = None
 			_dns_query_req [host] = None
 			_dns_reqs += 1
 			adns.query (host, "A", callback = lambda x: None)		
-		lifetime.poll_dns (True)
+		asyndns.pop_all ()
+		asyncore.loop (0.1, count = 2)
 	
 	#print ('~~~~~~~~~~~~~~~', asyndns.pool.connections)
 	
