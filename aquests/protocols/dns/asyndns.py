@@ -11,6 +11,7 @@ import types
 from .pydns import Base, Type, Class, Lib, Opcode
 import random
 import threading
+from ... import lifetime
 
 defaults = Base.defaults
 Base.DiscoverNameServers ()
@@ -324,13 +325,14 @@ class Pool:
 		return random.choice (self.udps)
 
 
-def query_nowait (name, **args):
-	Request (name, **args)
-	
 def query (name, **args):
-	global pool	
+	global pool
+	
+	if not lifetime.EXHAUST_DNS:
+		return Request (name, **args)
 	pool.add ((name, args))
 
+	
 def pop_all ():	
 	global pool
 	pool.pop_all ()
