@@ -328,8 +328,7 @@ def fetchall ():
 	
 	if not _force_h1 and http2.MAX_HTTP2_CONCURRENT_STREAMS > 1:
 		# wait all availabale	
-		while qsize ():
-			asyndns.pop_all ()
+		while qsize ():			
 			lifetime.lifetime_loop (os.name == "nt" and 1.0 or _timeout / 2.0, 1)
 			if sum ([1 for conn in asyncore.socket_map.values () if not isinstance (conn, [asyndns.UDPClient, asyndns.TCPClient]) and conn.get_proto () in H2_PROTOCOLS and conn.connected and not conn.isactive ()]) == _workers:
 				#_logger ('%d connection(s) created' % target_socks, 'info')
@@ -342,8 +341,7 @@ def fetchall ():
 		_max_conns = max (_max_conns, mapsize ())	
 		#print ('--', len (_currents), mapsize (), qsize ())
 		if not mapsize ():
-			break	
-		asyndns.pop_all ()	
+			break		
 		lifetime.lifetime_loop (os.name == "nt" and 1.0 or _timeout / 2.0, 1)
 	
 	#for each in _currents:
