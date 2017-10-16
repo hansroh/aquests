@@ -190,7 +190,9 @@ def poll_fun_wrap (timeout, map = None):
 	if map is None:
 		map = asyncore.socket_map	
 	
-	asyndns.pop_all (EXHAUST_DNS)
+	if EXHAUST_DNS:
+		asyndns.pop_all ()	
+	
 	try:		
 		poll_fun (timeout, map)
 	except (TypeError, OSError) as why:

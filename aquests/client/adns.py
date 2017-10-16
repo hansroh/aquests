@@ -1,4 +1,5 @@
 from ..protocols.dns import asyndns
+from .. import lifetime
 import time
 import threading
 import os
@@ -92,8 +93,13 @@ class DNSCache:
 			self.set ([{"name": host, "data": host, "typename": qtype}])
 			return callback ([{"name": host, "data": host, "typename": qtype}])
 		
+		if lifetime.EXHAUST_DNS:
+			q = asyndns.query
+		else:
+			q = asyndns.query_nowait			
+						
 		try:			
-			asyndns.query (host, qtype = qtype, protocol = self.prefer_protocol, callback = [self.set, callback])			
+			q (host, qtype = qtype, protocol = self.prefer_protocol, callback = [self.set, callback])			
 		except:
 			self.logger.trace (host)
 			hit = [{"name": host, "data": None, "typename": qtype, 'ttl': 60}]

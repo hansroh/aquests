@@ -18,6 +18,7 @@ Base.DiscoverNameServers ()
 class UDPClient (asynchat.async_chat):
 	protocol = "udp"
 	zombie_timeout = 1200
+	ac_in_buffer_size = 512
 	
 	def __init__ (self, addr, logger):
 		self.addr = addr
@@ -72,7 +73,7 @@ class UDPClient (asynchat.async_chat):
 	def handle_expt (self):
 		self.handle_close ()
 		
-	def collect_incoming_data (self, data, id = None):		
+	def collect_incoming_data (self, data, id = None):
 		try:
 			callback, args, starttime = self.callbacks.pop (id or data [:2])				
 		except KeyError:
@@ -90,6 +91,7 @@ class UDPClient (asynchat.async_chat):
 class TCPClient (UDPClient):
 	protocol = "tcp"
 	zombie_timeout = 10
+	ac_in_buffer_size = 65536
 	
 	def __init__ (self, addr, logger):		
 		UDPClient.__init__ (self, addr, logger)
@@ -130,7 +132,7 @@ class TCPClient (UDPClient):
 	def handle_close (self):	
 		self.callback (self.args, b'', self._timeouted)				
 		self.close ()
-		
+
 		
 class Request:
 	id = 0
@@ -153,7 +155,7 @@ class Request:
 		if isinstance (name, str):
 			name = name.encode ("utf8")
 		args = self.argparse (name, args)
-		
+
 		protocol = args ['protocol']
 		opcode = args ['opcode']
 		rd = args ['rd']
@@ -195,17 +197,17 @@ class Request:
 		else:	
 			try:
 				if not data:
-					err = "no reply"
+					err = "no-reply"
 					
 				else:	
 					if args ["protocol"] == "tcp":
 						header = data [:2]
 						if len (header) < 2:
-							err = '%s, EOF' % qname
+							err = 'EOF-invalid-header' % qname
 						count = Lib.unpack16bit(header)
 						reply = data [2: 2 + count]
 						if len (reply) != count:
-							err = "incomplete reply"					
+							err = "incomplete-reply"					
 					else:
 						reply = data
 					
@@ -232,10 +234,11 @@ class Request:
 					pool.logger.trace ()
 		
 		if err:
-			if len (args ['errors']) < 3:
+			if len (args ['errors']) < 2:
 				args ['errors'].append (err)
-				self.req (**args)					
-				return			
+				query (**args)
+				return
+				
 			pool.logger ('%s, DNS %s errors' % (qname, args ['errors']), 'warn')
 		
 		callback = args.get ("callback", None)
@@ -247,7 +250,7 @@ class Request:
 
 
 class Pool:
-	query_timeout = 5
+	query_timeout = 1
 	
 	def __init__ (self, servers, logger):
 		self.logger = logger
@@ -260,33 +263,41 @@ class Pool:
 		with self.lock:
 			self.queue.append (item)
 	
-	def ongoing (self):
+	def has_job (self):
 		with self.lock:
 			for client in self.udps:
-				return len (client.callbacks)
-		return 0		
-		
-	def pop_all (self, exhaust = False):
+				if len (client.callbacks):
+					return 1
+		return 0
+	
+	def jobs (self):
+		t = []		
+		with self.lock:
+			for client in self.udps:
+				t.extend (list (client.callbacks.keys ()))
+		return t	
+			
+	def pop_all (self):
 		# DNS query maybe not allowed delay between request and send
 		# maybe they just drop response packet for delaying
 		with self.lock:
 			count = len (self.queue)
 			while self.queue:
 				name, args = self.queue.pop (0)
-				Request (name, **args)
+				Request (name, **args)		
 		
-		if not count and not self.ongoing ():
+		if (not count and not self.has_job ()):
 			return
 		
 		map = {}
 		with self.lock:
 			for client in self.udps:
-				map [client._fileno] = client						
+				map [client._fileno] = client
 		fds = list (map.keys ())
 		
 		# maybe 2 is enough
-		safeguard = exhaust and count * 2 or 2
-		while self.ongoing () and safeguard:
+		safeguard = count * 2
+		while self.has_job () and safeguard:
 			safeguard -= 1
 			asyncore.loop (0.1, map, count = 1)
 			if safeguard % 5 == 0:
@@ -302,7 +313,7 @@ class Pool:
 	def maintern (self, now):
 		for client in self.udps:
 			for id, (callback, args, starttime) in list (client.callbacks.items ()):
-				if now - starttime > self.query_timeout:					
+				if now - starttime > self.query_timeout:
 					client.collect_incoming_data (b'', id)
 			
 	def tcp (self):
@@ -313,13 +324,16 @@ class Pool:
 		return random.choice (self.udps)
 
 
+def query_nowait (name, **args):
+	Request (name, **args)
+	
 def query (name, **args):
 	global pool	
 	pool.add ((name, args))
 
-def pop_all (exhaust = False):	
+def pop_all ():	
 	global pool
-	pool.pop_all (exhaust)
+	pool.pop_all ()
 	
 		
 PUBLIC_DNS_SERVERS = [
@@ -353,30 +367,37 @@ def test_callback (ans):
 		item = testset.pop ()		
 		Request (item, protocol = "udp", callback = test_callback, qtype = "a")		
 
-	
+def _print (ans):
+	if ans:
+		print (ans[0]['name'], ans[-1]['data'])
+	else:
+		print ("FAILED")
+		
 if __name__	== "__main__":
 	from aquests.lib import logger
 	import pprint
 	
 	create_pool (PUBLIC_DNS_SERVERS, logger.screen_logger ())
-	query ("www.microsoft.com", protocol = "tcp", callback = print, qtype="a")
-	query ("www.cnn.com", protocol = "tcp", callback = print, qtype="a")
-	query ("www.gitlab.com", protocol = "tcp", callback = print, qtype="a")
-	query ("www.alexa.com", protocol = "udp", callback = print, qtype="a")
-	query ("www.yahoo.com", protocol = "udp", callback = print, qtype="a")
-	query ("www.github.com", protocol = "udp", callback = print, qtype="a")
-	query ("www.google.com", protocol = "udp", callback = print, qtype="a")
-	query ("www.amazon.com", protocol = "udp", callback = print, qtype="a")
-	query ("www.almec.com", protocol = "udp", callback = print, qtype="a")
-	query ("www.alamobeauty.com", protocol = "udp", callback = print, qtype="a")
-	query ("www.alphaworld.com", protocol = "udp", callback = print, qtype="a")
-	query ("www.allrightsales.com", protocol = "udp", callback = print, qtype="a")
+	for i in range (4):
+		query ("www.microsoft.com", protocol = "udp", callback = _print, qtype="a")
+		query ("www.cnn.com", protocol = "udp", callback = _print, qtype="a")
+		query ("www.gitlab.com", protocol = "udp", callback = _print, qtype="a")
+		query ("www.alexa.com", protocol = "udp", callback = _print, qtype="a")
+		query ("www.yahoo.com", protocol = "udp", callback = _print, qtype="a")
+		query ("www.github.com", protocol = "udp", callback = _print, qtype="a")
+		query ("www.google.com", protocol = "udp", callback = _print, qtype="a")
+		query ("www.amazon.com", protocol = "udp", callback = _print, qtype="a")
+		query ("www.almec.com", protocol = "udp", callback = _print, qtype="a")
+		query ("www.alamobeauty.com", protocol = "udp", callback = _print, qtype="a")
+		query ("www.alphaworld.com", protocol = "udp", callback = _print, qtype="a")
+		query ("www.allrightsales.com", protocol = "udp", callback = _print, qtype="a")
 	
 	pop_all ()
 	print ('------------------------')	
-	for i in range (10):
-		asyncore.loop (timeout = 0.1, count = 1)
-		print (asyncore.socket_map)
+	while 1:
+		pop_all ()
+		asyncore.loop (timeout = 1, count = 1)
+		print ('UNFINISHED', pool.jobs ())
 		
 	
 	
