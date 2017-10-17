@@ -703,6 +703,7 @@ History
 
 - 0.7.9
   
+  - fix proxy DNS query
   - prevent same DNS server choice on DNS query failure
   - fix DNS query retry
   - add dns param to aquests.configure for user defined DSN server list
