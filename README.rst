@@ -702,8 +702,9 @@ History
 =========
 
 - 0.7.9
-  
-  - prevent same DNS server choice on DNS query failure
+
+  - switch DNS protocol on query failure
+  - prevent same DNS server choice on query failure
   - fix DNS query retry
   - add dns param to aquests.configure for user defined DSN server list
   - re-unify DNS sockets with main socket_map, it was bad idea

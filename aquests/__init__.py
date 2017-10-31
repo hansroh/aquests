@@ -307,7 +307,7 @@ def concurrent ():
 	return _concurrent
 		
 def fetchall ():
-	global _workers, _logger, _que, _timeout, _max_conns, _bytesrecv, _concurrent, _finished_total, _max_conns, _force_h1	
+	global _workers, _logger, _que, _timeout, _max_conns, _bytesrecv, _concurrent, _finished_total, _max_conns, _force_h1, _request_total, _bytesrecv
 	
 	if not qsize ():
 		_logger.log ('no item in queue.')
@@ -347,7 +347,7 @@ def fetchall ():
 	#for each in _currents:
 	#	print ('-- unfinished', each)
 	
-	lifetime._polling = 0	
+	lifetime._polling = 0
 	_duration = timeit.default_timer () - _fetch_started
 	socketpool.cleanup ()
 	dbpool.cleanup ()
@@ -360,7 +360,13 @@ def fetchall ():
 		_max_conns
 		)
 	)
-
+	
+	# reinit for next session
+	_request_total = 0			
+	_finished_total = 0		
+	_max_conns = 0
+	_bytesrecv = 0
+	
 def suspend (timeout):
 	a, b = math.modf (timeout)
 	for i in range (int (b)):		
