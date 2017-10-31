@@ -345,7 +345,7 @@ def query (name, **args):
 	global pool
 	
 	if not lifetime.EXHAUST_DNS:
-		return Request (name, **args)
+		return pool.handler.handle_request (name, **args)
 	pool.add ((name, args))
 
 	
@@ -356,13 +356,7 @@ def pop_all ():
 		
 PUBLIC_DNS_SERVERS = [
 	'8.8.8.8', 
-	'8.8.4.4',
-	'4.2.2.1',
-	'4.2.2.2',
-	'4.2.2.3',
-	'4.2.2.4',
-	'4.2.2.5',
-	'4.2.2.6'
+	'8.8.4.4'
 ]
 
 pool = None			
@@ -389,7 +383,7 @@ def test_callback (ans):
 	pprint.pprint (ans)	
 	if testset:
 		item = testset.pop ()		
-		Request (item, protocol = "udp", callback = test_callback, qtype = "a")		
+		self.handler.handle_request (item, protocol = "udp", callback = test_callback, qtype = "a")
 
 def _print (ans):
 	if ans:
