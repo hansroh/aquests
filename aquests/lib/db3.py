@@ -5,7 +5,10 @@ import zlib
 class open:
 	def __init__ (self, path):		
 		self.conn = sqlite3.connect (path, check_same_thread = False)
-		self.c = self.conn.cursor ()
+		self.create_cursor ()
+	
+	def create_cursor (self):	
+		self.cursor = self.c = self.conn.cursor ()
 	
 	def to_safe_tuple (self, karg):
 		revised = []
