@@ -51,7 +51,7 @@ class DBConnect:
 			self.disconnect ()
 			
 	def set_backend (self, backend_keep_alive = 10):
-		self.backend = True
+		#self.backend = True
 		self.keep_alive = backend_keep_alive
 		
 	def duplicate (self):

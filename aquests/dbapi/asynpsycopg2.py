@@ -161,7 +161,7 @@ else:
 			)
 			self.set_socket (sock)
 		
-		def end_tran (self):
+		def end_tran (self):	
 			if not self.backend:
 				self.del_channel ()
 
