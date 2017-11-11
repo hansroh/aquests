@@ -702,7 +702,7 @@ History
 =========
 
 - 0.7.9
-
+  
   - switch DNS protocol on query failure
   - prevent same DNS server choice on query failure  
   - fix proxy DNS query
