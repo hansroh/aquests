@@ -161,14 +161,14 @@ else:
 			)
 			self.set_socket (sock)
 		
-		def end_tran (self):	
+		def end_tran (self):				
 			if not self.backend:
 				self.del_channel ()
 
 		def begin_tran (self, request):			
 			dbconnect.AsynDBConnect.begin_tran (self, request)
-			self.out_buffer = request.params [0]
-								
+			self.out_buffer = request.params [0]			
+			
 		def execute (self, request):			
 			self.begin_tran (request)			
 			if not self.connected:

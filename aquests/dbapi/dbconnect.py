@@ -161,7 +161,7 @@ class DBConnect:
 	
 	def set_timeout (self, timeout):
 		self.zombie_timeout = timeout
-
+		
 	def handle_timeout (self):
 		self.handle_close (OperationalError, "Operation Timeout")
 	
