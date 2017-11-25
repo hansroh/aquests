@@ -120,7 +120,7 @@ Binding Callback
   def finish_request (response):
     print (response.status_code)
     print (response.content)
-  	
+    
   aquests.configure (workers = 10, callback = finish_request)
   for i in range (10):
     aquests.get ("http://127.0.0.1:5000/")    
@@ -141,7 +141,7 @@ Making Traffic Load With Generator Style
     if numreq < limit:
       aquests.get ("http://127.0.0.1:5000/")
       numreq += 1
-  	
+    
   aquests.configure (workers, callback = finish_request)
   for i in range (workers):
     aquests.get ("http://127.0.0.1:5000/")  
@@ -158,7 +158,7 @@ Set/Get Request Meta Information
     print (response.meta ['req_id'])
     print (response.meta ['req_method'])
     print (response.meta ['job_name'])
-  	
+    
   aquests.configure (workers = 10, callback = finish_request)
   aquests.get ("http://127.0.0.1:5000/", meta = {'job_name': 'test1'})  
   aquests.get ("http://127.0.0.1:5000/", meta = {'job_name': 'test2'})
@@ -352,9 +352,9 @@ Configuration Parameters
     http2_constreams = 1,
     allow_redirects = True,
     qrandom = False,    
-		use_pool = True,
-		dns = [], 
-		tracking = False		    
+    use_pool = True,
+    dns = [], 
+    tracking = False        
   )
   
 - workers: number of fetching workers, it'not threads
@@ -524,9 +524,9 @@ PostgreSQL
 .. code-block:: python
   
   def finish_request (response):
-    print (response.data)  	
+    print (response.data)    
   
-  aquests.configure (3, callback = finish_request)	
+  aquests.configure (3, callback = finish_request)  
   dbo = aquests.postgresql ("127.0.0.1:5432", "mydb", ("test", "1111"))
   for i in range (10):
     dbo.execute ("SELECT city, prcp, temp_hi, temp_low FROM weather;")
@@ -703,6 +703,7 @@ History
 
 - 0.7.9
   
+  - make sqlite3 to autocommit mode
   - switch DNS protocol on query failure
   - prevent same DNS server choice on query failure  
   - fix proxy DNS query
