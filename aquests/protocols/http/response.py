@@ -381,13 +381,13 @@ class Response:
 			msgs = []
 			for msg in result:
 				descriptor, isstream = discover.find_output (self.request.path [1:])					
-				f = descriptor ()
-				f.ParseFromString (msg.decode ("utf8"))
+				f = descriptor ()				
+				f.ParseFromString (msg)
 				msgs.append (f)
 								
 			if not isstream:
 				return msgs [0]
-			return msgs	
+			return msgs
 		
 		self.__data_cache = result	
 		return result

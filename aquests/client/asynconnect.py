@@ -275,7 +275,7 @@ class AsynConnect (asynchat.async_chat):
 		
 	def recv (self, buffer_size):
 		try:
-			data = self.socket.recv (buffer_size)			
+			data = self.socket.recv (buffer_size)
 			if not data:
 				self.handle_close (700, "Connection closed unexpectedly in recv")
 				return b''
