@@ -21,12 +21,13 @@ class GRPCRequest (XMLRPCRequest):
 			"grpc-accept-encoding": "identity,gzip",
 			"user-agent": self.user_agent,
 			"message-type": self.params [0].__class__.__name__,
+			"te": 'trailers', 
 		}		
 		self.payload = self.serialize ()
 		if not self.payload:
 			self.method = "GET"
 		else:
-			self.headers ["Content-Type"] = "application/grpc"		
+			self.headers ["Content-Type"] = "application/grpc+proto"
 		
 	def get_cache_key (self):
 		return None

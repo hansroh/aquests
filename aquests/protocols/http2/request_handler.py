@@ -136,7 +136,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 	
 	def send_data (self):
 		with self._clock:
-			data_to_send = self.conn.data_to_send ()		
+			data_to_send = self.conn.data_to_send ()			
 		if data_to_send:
 			self.asyncon.push (data_to_send)
 							
@@ -148,7 +148,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 		
 		headers, content_encoded = handler.get_request_header ("2.0", False)
 		payload = handler.get_request_payload ()
-		producer = None		
+		producer = None
 		if payload:
 			if type (payload) is bytes:
 				producer = producers.globbing_producer (

@@ -2,6 +2,8 @@ import sys
 from google.protobuf import descriptor_pb2
 
 cache = {}
+ocache = {}
+all = []
 
 def discover ():
 	global cache	
@@ -17,30 +19,53 @@ def discover ():
 						(method.input_type.split (".")[-1], method.client_streaming),
 						(method.output_type.split (".")[-1], method.server_streaming),
 						method.options
-					)					
+					)
+			all.append (v)
 
 discover ()
 
+def find_object (module, name_stream):
+	global all, ocache
+	
+	name, isstream = name_stream
+	if name in ocache:
+		return ocache [name]
+	
+	res = None
+	if hasattr (module, name):
+		res = getattr (module, name), isstream
+	else:
+		for each in all:
+			if hasattr (each, name):
+				res = getattr (each, name), isstream
+				break
+	
+	if res:
+		ocache [name] = res
+		
+	return res	
+	
 def find_type (uri):
-	global cache	
-	if not cache: discover ()
+	global cache, ocache	
+	if not ocache: discover ()
 	return find_input (uri), find_output (uri)
 	
 def find_output (uri):
-	global cache	
-	if not cache: discover ()
+	global cache, ocache
+	if not ocache: discover ()	
 	try:
 		module, it, ot, opt = cache.get (uri)
 	except TypeError:
 		raise KeyError	
-	return getattr (module, ot [0]), ot [1]
+	return find_object (module, ot)
 
 def find_input (uri):
-	global cache	
-	if not cache: discover ()
+	global cache, ocache
+	if not ocache: discover ()
 	try:
 		module, it, ot, opt = cache.get (uri)
 	except TypeError:
 		raise KeyError	
-	return getattr (module, it [0]), it [1]
+	return find_object (module, it)
+	
 	
