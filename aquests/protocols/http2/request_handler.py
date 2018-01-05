@@ -293,11 +293,11 @@ class RequestHandler (base_request_handler.RequestHandler):
 			
 			elif isinstance (event, RemoteSettingsChanged):				
 				try:
-					mfs = event.changed_settings [SettingCodes.MAX_FRAME_SIZE].new_value					
+					iws = event.changed_settings [SettingCodes.INITIAL_WINDOW_SIZE].new_value
 				except KeyError:
 					pass
-				else:
-					self.conn.remote_settings
+				else:						
+					self.increment_flow_control_window (iws)
 				
 			elif isinstance(event, StreamEnded):
 				h = self.get_handler (event.stream_id)
