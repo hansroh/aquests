@@ -84,7 +84,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 			self.add_request (1, handler)
 			self._send_stream_id = 1 # nexet request stream_id will be 3
 		else:		    
-			self.conn.initiate_connection()			
+			self.conn.initiate_connection()				
 			
 		self.send_data ()
 		self.asyncon.set_terminator (9)
@@ -100,6 +100,8 @@ class RequestHandler (base_request_handler.RequestHandler):
 		self._send_stream_id = -1
 		self.requests = {}
 		self.conn = H2Connection ()		
+		self.conn.local_settings.initial_window_size = 65535
+		
 		self.buf = b""
 		self.rfile = BytesIO ()		
 		self.frame_buf = self.conn.incoming_buffer		
@@ -136,8 +138,8 @@ class RequestHandler (base_request_handler.RequestHandler):
 	
 	def send_data (self):
 		with self._clock:
-			data_to_send = self.conn.data_to_send ()			
-		if data_to_send:
+			data_to_send = self.conn.data_to_send ()						
+		if data_to_send:			
 			self.asyncon.push (data_to_send)
 							
 	def handle_request (self, handler):
@@ -171,9 +173,11 @@ class RequestHandler (base_request_handler.RequestHandler):
 				self.send_data ()				
 		else:	
 			with self._clock:
-				try: self.conn.increment_flow_control_window (cl, stream_id)
+				self.conn.increment_flow_control_window (cl)
+				try: 
+					self.conn.increment_flow_control_window (cl, stream_id)					
 				except StreamClosedError: pass
-				else: self.send_data ()	
+				else: self.send_data ()
 					
 	def collect_incoming_data (self, data):
 		if not data:  return
@@ -256,10 +260,17 @@ class RequestHandler (base_request_handler.RequestHandler):
 		self.asyncon.set_active (False)
 		
 	def handle_events (self, events):
-		for event in events:
-			print (event)
+		for event in events:			
 			if isinstance(event, ResponseReceived):
 				self.handle_response (event.stream_id, event.headers)
+			
+			elif isinstance(event, RemoteSettingsChanged):
+				try:
+					iws = event.changed_settings [SettingCodes.INITIAL_WINDOW_SIZE].new_value
+				except KeyError:
+					pass
+				else:						
+					self.increment_flow_control_window (iws)
 					
 			elif isinstance(event, StreamReset):
 				if event.remote_reset:				
@@ -276,18 +287,17 @@ class RequestHandler (base_request_handler.RequestHandler):
 				h = self.get_handler (event.stream_id)
 				if h:
 					h.collect_incoming_data (event.data)
-					rfcw = self.conn.remote_flow_control_window (event.stream_id)
-					if rfcw <= 16384:
+					rfcw = self.conn.remote_flow_control_window (event.stream_id)					
+					if rfcw <= 131070:
 						self.increment_flow_control_window (1048576, event.stream_id)
 			
-			elif isinstance (event, RemoteSettingsChanged):
+			elif isinstance (event, RemoteSettingsChanged):				
 				try:
 					mfs = event.changed_settings [SettingCodes.MAX_FRAME_SIZE].new_value					
 				except KeyError:
 					pass
 				else:
-					self.frame_buf.max_frame_size	= mfs
-					self.increment_flow_control_window (mfs)
+					self.conn.remote_settings
 				
 			elif isinstance(event, StreamEnded):
 				h = self.get_handler (event.stream_id)

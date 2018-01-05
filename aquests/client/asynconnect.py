@@ -291,7 +291,7 @@ class AsynConnect (asynchat.async_chat):
 	
 	def send (self, data):		
 		try:
-			numsent = self.socket.send (data)
+			numsent = self.socket.send (data)			
 			if numsent:
 				self.set_event_time ()
 			return numsent	

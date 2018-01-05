@@ -18,6 +18,6 @@ def get_messages (fp):
 def decode_message (msg, iscompressed):	
 	if iscompressed:
 		decompressor = compressors.GZipDecompressor ()
-		msg = decompressor.deconpress (msg)	+ decompressor.flush ()
+		msg = decompressor.decompress (msg)	+ decompressor.flush ()
 	return msg
 	

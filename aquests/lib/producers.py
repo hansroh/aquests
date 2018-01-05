@@ -296,11 +296,60 @@ class globbing_producer:
 		
 	def more (self):
 		while len(self.buffer) < self.buffer_size:
-			data = self.producer.more()
+			data = self.producer.more()			
 			if data:
 				self.buffer = self.buffer + data
 			else:
 				break
+		r = self.buffer
+		self.buffer = b''
+		return r
+
+class ready_ignore_globbing_producer (globbing_producer):
+	def __init__ (self, producer, buffer_size = SIZE_BUFFER):
+		self.producer = producer
+		self.__ready = self.producer.ready		
+		self.buffer = b''
+		self.buffer_size = buffer_size
+		
+	def more (self):
+		while len(self.buffer) < self.buffer_size:
+			self.producer.ready ()
+			data = self.producer.more()
+			print (len (data))
+			if data:
+				self.buffer = self.buffer + data
+			else:
+				break
+		r = self.buffer
+		self.buffer = b''
+		return r
+		
+class ready_globbing_producer (globbing_producer):
+	def __init__ (self, producer, buffer_size = SIZE_BUFFER):
+		self.producer = producer
+		self.__ready = self.producer.ready
+		self.__done = False
+		self.buffer = b''
+		self.buffer_size = buffer_size
+	
+	def ready (self):
+		if self.__done or len (self.buffer) > self.buffer_size:
+			return True
+		
+		if self.__ready ():
+			data = self.producer.more ()
+			if not data:
+				self.__done = True
+			else:	
+				self.buffer += data
+				
+			if len (self.buffer) > self.buffer_size:
+				return True
+			
+		return False	
+		
+	def more (self):		
 		r = self.buffer
 		self.buffer = b''
 		return r
