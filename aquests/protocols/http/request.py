@@ -11,7 +11,7 @@ try:
 except ImportError:
 	from urllib import quote
 	from urlparse import urlparse, urljoin
-from ...lib import strutil, attrdict
+from ...lib import strutil, attrdict, compressors
 from .producer import multipart_producer
 
 class HistoricalResponse:
@@ -162,6 +162,14 @@ class XMLRPCRequest:
 		self.set_content_length (cl)
 		return data
 	
+	def compress (self, data):
+		if len (data) <= 2048:
+			return data
+		f = compressors.GZipCompressor ()
+		data = f.compress (data) + f.flush ()
+		self.headers ["Content-Encoding"] = "gzip"		
+		return data
+		
 	def get_auth (self):
 		return self.auth
 		
@@ -279,7 +287,7 @@ class HTTPRequest (XMLRPCRequest):
 						
 		if type (self.params) is dict:			
 			if content_type.startswith ("application/json"):
-				data = json.dumps (self.params).encode ("utf8")
+				data = json.dumps (self.params).encode ("utf8")				
 				content_type = "application/json; charset=utf-8"
 			elif content_type.startswith ("application/x-www-form-urlencoded"):
 				data = self.urlencode ()				
@@ -287,7 +295,7 @@ class HTTPRequest (XMLRPCRequest):
 			elif content_type.startswith ("text/namevalue"):
 				data = self.nvpencode ()				
 				content_type = "text/namevalue; charset=utf-8"
-		self.headers ["Content-Type"] = content_type
+		self.headers ["Content-Type"] = content_type		
 		return self.to_bytes (data)
 		
 		

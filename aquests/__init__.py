@@ -1,6 +1,6 @@
 # 2016. 1. 10 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.7.11.5"
+__version__ = "0.7.11.7"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 
 import os, sys
@@ -330,13 +330,18 @@ def fetchall ():
 		# wait all availabale	
 		while qsize ():			
 			lifetime.lifetime_loop (os.name == "nt" and 1.0 or _timeout / 2.0, 1)
-			if sum ([1 for conn in asyncore.socket_map.values () if not isinstance (conn, (asyndns.UDPClient, asyndns.TCPClient)) and conn.get_proto () in H2_PROTOCOLS and conn.connected and not conn.isactive ()]) == _workers:
-				#_logger ('%d connection(s) created' % target_socks, 'info')
+			target_socks = sum ([1 for conn in asyncore.socket_map.values () if not isinstance (conn, (asyndns.UDPClient, asyndns.TCPClient)) and conn.get_proto () in H2_PROTOCOLS and conn.connected and not conn.isactive ()])
+			if target_socks == _workers:
+				#_logger ('%d connection(s) created' % target_socks, 'info')				
 				break
-			
+	
 	# now starting
+	if http2.MAX_HTTP2_CONCURRENT_STREAMS == 1:
+		measurement = min
+	else:
+		measurement = max		
 	while qsize () or _currents:
-		while _concurrent > min (len (_currents), mapsize ()) and qsize ():
+		while _concurrent > measurement (len (_currents), mapsize ()) and qsize ():
 			_req ()			
 		_max_conns = max (_max_conns, mapsize ())	
 		#print ('--', len (_currents), mapsize (), qsize ())
