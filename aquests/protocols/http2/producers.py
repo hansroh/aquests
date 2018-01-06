@@ -65,7 +65,7 @@ class h2frame_producer:
 		if lfcw == 0:
 			# flow control error, graceful close
 			if time.time () - self._last_sent > 10:
-				 self.encoder.reset_stream (stream_id, error_code = errcode)
+				 self.encoder.reset_stream (self.stream_id, error_code = errcode)
 				 self._frame = self.encoder.data_to_send ()
 				 self._buf = b''
 				 self._end_stream = True

@@ -4,7 +4,7 @@ from ..http.request import XMLRPCRequest
 
 class GRPCRequest (XMLRPCRequest):
 	initial_http_version = "2.0"
-	
+	use_compress = False
 	def __init__ (self, uri, method, params = (), headers = None, auth = None, logger = None, meta = {}, http_version = "2.0"):
 		self.uri = uri
 		self.method = method
@@ -16,13 +16,15 @@ class GRPCRequest (XMLRPCRequest):
 		self.address, self.path = self.split (uri)
 	
 		self.headers = {
-			"grpc-timeout": "10S", 
-			"grpc-encoding": "gzip",
+			"grpc-timeout": "10S",			
 			"grpc-accept-encoding": "identity,gzip",
 			"user-agent": self.user_agent,
 			"message-type": self.params [0].__class__.__name__,
 			"te": 'trailers', 
-		}		
+		}
+		if self.use_compress:
+			self.headers ["grpc-encoding"] = "gzip",
+			
 		self.payload = self.serialize ()
 		if not self.payload:
 			self.method = "GET"
@@ -45,5 +47,5 @@ class GRPCRequest (XMLRPCRequest):
 		return (host, port), path
 	
 	def serialize (self):		
-		return grpc_producer (self.params [0])
+		return grpc_producer (self.params [0], self.use_compress)
 	

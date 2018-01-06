@@ -14,12 +14,14 @@ PROTO_CONCURRENT_STREAMS = H2_PROTOCOLS
 def select_channel (asyncons):
 	asyncon = None
 	_asyncons = []
+	
 	for each in asyncons:
 		if each.isactive ():
 			continue
 		if not each.isconnected ():
 			_asyncons = [(each, 0)]
 			break
+			
 		if each.handler is not None:			
 			_asyncons.append ((each, each.handler.jobs ()))
 	

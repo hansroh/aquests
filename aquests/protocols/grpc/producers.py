@@ -3,8 +3,9 @@ from collections import Iterable
 import struct
 
 class grpc_producer:
-	def __init__ (self, message = None):
+	def __init__ (self, message = None, use_compress = False):
 		self.closed = False
+		self.use_compress = use_compress
 		self.compressor = compressors.GZipCompressor ()
 		self.message = message
 		self.serialized = []
@@ -23,9 +24,9 @@ class grpc_producer:
 	def serialize (self, msg):
 		serialized = msg.SerializeToString ()		
 		compressed = 0
-		if len (serialized) > 2048:
+		if self.use_compress and len (serialized) > 2048:
 			serialized = self.compressor.compress (serialized) + self.compressor.flush ()
-			compressed = 1
+			compressed = 1		
 		s = struct.pack ("!B", compressed) + struct.pack ("!I", len (serialized)) + serialized
 		self.serialized.append (s)
 		self.content_length += len (s)		

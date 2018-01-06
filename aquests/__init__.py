@@ -1,6 +1,6 @@
 # 2016. 1. 10 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.7.11.7"
+__version__ = "0.7.12"
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 
 import os, sys
@@ -326,10 +326,11 @@ def fetchall ():
 	for i in range (target_socks):
 		_req ()	
 	
+	select_timeout = 1.0
 	if not _force_h1 and http2.MAX_HTTP2_CONCURRENT_STREAMS > 1:
 		# wait all availabale	
 		while qsize ():			
-			lifetime.lifetime_loop (os.name == "nt" and 1.0 or _timeout / 2.0, 1)
+			lifetime.lifetime_loop (select_timeout, 1)
 			target_socks = sum ([1 for conn in asyncore.socket_map.values () if not isinstance (conn, (asyndns.UDPClient, asyndns.TCPClient)) and conn.get_proto () in H2_PROTOCOLS and conn.connected and not conn.isactive ()])
 			if target_socks == _workers:
 				#_logger ('%d connection(s) created' % target_socks, 'info')				
@@ -339,19 +340,17 @@ def fetchall ():
 	if http2.MAX_HTTP2_CONCURRENT_STREAMS == 1:
 		measurement = min
 	else:
-		measurement = max		
+		measurement = max
+		
 	while qsize () or _currents:
+		lifetime.lifetime_loop (select_timeout, 1)
 		while _concurrent > measurement (len (_currents), mapsize ()) and qsize ():
-			_req ()			
-		_max_conns = max (_max_conns, mapsize ())	
+			_req ()
+			_max_conns = max (_max_conns, mapsize ())			
 		#print ('--', len (_currents), mapsize (), qsize ())
 		if not mapsize ():
-			break		
-		lifetime.lifetime_loop (os.name == "nt" and 1.0 or _timeout / 2.0, 1)
-	
-	#for each in _currents:
-	#	print ('-- unfinished', each)
-	
+			break
+		
 	lifetime._polling = 0
 	_duration = timeit.default_timer () - _fetch_started
 	socketpool.cleanup ()

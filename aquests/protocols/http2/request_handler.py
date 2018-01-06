@@ -164,6 +164,8 @@ class RequestHandler (base_request_handler.RequestHandler):
 		self.asyncon.push (header)		
 		if producer:			
 			payload = h2frame_producer (stream_id, 0, 1, producer, self.conn, self._clock)
+			# is it proper?
+			#payload = producers.ready_globbing_producer (payload)
 			self.asyncon.push (payload)
 	
 	def increment_flow_control_window (self, cl, stream_id = 0):
@@ -290,14 +292,6 @@ class RequestHandler (base_request_handler.RequestHandler):
 					rfcw = self.conn.remote_flow_control_window (event.stream_id)					
 					if rfcw <= 131070:
 						self.increment_flow_control_window (1048576, event.stream_id)
-			
-			elif isinstance (event, RemoteSettingsChanged):				
-				try:
-					iws = event.changed_settings [SettingCodes.INITIAL_WINDOW_SIZE].new_value
-				except KeyError:
-					pass
-				else:						
-					self.increment_flow_control_window (iws)
 				
 			elif isinstance(event, StreamEnded):
 				h = self.get_handler (event.stream_id)

@@ -701,8 +701,13 @@ Note: stub's methods and parameters are defined by database engines. Please read
 History
 =========
 
-- 0.7.9
+- 0.7.12
   
+  - remove grpc data compressing, it makes decrease overal performance 	
+  - fix http2 connection limitation 
+	
+- 0.7.9
+ 
   - make sqlite3 to autocommit mode
   - switch DNS protocol on query failure
   - prevent same DNS server choice on query failure  
