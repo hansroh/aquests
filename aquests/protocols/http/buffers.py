@@ -7,7 +7,11 @@ try:
 	import xmlrpc.client as xmlrpclib
 except ImportError:
 	import xmlrpclib
-	
+try:
+	import jsonrpclib
+	from jsonrpclib.jsonrpc import  JSONTarget, JSONParser 
+except ImportError:
+	pass		
 		
 class FakeParser(object):
 	def __init__(self, target):
@@ -50,7 +54,16 @@ class cachable_xmlrpc_buffer:
 		self.cache = 0
 		self.cdata = None
 		
+
+class cachable_jsonrpc_buffer (cachable_xmlrpc_buffer):
+	def __init__ (self, cache = 0):
+		target = JSONTarget()
+		self.parser, self.buf = JSONParser(target), target
+		self.fp = BytesIO ()
+		self.cache = cache
+		self.cdata = None
 	
+
 class list_buffer:
 	def __init__(self, cache = 0):
 		self.cache = cache

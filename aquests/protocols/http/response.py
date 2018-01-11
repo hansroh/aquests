@@ -160,9 +160,11 @@ class Response:
 		ct = self.get_header ("content-type", "")
 		if ct.startswith ('application/grpc'):
 			self.p, self.u = buffers.getfakeparser (grpc_buffer, cache = self.max_age)
-		elif ct == 'text/xml' and self.request.xmlrpc_serialized ():
+		elif ct.startswith ('text/xml') and self.request.xmlrpc_serialized ():
 			self.p = self.u = buffers.cachable_xmlrpc_buffer (self.max_age)
 			self.is_xmlrpc_return = True
+		elif ct.startswith ('application/json-rpc'):
+			self.p = self.u = buffers.cachable_jsonrpc_buffer (self.max_age)				
 		else:			
 			self.p, self.u = buffers.getfakeparser (buffers.bytes_buffer, cache = self.max_age)
 			

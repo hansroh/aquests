@@ -6,7 +6,17 @@ import importlib.machinery
 try: _reloader = importlib.reload
 except AttributeError: _reloader = reload
 
+def add_path (directory):
+	sys.path.insert (0, directory)
+
+def remove_path (directory):
+	for i, k in enumerate (sys.path):	
+		if k == directory:
+			sys.path.pop (i)
+			break
+	
 def importer (directory, libpath, module = None):
+	add_path (directory)
 	fn = not libpath.endswith (".py") and libpath + ".py" or libpath
 	modpath = os.path.join (directory, fn)
 	hname = fn.split (".")[0]
@@ -25,21 +35,29 @@ def importer (directory, libpath, module = None):
 	
 	loader = importlib.machinery.SourceFileLoader(hname, modpath)
 	mod = loader.load_module ()
-	
+	remove_path (directory)
 	return mod, mod.__file__
 	
-def reimporter (module, directory, libpath):
-	del sys.modules [module.__name__]		
+def reimporter (module, directory = None, libpath = None):
+	if directory is None:
+		directory, libpath = os.path.split (module.__file__)
+		
+	del sys.modules [module.__name__]
 	try: 
 		return importer (directory, libpath)
 	except:	
 		sys.modules [module.__name__] = module
 		raise
-	
 
 #----------------------------------------------
 # will be deprecated
 #----------------------------------------------
+	
+def reloader (module):
+	directory = os.path.split (module.__file__) [0]
+	add_path (directory)
+	_reloader (module)
+	remove_path (directory)
 	
 def importer_old (directory, libpath):	
 	sys.path.insert(0, directory)	
@@ -50,9 +68,3 @@ def importer_old (directory, libpath):
 		abspath = abspath [:-1]		
 	sys.path.pop (0)		
 	return module, abspath
-
-def reloader (module):
-	directory = os.path.split (module.__file__) [0]
-	sys.path.insert(0, directory)
-	_reloader (module)
-	sys.path.pop (0)		

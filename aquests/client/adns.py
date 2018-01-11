@@ -88,6 +88,9 @@ class DNSCache:
 		if hit: 
 			return callback (hit)
 		
+		if host == "localhost":
+			host = "127.0.0.1"
+			
 		if self.is_ip (host):
 			self.set ([{"name": host, "data": host, "typename": qtype}])
 			return callback ([{"name": host, "data": host, "typename": qtype}])

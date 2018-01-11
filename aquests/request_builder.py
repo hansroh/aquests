@@ -19,7 +19,7 @@ def make_ws (_method, url, params, auth, headers, meta, proxy, logger):
 
 CONTENT_TYPES = [
 	('xml', "text/xml", "text/xml"),
-	('json', "application/json", "application/json"),
+	('json', "application/json", "application/json"),	
 ]
 	
 def make_http (_method, url, params, auth, headers, meta, proxy, logger):
@@ -36,7 +36,11 @@ def make_http (_method, url, params, auth, headers, meta, proxy, logger):
 	if _method == "rpc":
 		rpcmethod, params = params
 		req = http_request.XMLRPCRequest (url, rpcmethod, params, headers, auth, logger, meta)
-		
+	
+	elif _method == "jsonrpc":
+		rpcmethod, params = params
+		req = http_request.JSONRPCRequest (url, rpcmethod, params, headers, auth, logger, meta)	
+
 	elif _method == "grpc":
 		rpcmethod, params = params
 		req = grpc_request.GRPCRequest (url, rpcmethod, params, headers, auth, logger, meta)

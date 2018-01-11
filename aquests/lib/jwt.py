@@ -16,7 +16,7 @@ def get_claim (secret_key, token):
 	header, claim, sig = add_padding (token.split ("."))
 	
 	jheader = json.loads (b64decode (header).decode ("utf8"))
-	alg = jheader.get ("alg")	
+	alg = jheader.get ("alg")
 	if not alg or alg [:2] != "HS":
 		return	
 	hash_method = getattr (hashlib, "sha" + alg [2:])	

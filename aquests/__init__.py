@@ -493,7 +493,10 @@ def _addrpc (method, rpcmethod, params, url, auth = None, headers = {}, callback
 	
 def rpc	(*args, **karg):
 	return stubproxy.Proxy ('rpc', _addrpc, *args, **karg)
-	
+
+def jsonrpc	(*args, **karg):
+	return stubproxy.Proxy ('jsonrpc', _addrpc, *args, **karg)
+		
 def grpc	(*args, **karg):
 	return stubproxy.Proxy ('grpc', _addrpc, *args, **karg)
 

@@ -3,6 +3,11 @@ try:
 	import xmlrpc.client as xmlrpclib
 except ImportError:
 	import xmlrpclib
+try:
+	import jsonrpclib
+except ImportError:
+	pass	
+	
 import struct
 import base64
 import json
@@ -215,7 +220,20 @@ class XMLRPCRequest:
 		self.build_header ()
 		return list (self.headers.items ())
 
-	
+
+class JSONRPCRequest (XMLRPCRequest):
+	def serialize (self):
+		if self.uri [-1] != "/":
+			self.uri += "/"
+			self.path += "/"
+		data = jsonrpclib.dumps (self.params, self.method).encode ("utf8")
+		self.headers ["Content-Type"] = "application/json-rpc; charset=utf-8"
+		cl = len (data)
+		self.headers ["Content-Length"] = cl
+		self.set_content_length (cl)
+		return data
+		
+		
 class HTTPRequest (XMLRPCRequest):		
 	def relocate (self, response, newloc = None):
 		return self._relocate (response, newloc)
