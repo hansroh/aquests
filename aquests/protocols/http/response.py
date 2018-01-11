@@ -375,6 +375,9 @@ class Response:
 			if len (result) == 1:
 				result = result [0]
 			return result
+		
+		elif ct.startswith ("application/json-rpc"):
+			return json.loads (result) ["result"]
 			
 		elif ct.startswith ("application/json"):
 			return json.loads (result.decode ("utf8"))
