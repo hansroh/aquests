@@ -12,7 +12,7 @@ class grpc_producer:
 		self.content_length = 0
 	
 	def get_size (self):
-		return self.content_length () or -1
+		return self.content_length or -1
 			
 	def get_content_length (self):
 		if self.closed:
