@@ -703,6 +703,7 @@ History
 
 - 0.7.12
   
+  - fix JWT token
   - remove grpc data compressing, it makes decrease overal performance 	
   - fix http2 connection limitation 
 	
