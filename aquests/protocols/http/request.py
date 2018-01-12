@@ -318,7 +318,7 @@ class HTTPRequest (XMLRPCRequest):
 		
 		
 class HTTPMultipartRequest (HTTPRequest):
-	boundary = "-------------------Skitai-%s.%s-a1a80da4-ca3d-11e6-b245-001b216d6e71" % aquests.version_info [:2]
+	boundary = "-------------------aquests--a1a80da4-ca3d-11e6-b245-001b216d6e71"
 		
 	def __init__ (self, uri, method, params = {}, headers = None, auth = None, logger = None, meta = {}, http_version = "1.1"):
 		HTTPRequest.__init__ (self, uri, method, params, headers, auth, logger, meta, http_version)
