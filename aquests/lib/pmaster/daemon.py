@@ -2,7 +2,9 @@ import os
 import sys
 import time
 import signal
+import getopt
 from . import killtree, processutil
+from .. import pathtool
 
 class Daemonizer:
 	def __init__(self, chdir="/", procname = None, umask=0o22):
@@ -81,8 +83,57 @@ def kill (chdir, procname = None, include_children = True, signaling = True):
 		os.remove (os.path.join (chdir, ".pid"))
 	except FileNotFoundError:	
 		pass
-		
+
+def handle_commandline (sopt, lopt, working_dir, procname):
+	def _start (working_dir, procname):
+		if not Daemonizer (working_dir, procname).runAsDaemon ():
+			print ("already running")
+			sys.exit ()
+
+	def _stop (working_dir, procname):
+		kill (working_dir, procname, True)
 	
+	def _status (working_dir, procname):
+		pid = status (working_dir, procname)
+		if pid:
+			print ("running [%d]" % pid)
+		else:
+			print ("stopped")
+	
+	def _restart (working_dir, procname):
+		_stop (working_dir, procname)
+		time.sleep (2)
+		_start (working_dir, procname)
+	
+	if "d" in sopt:
+		raise SystemError ("Short option -d is reserved")	
+	sopt += "d"
+	
+	pathtool.mkdir (working_dir)
+	argopt = getopt.getopt(sys.argv[1:], sopt, lopt)		
+	daemonics = [] 
+	arglist = []
+	for arg in argopt [1]:
+	 	if arg in ("start", "restart", "stop", "status"):
+	 		daemonics.append (arg)
+	 	else:
+	 		arglist.append (arg)
+	argopt = (argopt [0], arglist)
+	
+	for k, v in argopt [0]:
+		if k == "-d" or "start" in daemonics: 
+			_start (working_dir, procname)			
+		elif "restart" in daemonics: 
+			_restart (working_dir, procname)			
+		elif "stop" in daemonics:
+			_stop (working_dir, procname)
+			sys.exit ()			
+		elif "status" in daemonics:		
+			_status (working_dir, procname)
+			sys.exit ()
+		
+	return argopt
+
 if __name__ == "__main__"	:
 	import time
 	
