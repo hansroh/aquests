@@ -701,6 +701,11 @@ Note: stub's methods and parameters are defined by database engines. Please read
 History
 =========
 
+- 0.7.13
+  
+  - add daemonizing command line handler
+  - add JSON-RPC 2.0  
+
 - 0.7.12
   
   - fix JWT token
