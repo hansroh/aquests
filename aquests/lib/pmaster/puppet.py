@@ -49,7 +49,7 @@ class Puppet:
 			p = self.p
 			
 		if not p:
-			self.log ("[error] -- terminated with -1")
+			self.log ("terminated with -1", "error")
 				
 		else:
 			while 1:
@@ -62,7 +62,7 @@ class Puppet:
 				if exitcode is not None:
 					break
 				time.sleep (1)
-			self.log ("[info] -- terminated with %s" % exitcode)		
+			self.log ("-- terminated with %s" % exitcode, "info")		
 		
 		self.set_active (False)
 		
@@ -72,16 +72,22 @@ class Puppet:
 	def set_last_activate (self):
 		self.__last_activated = time.time ()
 			
-	def log (self, line):
-		if line[0].isdigit ():
-			# auqests.lib.logger classes
-			line = line [20:].strip ()
+	def log (self, line, type = ""):
 		if self.logger:
-			self.logger (line, "")			
+			if line[0].isdigit ():
+				# auqests.lib.logger classes
+				line = line [20:].strip ()
+			if type:
+				line = "[{}] {}".format (type, line)				
+			self.logger (line, "")
 		self.set_last_activate ()
-			
+	
+	def read_stdout (self):
+		for line in iter (self.p.stdout.readline, ''):
+			self.log (line)
+		
 	def create_process (self, cmd):				
-		self.log ("[info] -- start process: %s" % " ".join (cmd))
+		self.log ("-- start process: %s" % " ".join (cmd), "info")
 		s_time = time.time ()
 		self.__lock.acquire ()
 		try:
@@ -96,13 +102,11 @@ class Puppet:
 		
 		if not self.__communicate:
 			return
-			
-		for line in iter (self.p.stdout.readline, ''):
-			self.log (line)
-
-		self.p.stdout.close ()			
+		
+		self.read_stdout ()
+		
+		self.p.stdout.close ()
 		e = self.p.stderr.read ()
 		if e: self.log (e)		
 		self.p.stderr.close ()
-	
 	
