@@ -181,13 +181,13 @@ class ConfParse:
 	def sections (self):
 		return list(self.conf.keys())
 
-	def getboolean (self, section, option = None):
+	def getboolean (self, section, option = None, default = None):
 		if not option:
 			raise OptionNotFound
-		value = self.getopt (section, option)
+		value = self.getopt (section, option, default)
 
 		if not value: return False
-		if value.lower () in ("1", "yes", "ture"): return True
+		if value.lower () in ("1", "yes", "true"): return True
 		return False
 
 	def getint (self, section, option = None, default = None):

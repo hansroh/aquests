@@ -41,7 +41,7 @@ responses = {
 		505: "HTTP Version Not Supported",
 		506: "Proxy Error",
 		507: "Failed Establishing Connection",
-		508: "WSGI App Error",
+		508: "Application Error",
 		700: "Socket Error",
 		701: "Exception Occured",
 		702: "Socket Timeout",
