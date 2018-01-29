@@ -66,7 +66,8 @@ packages = [
 	'aquests.lib.athreads',
 	'aquests.lib.pmaster',
 	'aquests.lib.nets',
-	'aquests.lib.awstk'
+	'aquests.lib.awstk',
+	'aquests.lib.dnn'
 ]
 
 package_dir = {'aquests': 'aquests'}
