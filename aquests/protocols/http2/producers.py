@@ -72,6 +72,12 @@ class h2frame_producer:
 				 return True
 			return False
 		
+		# check remote window
+		rfcw = self.encoder.remote_flow_control_window (self.stream_id)
+		if rfcw < self.SIZE_BUFFER * 2:
+			self.encoder.increment_flow_control_window (1048576)				
+			self.encoder.increment_flow_control_window (1048576, self.stream_id)					
+			
 		avail_data_length = min (self.SIZE_BUFFER, lfcw)
 		if not self._buf:
 			if self._ready and not self._ready ():

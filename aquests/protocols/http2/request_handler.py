@@ -289,9 +289,10 @@ class RequestHandler (base_request_handler.RequestHandler):
 				h = self.get_handler (event.stream_id)
 				if h:
 					h.collect_incoming_data (event.data)
-					rfcw = self.conn.remote_flow_control_window (event.stream_id)					
-					if rfcw <= 131070:
-						self.increment_flow_control_window (1048576, event.stream_id)
+					# THIS ROUTINE HAS BEEN moved to h2_frame_producer
+					#rfcw = self.conn.remote_flow_control_window (event.stream_id)					
+					#if rfcw <= 131070:
+					#	self.increment_flow_control_window (1048576, event.stream_id)
 				
 			elif isinstance(event, StreamEnded):
 				h = self.get_handler (event.stream_id)
