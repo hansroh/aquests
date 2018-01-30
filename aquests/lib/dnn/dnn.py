@@ -8,8 +8,9 @@ class DNN:
         self.gpu = gpu_usage        
         
         tf.reset_default_graph ()
+                
         self.make_place_holders ()        
-        self.dropout_rate = tf.placeholder ("float")
+        self.dropout_rate = tf.placeholder_with_default (tf.constant(0.0), ())        
         self.phase_train = False
         
         self.logits = self.make_logits ()
@@ -17,7 +18,7 @@ class DNN:
         self.saver = tf.train.Saver (tf.global_variables())
         self.session = None
     
-    def init_session (self):        
+    def init_session (self):
         if self.gpu:
             self.sess = tf.Session (config = tf.ConfigProto(gpu_options=tf.GPUOptions (per_process_gpu_memory_fraction = self.gpu), log_device_placement = False))
         else:
@@ -57,13 +58,12 @@ class DNN:
               outputs=dict ([(k, tf.saved_model.utils.build_tensor_info (v)) for k,v in outputs.items ()]),
               method_name=tf.saved_model.signature_constants.PREDICT_METHOD_NAME))
         
-        legacy_init_op = tf.group(tf.tables_initializer(), name='legacy_init_op')
         builder.add_meta_graph_and_variables(
           self.sess, [tf.saved_model.tag_constants.SERVING],
           signature_def_map = {
               predict_def: prediction_signature
-          },
-          legacy_init_op=legacy_init_op)
+          }
+        )
         builder.save()
 
     def run (self, *ops, **kargs):
