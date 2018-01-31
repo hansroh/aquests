@@ -172,7 +172,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 		if not stream_id:
 			with self._clock:
 				self.conn.increment_flow_control_window (cl)
-				self.send_data ()				
+				self.send_data ()
 		else:	
 			with self._clock:
 				self.conn.increment_flow_control_window (cl)
@@ -265,15 +265,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 		for event in events:			
 			if isinstance(event, ResponseReceived):
 				self.handle_response (event.stream_id, event.headers)
-			
-			elif isinstance(event, RemoteSettingsChanged):
-				try:
-					iws = event.changed_settings [SettingCodes.INITIAL_WINDOW_SIZE].new_value
-				except KeyError:
-					pass
-				else:						
-					self.increment_flow_control_window (iws)
-					
+				
 			elif isinstance(event, StreamReset):
 				if event.remote_reset:				
 					h = self.get_handler (event.stream_id)
@@ -288,11 +280,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 			elif isinstance (event, DataReceived):
 				h = self.get_handler (event.stream_id)
 				if h:
-					h.collect_incoming_data (event.data)
-					# THIS ROUTINE HAS BEEN moved to h2_frame_producer
-					#rfcw = self.conn.remote_flow_control_window (event.stream_id)					
-					#if rfcw <= 131070:
-					#	self.increment_flow_control_window (1048576, event.stream_id)
+					h.collect_incoming_data (event.data)					
 				
 			elif isinstance(event, StreamEnded):
 				h = self.get_handler (event.stream_id)

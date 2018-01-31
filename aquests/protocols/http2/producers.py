@@ -32,7 +32,7 @@ class h2header_producer:
 
 class h2frame_producer:
 	SIZE_BUFFER = 16384
-	
+	MIN_RFCW = SIZE_BUFFER * 2
 	def __init__ (self, stream_id, depends_on, weight, producer, encoder, lock):
 		self.stream_id = stream_id
 		self.depends_on = depends_on
@@ -60,8 +60,7 @@ class h2frame_producer:
 			return True
 		
 		lfcw = self.encoder.local_flow_control_window (self.stream_id)
-		#print ("---MULTIPLEXING", self.stream_id, lfcw)
-		
+		#print (">>>LFCW", self.stream_id, lfcw)		
 		if lfcw == 0:
 			# flow control error, graceful close
 			if time.time () - self._last_sent > 10:
@@ -74,7 +73,8 @@ class h2frame_producer:
 		
 		# check remote window
 		rfcw = self.encoder.remote_flow_control_window (self.stream_id)
-		if rfcw < self.SIZE_BUFFER * 2:
+		#print ("---RFCW", self.stream_id, rfcw)
+		if rfcw < self.MIN_RFCW:
 			self.encoder.increment_flow_control_window (1048576)				
 			self.encoder.increment_flow_control_window (1048576, self.stream_id)					
 			
