@@ -41,8 +41,12 @@ def importer (directory, libpath, module = None):
 def reimporter (module, directory = None, libpath = None):
 	if directory is None:
 		directory, libpath = os.path.split (module.__file__)
+	
+	try:			
+		del sys.modules [module.__name__]
+	except KeyError:
+		return
 		
-	del sys.modules [module.__name__]
 	try: 
 		return importer (directory, libpath)
 	except:	

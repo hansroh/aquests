@@ -95,11 +95,13 @@ class DNN:
     def swish (self, x):
         return tf.nn.sigmoid(x) * x    
     
-    def make_layer (self, n_input, n_output, activation = tf.nn.relu):
+    def dropout (self, layer):
+        return tf.layers.dropout (inputs=layer, rate = self.dropout_rate, training=self.phase_train)
+        
+    def make_hidden_layer (self, n_input, n_output, activation = tf.nn.relu):
         h1 = tf.layers.dense (inputs=n_input, units=n_output)
         h2 = tf.layers.batch_normalization (h1, momentum=0.99, training=self.phase_train)
-        h3 = tf.layers.dropout (inputs=h2, rate = self.dropout_rate, training=self.phase_train)
-        return activation (h3)
+        return activation (h2)
     
     def make_conv_layer (self, n_input, n_output, activation = tf.nn.relu):
         h = tf.layers.conv2d(

@@ -704,8 +704,9 @@ History
    
 - 0.7.15
 
+  - fix app/package reloading
   - fix HTTP/2 remote flow control window
-
+  
 - 0.7.13
     
   - add daemonizing command line handler
