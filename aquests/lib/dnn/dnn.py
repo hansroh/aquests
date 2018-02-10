@@ -2,6 +2,7 @@ import tensorflow as tf
 import numpy as np
 import sys
 import os, shutil
+import random
 
 class DNN:
     def __init__ (self, gpu_usage = 0):
@@ -99,32 +100,32 @@ class DNN:
         return tf.layers.dropout (inputs=layer, rate = self.dropout_rate, training=self.phase_train)
         
     def make_hidden_layer (self, n_input, n_output, activation = tf.nn.relu):
-        h1 = tf.layers.dense (inputs=n_input, units=n_output)
-        h2 = tf.layers.batch_normalization (h1, momentum=0.99, training=self.phase_train)
-        return activation (h2)
+        h1 = tf.layers.dense (inputs = n_input, units = n_output)
+        h2 = tf.layers.batch_normalization (h1, momentum = 0.99, training = self.phase_train)
+        return self.dropout (activation (h2))
     
-    def make_conv_layer (self, n_input, n_output, activation = tf.nn.relu):
-        h = tf.layers.conv2d(
-            inputs = self.embedded_chars_expanded,
+    def make_conv_layer (self, n_input, num_filters, sequence_length, filter_size, embedding_size, activation = tf.nn.relu):
+        h = tf.layers.conv2d (
+            inputs = input_dim,
             filters = num_filters,
             kernel_size = [filter_size, embedding_size],
             padding = "valid",
-            activation = tf.nn.relu
-            )
+            activation = activation
+        )
         # Maxpooling over the outputs
-        pooled = tf.layers.max_pooling2d(
+        pooled = tf.layers.max_pooling2d (
             inputs = h, 
             pool_size = [sequence_length - filter_size + 1, 1], 
-            strides = 1, 
+            strides = 1,
             padding = 'valid'
         )
         
     # override theses ----------------------------------------------------------            
     def make_logits (self):
         #layer1 = self._make_layer (self.x, n_hidden_1)
-        layer2 = self.make_layer (self.x, n_hidden_2)
-        layer3 = self.make_layer (layer2, n_hidden_3)
-        layer4 = self.make_layer (layer3, n_hidden_4)            
+        layer2 = self.make_hidden_layer (self.x, n_hidden_2)
+        layer3 = self.make_hidden_layer (layer2, n_hidden_3)
+        layer4 = self.make_hidden_layer (layer3, n_hidden_4)
         return tf.layers.dense (inputs=layer4, units=n_output)
     
     def make_pred (self):
