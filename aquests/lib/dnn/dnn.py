@@ -84,6 +84,7 @@ class DNN:
         self.learning_rate = tf.train.exponential_decay(self.start_learning_rate, self.global_step, self.decay_step, self.decay_rate, staircase=False)
         
         self.cost = self.make_cost ()
+        self.accuracy = self.calculate_accuracy ()
         # summary
         tf.summary.scalar('cost', self.cost)
         tf.summary.scalar('learning_rate', self.learning_rate)   
@@ -136,6 +137,10 @@ class DNN:
         self.y = tf.placeholder ("float", [None, n_output])
     
     def make_cost (self):
-        return self.cost_weighted()
+        pass
+    
+    def calculate_accuracy (self):
+        pass
+    
     
         
