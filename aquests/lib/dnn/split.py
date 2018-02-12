@@ -14,11 +14,11 @@ def resample (batch_xs, batch_ys, sample_size = 500):
     return sample_xs, sample_ys
 
 def minibatch (train_xs, train_ys, batch_size = 0):
+    batch_indexes = np.random.permutation(len(train_xs))
     while 1:
         if not batch_size:
             yield train_xs, train_ys
-        else:     
-            batch_indexes = np.random.permutation(len(train_xs))    
+        else:  
             for pos in range(0, len(train_xs), batch_size):
                 batch_xs = []
                 batch_ys = []
