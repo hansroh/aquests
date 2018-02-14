@@ -24,7 +24,8 @@ class DNN:
         self.session = None
         self.writers = {}
         self.overfitwatch = None
-    
+        self.summaries_dir = None
+        
     def init_session (self):
         if self.gpu:
             self.sess = tf.Session (graph = self.graph, config = tf.ConfigProto(gpu_options=tf.GPUOptions (per_process_gpu_memory_fraction = self.gpu), log_device_placement = False))
@@ -37,17 +38,21 @@ class DNN:
             shutil.rmtree (target)
         if not os.path.exists (target):
             os.makedirs (target)
-                
-    def get_writers (self, summaries_dir, *writedirs):
-        os.system ('killall tensorboard')
-        if tf.gfile.Exists(summaries_dir):
-            tf.gfile.DeleteRecursively(summaries_dir)
-        tf.gfile.MakeDirs(summaries_dir)
-        tf.summary.merge_all()
-        return [tf.summary.FileWriter(os.path.join (summaries_dir, "%s%s" % (self.name and self.name + "-" or "", wd)), self.sess.graph) for wd in writedirs]
     
-    def make_writers (self, summaries_dir, *writedirs):
-        for i, w in enumerate (self.get_writers ('resources/logs', *writedirs)):
+    def reset_tensor_board (self, summaries_dir, reset = True):
+        self.summaries_dir = summaries_dir
+        if reset:
+            os.system ('killall tensorboard')
+            if tf.gfile.Exists(summaries_dir):
+                tf.gfile.DeleteRecursively(summaries_dir)
+            tf.gfile.MakeDirs(summaries_dir)
+            tf.summary.merge_all()
+                     
+    def get_writers (self, *writedirs):        
+        return [tf.summary.FileWriter(os.path.join (self.summaries_dir, "%s%s" % (self.name and self.name + "-" or "", wd)), self.sess.graph) for wd in writedirs]
+    
+    def make_writers (self, *writedirs):
+        for i, w in enumerate (self.get_writers (*writedirs)):
             self.writers [writedirs [i]] = w
     
     def write_summary (self, writer, epoch, feed_dict, verbose = True):
@@ -68,9 +73,11 @@ class DNN:
         
     def restore (self, path, gpu = 0.4):
         if self.name:
-            path = os.path.join (path, self.name)
-        self.init_session ()
-        self.saver.restore(self.sess, tf.train.latest_checkpoint(path))
+            path = os.path.join (path, self.name)        
+        
+        with self.graph.as_default ():
+            self.init_session ()
+            self.saver.restore(self.sess, tf.train.latest_checkpoint(path))
         
     def save (self, path, filename = None):
         if self.name:
@@ -78,28 +85,33 @@ class DNN:
             pathtool.mkdir (path)                            
         if filename:
             path = os.path.join (path, filename)            
-        self.saver.save(self.sess, path, global_step = self.global_step)
+        
+        with self.graph.as_default ():
+            self.saver.save(self.sess, path, global_step = self.global_step)
     
     def export (self, version, path, predict_def, inputs, outputs):
-        tf.app.flags.DEFINE_integer('model_version', version, 'version number of the model.')
-        tf.app.flags.DEFINE_string('work_dir', '/tmp', 'Working directory.')
-        FLAGS = tf.app.flags.FLAGS        
         if self.name:
-            path = os.path.join (path, self.name)            
-        builder = tf.saved_model.builder.SavedModelBuilder("{}/{}/".format (path, version))
-        prediction_signature = (
-          tf.saved_model.signature_def_utils.build_signature_def(
-              inputs=dict ([(k, tf.saved_model.utils.build_tensor_info (v)) for k,v in inputs.items ()]),
-              outputs=dict ([(k, tf.saved_model.utils.build_tensor_info (v)) for k,v in outputs.items ()]),
-              method_name=tf.saved_model.signature_constants.PREDICT_METHOD_NAME))
+            path = os.path.join (path, self.name)
         
-        builder.add_meta_graph_and_variables(
-          self.sess, [tf.saved_model.tag_constants.SERVING],
-          signature_def_map = {
-              predict_def: prediction_signature
-          }
-        )
-        builder.save()
+        with self.graph.as_default ():
+            tf.app.flags.DEFINE_integer('model_version', version, 'version number of the model.')
+            tf.app.flags.DEFINE_string('work_dir', '/tmp', 'Working directory.')
+            FLAGS = tf.app.flags.FLAGS
+            
+            builder = tf.saved_model.builder.SavedModelBuilder("{}/{}/".format (path, version))
+            prediction_signature = (
+              tf.saved_model.signature_def_utils.build_signature_def(
+                  inputs=dict ([(k, tf.saved_model.utils.build_tensor_info (v)) for k,v in inputs.items ()]),
+                  outputs=dict ([(k, tf.saved_model.utils.build_tensor_info (v)) for k,v in outputs.items ()]),
+                  method_name=tf.saved_model.signature_constants.PREDICT_METHOD_NAME))
+            
+            builder.add_meta_graph_and_variables(
+              self.sess, [tf.saved_model.tag_constants.SERVING],
+              signature_def_map = {
+                  predict_def: prediction_signature
+              }
+            )
+            builder.save()
 
     def run (self, *ops, **kargs):
         feed_dict = {}
@@ -197,5 +209,3 @@ class DNN:
     def calculate_accuracy (self):
         pass
     
-    
-        

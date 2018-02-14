@@ -23,8 +23,8 @@ class Overfit:
             self.lowest_unseen = 0
         else:
             self.lowest_unseen += 1
-            if self.lowest_unseen == 10:
-               overfit = True 
+            if self.lowest_unseen == 200:
+               overfit = True
         
         if not overfit:               
             self.cost_log.append (cost)   

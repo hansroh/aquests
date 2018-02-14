@@ -15,9 +15,10 @@ class Task:
         results = []
         for dnn in self.dnns:
             results.append (getattr (dnn, self.attr) (*args, **karg))
-        return np.array (results).transpose ()    
+        return np.array (results).transpose ()
 
-class MTDNN:
+
+class MultiDNN:
     def __init__ (self, *args):
         self.dnns = []
         self.y_div = [0]
@@ -27,13 +28,20 @@ class MTDNN:
                 assert arg.name is not None
             else:
                 self.y_div.append (sum (self.y_div) + arg)
-                    
+                        
     def __getattr__ (self, attr):
         return Task (self.dnns, attr)  
     
     def _get_segment (self, i, ys):
         return ys [:,self.y_div [i]:self.y_div [i+1]]
     
+    def reset_dir (self, target):
+        self.dnns [0].reset_dir (target)
+    
+    def reset_tensor_board (self, summaries_dir):
+        for i, dnn in enumerate (self.dnns):
+            dnn.reset_tensor_board (summaries_dir, i == 0)
+        
     def is_overfit (self, cost, path, filename = None):
         results = []
         for i, dnn in enumerate (self.dnns):
