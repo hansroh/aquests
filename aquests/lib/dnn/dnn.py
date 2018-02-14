@@ -69,7 +69,7 @@ class DNN:
                 
         self.writers [writer].add_summary(summary, epoch)
         if verbose:
-            print ("[%3d:%12s] %s" % (epoch, writer, " / ".join (output)))
+            print ("[%d:%7s] %s" % (epoch, writer, " / ".join (output)))
         
     def restore (self, path, gpu = 0.4):
         if self.name:
