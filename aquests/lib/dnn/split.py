@@ -11,7 +11,7 @@ def resample (batch_xs, batch_ys, sample_size = 500):
     for idx in np.random.permutation(len(batch_ys))[:sample_size]:
         sample_xs.append (batch_xs [idx])
         sample_ys.append (batch_ys [idx])        
-    return sample_xs, sample_ys
+    return np.array (sample_xs), np.array (sample_ys)
 
 def minibatch (train_xs, train_ys, batch_size = 0):
     batch_indexes = np.random.permutation(len(train_xs))
@@ -25,5 +25,5 @@ def minibatch (train_xs, train_ys, batch_size = 0):
                 for idx in batch_indexes[pos:pos+batch_size]:
                     batch_xs.append (train_xs[idx])
                     batch_ys.append (train_ys[idx])
-                yield batch_xs, batch_ys
+                yield np.array (batch_xs), np.array (batch_ys)
     
