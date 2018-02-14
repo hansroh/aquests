@@ -38,7 +38,7 @@ class MTDNN:
         results = []
         for i, dnn in enumerate (self.dnns):
             results.append (int (dnn.is_overfit (cost [i], path, filename)))
-        return np.sum (np.array (results)) == len (self.dnns)
+        return sum (results) == len (self.dnns)
         
     def write_summary (self, writer, epoch, feed_dict, verbose = True):
         for i in range (len (list (feed_dict.values ())[0])):
