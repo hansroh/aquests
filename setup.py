@@ -69,6 +69,8 @@ packages = [
 	'aquests.lib.awstk',
 	'aquests.lib.dnn',
 	'aquests.lib.dnn.text',
+	'aquests.lib.dnn.multimedia',
+	'aquests.lib.googleapi',
 ]
 
 package_dir = {'aquests': 'aquests'}
