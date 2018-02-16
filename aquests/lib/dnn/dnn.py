@@ -3,27 +3,34 @@ import numpy as np
 import sys
 import os, shutil
 import random
+from aquests.lib import pathtool
+from . import overfit
 
 class DNN:
-    def __init__ (self, gpu_usage = 0):
+    def __init__ (self, gpu_usage = 0, name = None):
         self.gpu = gpu_usage        
+        self.name = name
         
-        tf.reset_default_graph ()
-                
-        self.make_place_holders ()        
-        self.dropout_rate = tf.placeholder_with_default (tf.constant(0.0), ())        
-        self.phase_train = False
-        
-        self.logits = self.make_logits ()
-        self.pred = self.make_pred ()
-        self.saver = tf.train.Saver (tf.global_variables())
+        self.graph = tf.Graph ()
+        with self.graph.as_default ():
+            self.make_place_holders ()        
+            self.dropout_rate = tf.placeholder_with_default (tf.constant(0.0), ())        
+            self.phase_train = False
+            
+            self.logits = self.make_logits ()
+            self.pred = self.make_pred ()            
+            self.saver = tf.train.Saver (tf.global_variables())
+            
         self.session = None
-    
+        self.writers = {}
+        self.overfitwatch = None
+        self.summaries_dir = None
+        
     def init_session (self):
         if self.gpu:
-            self.sess = tf.Session (config = tf.ConfigProto(gpu_options=tf.GPUOptions (per_process_gpu_memory_fraction = self.gpu), log_device_placement = False))
+            self.sess = tf.Session (graph = self.graph, config = tf.ConfigProto(gpu_options=tf.GPUOptions (per_process_gpu_memory_fraction = self.gpu), log_device_placement = False))
         else:
-            self.sess = tf.Session()
+            self.sess = tf.Session(graph = self.graph)            
         self.sess.run (tf.global_variables_initializer())     
     
     def reset_dir (self, target):
@@ -31,41 +38,80 @@ class DNN:
             shutil.rmtree (target)
         if not os.path.exists (target):
             os.makedirs (target)
+    
+    def reset_tensor_board (self, summaries_dir, reset = True):
+        self.summaries_dir = summaries_dir
+        if reset:
+            os.system ('killall tensorboard')
+            if tf.gfile.Exists(summaries_dir):
+                tf.gfile.DeleteRecursively(summaries_dir)
+            tf.gfile.MakeDirs(summaries_dir)
+            tf.summary.merge_all()
+                     
+    def get_writers (self, *writedirs):        
+        return [tf.summary.FileWriter(os.path.join (self.summaries_dir, "%s%s" % (self.name and self.name + "-" or "", wd)), self.sess.graph) for wd in writedirs]
+    
+    def make_writers (self, *writedirs):
+        for i, w in enumerate (self.get_writers (*writedirs)):
+            self.writers [writedirs [i]] = w
+    
+    def write_summary (self, writer, epoch, feed_dict, verbose = True):
+        summary = tf.Summary()
+        output = []
+        for k, v in feed_dict.items ():
+            if self.name:
+                k = "{}:{}".format (self.name, k)
+            summary.value.add(tag = k , simple_value = v)
+            if isinstance (v, float):
+                output.append ("{} {:.7f}".format (k, v))
+            else:
+                output.append ("{} {}".format (k, v))
                 
-    def get_writers (self, summaries_dir, *writedirs):
-        os.system ('killall tensorboard')
-        if tf.gfile.Exists(summaries_dir):
-            tf.gfile.DeleteRecursively(summaries_dir)
-        tf.gfile.MakeDirs(summaries_dir)
-        tf.summary.merge_all()
-        return [tf.summary.FileWriter(os.path.join (summaries_dir, wd), self.sess.graph) for wd in writedirs]
+        self.writers [writer].add_summary(summary, epoch)
+        if verbose:
+            print ("[%d:%7s] %s" % (epoch, writer, " / ".join (output)))
         
     def restore (self, path, gpu = 0.4):
-        self.init_session ()
-        self.saver.restore(self.sess, tf.train.latest_checkpoint(path))
+        if self.name:
+            path = os.path.join (path, self.name)        
         
-    def save (self, path):
-        self.saver.save(self.sess, path, global_step = self.global_step)
+        with self.graph.as_default ():
+            self.init_session ()
+            self.saver.restore(self.sess, tf.train.latest_checkpoint(path))
+        
+    def save (self, path, filename = None):
+        if self.name:
+            path = os.path.join (path, self.name)
+            pathtool.mkdir (path)                            
+        if filename:
+            path = os.path.join (path, filename)            
+        
+        with self.graph.as_default ():
+            self.saver.save(self.sess, path, global_step = self.global_step)
     
     def export (self, version, path, predict_def, inputs, outputs):
-        tf.app.flags.DEFINE_integer('model_version', version, 'version number of the model.')
-        tf.app.flags.DEFINE_string('work_dir', '/tmp', 'Working directory.')
-        FLAGS = tf.app.flags.FLAGS
+        if self.name:
+            path = os.path.join (path, self.name)
         
-        builder = tf.saved_model.builder.SavedModelBuilder("{}/{}/".format (path, version))
-        prediction_signature = (
-          tf.saved_model.signature_def_utils.build_signature_def(
-              inputs=dict ([(k, tf.saved_model.utils.build_tensor_info (v)) for k,v in inputs.items ()]),
-              outputs=dict ([(k, tf.saved_model.utils.build_tensor_info (v)) for k,v in outputs.items ()]),
-              method_name=tf.saved_model.signature_constants.PREDICT_METHOD_NAME))
-        
-        builder.add_meta_graph_and_variables(
-          self.sess, [tf.saved_model.tag_constants.SERVING],
-          signature_def_map = {
-              predict_def: prediction_signature
-          }
-        )
-        builder.save()
+        with self.graph.as_default ():
+            tf.app.flags.DEFINE_integer('model_version', version, 'version number of the model.')
+            tf.app.flags.DEFINE_string('work_dir', '/tmp', 'Working directory.')
+            FLAGS = tf.app.flags.FLAGS
+            
+            builder = tf.saved_model.builder.SavedModelBuilder("{}/{}/".format (path, version))
+            prediction_signature = (
+              tf.saved_model.signature_def_utils.build_signature_def(
+                  inputs=dict ([(k, tf.saved_model.utils.build_tensor_info (v)) for k,v in inputs.items ()]),
+                  outputs=dict ([(k, tf.saved_model.utils.build_tensor_info (v)) for k,v in outputs.items ()]),
+                  method_name=tf.saved_model.signature_constants.PREDICT_METHOD_NAME))
+            
+            builder.add_meta_graph_and_variables(
+              self.sess, [tf.saved_model.tag_constants.SERVING],
+              signature_def_map = {
+                  predict_def: prediction_signature
+              }
+            )
+            builder.save()
 
     def run (self, *ops, **kargs):
         feed_dict = {}
@@ -73,24 +119,38 @@ class DNN:
             feed_dict [getattr (self, k)] = v
         return self.sess.run (ops, feed_dict = feed_dict)
     
+    def get_best_cost (self):
+        return overfitwatch.min_cost
+        
+    def is_overfit (self, cost, path, filename = None):
+        if filename is None:
+            filename = "cost-%.7f" % cost
+        overfit, lowest = self.overfitwatch.add_cost (cost)        
+        if not overfit and lowest:
+            self.save (path, filename)            
+        return overfit
+        
     # make trainable ----------------------------------------------------------
-    def trainable (self, start_learning_rate=0.00001, decay_step=3000, decay_rate=0.99):
+    def trainable (self, start_learning_rate=0.00001, decay_step=3000, decay_rate=0.99, overfit_threshold = 0.02):
+        self.overfitwatch = overfit.Overfit (overfit_threshold)
+        
         self.start_learning_rate = start_learning_rate
         self.decay_step = decay_step
         self.decay_rate = decay_rate
         self.phase_train = True
         
-        self.global_step = tf.Variable(0, trainable=False)
-        self.learning_rate = tf.train.exponential_decay(self.start_learning_rate, self.global_step, self.decay_step, self.decay_rate, staircase=False)
-        
-        self.cost = self.make_cost ()
-        # summary
-        tf.summary.scalar('cost', self.cost)
-        tf.summary.scalar('learning_rate', self.learning_rate)   
-        
-        #optimizer = tf.train.MomentumOptimizer(learning_rate=learning_rate, momentum=0.9).minimize(cost, global_step=global_step)
-        self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.cost, global_step=self.global_step)
-        self.init_session ()  
+        with self.graph.as_default ():
+            self.global_step = tf.Variable(0, trainable=False)
+            self.learning_rate = tf.train.exponential_decay(self.start_learning_rate, self.global_step, self.decay_step, self.decay_rate, staircase=False)
+            
+            self.cost = self.make_cost ()
+            self.accuracy = self.calculate_accuracy ()
+            tf.summary.scalar('cost', self.cost)
+            tf.summary.scalar('learning_rate', self.learning_rate)   
+            
+            #optimizer = tf.train.MomentumOptimizer(learning_rate=learning_rate, momentum=0.9).minimize(cost, global_step=global_step)
+            self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.cost, global_step=self.global_step)
+            self.init_session ()  
     
     # layering -------------------------------------------------------------------
     def swish (self, x):
@@ -136,6 +196,16 @@ class DNN:
         self.y = tf.placeholder ("float", [None, n_output])
     
     def make_cost (self):
-        return self.cost_weighted()
+        pass
     
-        
+    def measure_accuracy (self, preds, xs, ys):
+        # filtering predict by org_cd
+        matches = []
+        for i, pred in enumerate (preds):
+            ans_x = self.vectorizer.get_unit_index (pred, xs [i])
+            matches.append (int (ans_x == np.argmax (ys [i])))
+        return np.mean (matches)
+     
+    def calculate_accuracy (self):
+        pass
+    
