@@ -1,6 +1,13 @@
 import sqlite3
 import json
 import zlib
+import warnings
+
+warnings.simplefilter('default')
+warnings.warn (
+   "db3 will be deprecated, use sqlphile.db3",
+    DeprecationWarning
+)
 
 class open:
 	def __init__ (self, path):		
@@ -73,5 +80,23 @@ class open:
 	def blob (self, obj):
 		return sqlite3.Binary (obj)
 	
-	def as_dict (conn, row):		
-		return dict ([(f, row [i]) for i, f in enumerate ([x [0] for x in conn.description])])	
+	def field_names (self):
+		return [x [0] for x in self.description]
+		
+	def as_dict (self, row, field_names = None):		
+		return dict ([(f, row [i]) for i, f in enumerate (field_names or self.field_names ())])
+	
+	def fetchone (self, as_dict = False):
+		return self.fetchmany (1, as_dict)[0]
+		
+	def fetchall (self, as_dict = False):
+		return self.fetchmany (0, as_dict)
+	
+	def fetchmany (self, limit, as_dict = False):
+		rows = limit and self.cursor.fetchmany (limit) or self.cursor.fetchall ()
+		if not as_dict:
+			return rows		
+		field_names = self.field_names ()
+		return [self.as_dict (row, field_names) for row in rows]
+			
+		
