@@ -72,4 +72,6 @@ class open:
 	
 	def blob (self, obj):
 		return sqlite3.Binary (obj)
-		
+	
+	def as_dict (conn, row):		
+		return dict ([(f, row [i]) for i, f in enumerate ([x [0] for x in conn.description])])	
