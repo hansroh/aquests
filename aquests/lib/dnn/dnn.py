@@ -21,11 +21,16 @@ class DNN:
             self.pred = self.make_pred ()            
             self.saver = tf.train.Saver (tf.global_variables())
             
-        self.session = None
+        self.sess = None
         self.writers = {}
         self.overfitwatch = None
+        self.overfitted = False
         self.summaries_dir = None
-        
+        self.verbose = True
+    
+    def turn_off_verbose (self):
+        self.verbose = False
+            
     def init_session (self):
         if self.gpu:
             self.sess = tf.Session (graph = self.graph, config = tf.ConfigProto(gpu_options=tf.GPUOptions (per_process_gpu_memory_fraction = self.gpu), log_device_placement = False))
@@ -49,39 +54,50 @@ class DNN:
             tf.summary.merge_all()
                      
     def get_writers (self, *writedirs):        
-        return [tf.summary.FileWriter(os.path.join (self.summaries_dir, "%s%s" % (self.name and self.name + "-" or "", wd)), self.sess.graph) for wd in writedirs]
+        return [tf.summary.FileWriter(os.path.join (self.summaries_dir, "%s%s" % (self.name and self.name.strip () + "-" or "", wd)), self.sess.graph) for wd in writedirs]
     
     def make_writers (self, *writedirs):
         for i, w in enumerate (self.get_writers (*writedirs)):
             self.writers [writedirs [i]] = w
     
-    def write_summary (self, writer, epoch, feed_dict, verbose = True):
+    def write_summary (self, writer, feed_dict, verbose = True):
+        if writer not in self.writers:
+            return
+        
         summary = tf.Summary()
         output = []
         for k, v in feed_dict.items ():
             if self.name:
                 k = "{}:{}".format (self.name, k)
             summary.value.add(tag = k , simple_value = v)
-            if isinstance (v, float):
+            if isinstance (v, (float, np.float64, np.float32)):
                 output.append ("{} {:.7f}".format (k, v))
+            elif isinstance (v, (int, np.int64, np.int32)):
+                output.append ("{} {:04d}".format (k, v))    
             else:
-                output.append ("{} {}".format (k, v))
-                
+                output.append ("{} {}".format (k, v))        
+        
+        if self.overfitted:
+            output.append ("Overfitted %s" % self.overfitted)
+        
+        with self.sess.as_default ():
+            epoch = self.global_step.eval ()
+                    
         self.writers [writer].add_summary(summary, epoch)
-        if verbose:
-            print ("[%d:%7s] %s" % (epoch, writer, " / ".join (output)))
+        if verbose and self.verbose:
+            print ("[%d:%7s] %s" % (epoch, writer, " | ".join (output)))
         
-    def restore (self, path, gpu = 0.4):
+    def restore (self, path):
         if self.name:
-            path = os.path.join (path, self.name)        
-        
+            path = os.path.join (path, self.name.strip ())        
+
         with self.graph.as_default ():
             self.init_session ()
             self.saver.restore(self.sess, tf.train.latest_checkpoint(path))
         
     def save (self, path, filename = None):
         if self.name:
-            path = os.path.join (path, self.name)
+            path = os.path.join (path, self.name.strip ())
             pathtool.mkdir (path)                            
         if filename:
             path = os.path.join (path, filename)            
@@ -89,14 +105,21 @@ class DNN:
         with self.graph.as_default ():
             self.saver.save(self.sess, path, global_step = self.global_step)
     
-    def export (self, version, path, predict_def, inputs, outputs):
+    def get_latest (self, path):    
+        if not os.listdir (path):
+            return 0
+        return max ([int (ver) for ver in os.listdir (path) if ver.isdigit () and os.path.isdir (os.path.join (path, ver))])    
+
+    def export (self, path, predict_def, inputs, outputs):
         if self.name:
-            path = os.path.join (path, self.name)
+            path = os.path.join (path, self.name.strip ())
+        pathtool.mkdir (path)
+        version = self.get_latest (path) + 1
         
         with self.graph.as_default ():
-            tf.app.flags.DEFINE_integer('model_version', version, 'version number of the model.')
-            tf.app.flags.DEFINE_string('work_dir', '/tmp', 'Working directory.')
-            FLAGS = tf.app.flags.FLAGS
+            #tf.app.flags.DEFINE_integer('model_version', version, 'version number of the model.')
+            #tf.app.flags.DEFINE_string('work_dir', '/tmp', 'Working directory.')
+            #FLAGS = tf.app.flags.FLAGS
             
             builder = tf.saved_model.builder.SavedModelBuilder("{}/{}/".format (path, version))
             prediction_signature = (
@@ -112,6 +135,7 @@ class DNN:
               }
             )
             builder.save()
+        return version    
 
     def run (self, *ops, **kargs):
         feed_dict = {}
@@ -125,11 +149,11 @@ class DNN:
     def is_overfit (self, cost, path, filename = None):
         if filename is None:
             filename = "cost-%.7f" % cost
-        overfit, lowest = self.overfitwatch.add_cost (cost)        
-        if not overfit and lowest:
+        self.overfitted, lowest = self.overfitwatch.add_cost (cost)        
+        if not self.overfitted and lowest:
             self.save (path, filename)            
-        return overfit
-        
+        return self.overfitted
+    
     # make trainable ----------------------------------------------------------
     def trainable (self, start_learning_rate=0.00001, decay_step=3000, decay_rate=0.99, overfit_threshold = 0.02):
         self.overfitwatch = overfit.Overfit (overfit_threshold)
@@ -149,7 +173,7 @@ class DNN:
             tf.summary.scalar('learning_rate', self.learning_rate)   
             
             #optimizer = tf.train.MomentumOptimizer(learning_rate=learning_rate, momentum=0.9).minimize(cost, global_step=global_step)
-            self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.cost, global_step=self.global_step)
+            self.optimizer = self.make_optimizer ()
             self.init_session ()  
     
     # layering -------------------------------------------------------------------
@@ -159,10 +183,12 @@ class DNN:
     def dropout (self, layer):
         return tf.layers.dropout (inputs=layer, rate = self.dropout_rate, training=self.phase_train)
         
-    def make_hidden_layer (self, n_input, n_output, activation = tf.nn.relu):
+    def make_hidden_layer (self, n_input, n_output, activation = None):
         h1 = tf.layers.dense (inputs = n_input, units = n_output)
         h2 = tf.layers.batch_normalization (h1, momentum = 0.99, training = self.phase_train)
-        return self.dropout (activation (h2))
+        if activation is not None:            
+            h2 = activation (h2)
+        return self.dropout (h2)
     
     def make_conv_layer (self, n_input, num_filters, sequence_length, filter_size, embedding_size, activation = tf.nn.relu):
         h = tf.layers.conv2d (
@@ -181,6 +207,10 @@ class DNN:
         )
         
     # override theses ----------------------------------------------------------            
+    def make_optimizer (self):
+        return tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.cost, global_step=self.global_step)
+    get_optimizer = make_optimizer
+    
     def make_logits (self):
         #layer1 = self._make_layer (self.x, n_hidden_1)
         layer2 = self.make_hidden_layer (self.x, n_hidden_2)
@@ -198,13 +228,14 @@ class DNN:
     def make_cost (self):
         pass
     
-    def measure_accuracy (self, preds, xs, ys):
+    def calculate_complex_accuracy (self, preds, ys, *args, **karg):
         # filtering predict by org_cd
         matches = []
         for i, pred in enumerate (preds):
             ans_x = self.vectorizer.get_unit_index (pred, xs [i])
             matches.append (int (ans_x == np.argmax (ys [i])))
         return np.mean (matches)
+    measure_accuracy = calculate_complex_accuracy
      
     def calculate_accuracy (self):
         pass

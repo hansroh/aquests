@@ -28,6 +28,7 @@ class MultiDNN:
                 assert arg.name is not None
             else:
                 self.y_div.append (sum (self.y_div) + arg)
+        self.verbose_turned_offs = []
                         
     def __getattr__ (self, attr):
         return Task (self.dnns, attr)  
@@ -47,27 +48,30 @@ class MultiDNN:
         for i, dnn in enumerate (self.dnns):
             results.append (int (dnn.is_overfit (cost [i], path, filename)))
         return sum (results) == len (self.dnns)
-        
-    def write_summary (self, writer, epoch, feed_dict, verbose = True):
+            
+    def write_summary (self, writer, feed_dict):
         for i in range (len (list (feed_dict.values ())[0])):
             feed_dict_ = {}
             for k, v in feed_dict.items ():
                 feed_dict_ [k] = v [i]
-            self.dnns [i].write_summary (writer, epoch, feed_dict_, verbose)
+            dnn = self.dnns [i]     
+            dnn.write_summary (writer, feed_dict_)
                     
-    def measure_accuracy (self, preds, xs, ys):
+    def calculate_complex_accuracy (self, preds, ys, *args, **karg):
         results = []
         for i in range (len (self.y_div) - 1):   
             dnn = self.dnns [i]
-            results.append (dnn.measure_accuracy (preds [i], xs, self._get_segment (i, ys)))
-        return np.array (results)
+            results.append (dnn.calculate_complex_accuracy (preds [i], self._get_segment (i, ys), *args, **karg))
+        return np.array (results)     
+    measure_accuracy = calculate_complex_accuracy
         
     def run (self, *ops, **kargs):
         ys = kargs.pop ("y")        
         results = []
         for i in range (len (self.y_div) - 1):
             dnn = self.dnns [i]
-            kargs ["y"] = self._get_segment (i, ys)    
-            results.append (dnn.run (*tuple ([getattr (dnn, op.attr) for op in ops]), **kargs))
-        return np.array (results).transpose ()
+            kargs ["y"] = self._get_segment (i, ys)            
+            result = list (dnn.run (*tuple ([getattr (dnn, op.attr) for op in ops]), **kargs))
+            results.append (result)                    
+        return np.array (results, np.object).transpose ()
         
