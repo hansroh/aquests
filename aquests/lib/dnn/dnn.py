@@ -213,28 +213,34 @@ class DNN:
             return layer
         return tf.layers.dropout (inputs=layer, rate = self.dropout_rate, training=self.phase_train)    
     
-    def make_lstm (self, n_input, seq_len, n_channels, lstm_size, lstm_layers = 1, activation = None):
+    def make_lstm (self, n_input, seq_len, n_channels, lstm_size, lstm_layers = 1):
         # lstm_size larger than n_channels
-        
+        try:
+            rnn = tf.nn.rnn_cell
+            static_rnn = tf.nn.static_rnn
+        except AttributeError:
+            rnn = tf.contrib.rnn
+            static_rnn = rnn.static_rnn
+                
         lstm_in = tf.reshape (n_input, [-1, n_channels])
-        lstm_in = tf.layers.dense (lstm_in, lstm_size, activation = activation)
+        lstm_in = tf.layers.dense (lstm_in, lstm_size)
         lstm_in = tf.split (lstm_in, seq_len, 0)
         
         cells = []
         for i in range (lstm_layers):
-            lstm = tf.contrib.rnn.BasicLSTMCell (lstm_size)
-            drop = tf.contrib.rnn.DropoutWrapper (lstm, output_keep_prob = 1.0 - self.dropout_rate)
+            lstm = rnn.BasicLSTMCell (lstm_size)
+            drop = rnn.DropoutWrapper (lstm, output_keep_prob = 1.0 - self.dropout_rate)
             cells.append (drop)
             
-        cell = tf.contrib.rnn.MultiRNNCell (cells)
+        cell = rnn.MultiRNNCell (cells)
         initial_state = cell.zero_state (self.n_sample, tf.float32)
-        output, final_state = tf.contrib.rnn.static_rnn (cell, lstm_in, dtype = tf.float32, initial_state = initial_state)            
+        output, final_state = static_rnn (cell, lstm_in, dtype = tf.float32, initial_state = initial_state)            
         return output
         
     def make_hidden_layer (self, n_input, n_output, activation = None, dropout = True):
         h1 = tf.layers.dense (inputs = n_input, units = n_output)
         h2 = tf.layers.batch_normalization (h1, momentum = 0.99, training = self.phase_train)
-        if activation is not None:            
+        if activation is not None:
             h2 = activation (h2)        
         return self.dropout (h2, dropout)        
     
