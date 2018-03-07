@@ -159,6 +159,9 @@ class DNN:
     def run (self, *ops, **kargs):
         if "y" in kargs:
             kargs ["y"], kargs ["x"] = self.filter (kargs ["y"], kargs ["x"])
+            if "n_sample" in kargs:
+                kargs ["n_sample"] = len (kargs ["y"])
+                            
         feed_dict = {}
         for k, v in kargs.items ():
             feed_dict [getattr (self, k)] = v
@@ -175,6 +178,10 @@ class DNN:
             self.save (path, filename)            
         return self.overfitted
     
+    def eval (self, tensor):
+        with self.sess.as_default ():
+            return tensor.eval ()
+            
     # make trainable ----------------------------------------------------------
     def trainable (self, start_learning_rate=0.00001, decay_step=3000, decay_rate=0.99, overfit_threshold = 0.02):
         self.overfitwatch = overfit.Overfit (overfit_threshold)
@@ -201,31 +208,47 @@ class DNN:
     def swish (self, x):
         return tf.nn.sigmoid(x) * x    
     
-    def dropout (self, layer):
-        return tf.layers.dropout (inputs=layer, rate = self.dropout_rate, training=self.phase_train)
+    def dropout (self, layer, dropout = True):
+        if not dropout:
+            return layer
+        return tf.layers.dropout (inputs=layer, rate = self.dropout_rate, training=self.phase_train)    
+    
+    def make_lstm (self, n_input, seq_len, n_channels, lstm_size, lstm_layers = 1, activation = None):
+        # lstm_size larger than n_channels
         
-    def make_hidden_layer (self, n_input, n_output, activation = None):
+        lstm_in = tf.reshape (n_input, [-1, n_channels])
+        lstm_in = tf.layers.dense (lstm_in, lstm_size, activation = activation)
+        lstm_in = tf.split (lstm_in, seq_len, 0)
+        
+        cells = []
+        for i in range (lstm_layers):
+            lstm = tf.contrib.rnn.BasicLSTMCell (lstm_size)
+            drop = tf.contrib.rnn.DropoutWrapper (lstm, output_keep_prob = 1.0 - self.dropout_rate)
+            cells.append (drop)
+            
+        cell = tf.contrib.rnn.MultiRNNCell (cells)
+        initial_state = cell.zero_state (self.n_sample, tf.float32)
+        output, final_state = tf.contrib.rnn.static_rnn (cell, lstm_in, dtype = tf.float32, initial_state = initial_state)            
+        return output
+        
+    def make_hidden_layer (self, n_input, n_output, activation = None, dropout = True):
         h1 = tf.layers.dense (inputs = n_input, units = n_output)
         h2 = tf.layers.batch_normalization (h1, momentum = 0.99, training = self.phase_train)
         if activation is not None:            
-            h2 = activation (h2)
-        return self.dropout (h2)
+            h2 = activation (h2)        
+        return self.dropout (h2, dropout)        
     
-    def make_conv_layer (self, n_input, num_filters, sequence_length, filter_size, embedding_size, activation = tf.nn.relu):
-        h = tf.layers.conv2d (
-            inputs = input_dim,
-            filters = num_filters,
-            kernel_size = [filter_size, embedding_size],
-            padding = "valid",
-            activation = activation
-        )
-        # Maxpooling over the outputs
-        pooled = tf.layers.max_pooling2d (
-            inputs = h, 
-            pool_size = [sequence_length - filter_size + 1, 1], 
-            strides = 1,
-            padding = 'valid'
-        )
+    def make_conv1d_layer (self, n_input, filters = 6, activation = None,  padding = "same", dropout = True):
+        # decreased to half
+        # (128, filters) -> (64, filters) -> (32, filters)
+        conv = tf.layers.conv1d (inputs = n_input, filters = filters, kernel_size = 2, strides = 1, padding = padding, activation = activation)
+        maxp = tf.layers.max_pooling1d (inputs = conv, pool_size = 2, strides = 2, padding = padding)
+        return self.dropout (maxp, dropout)
+        
+    def make_conv2d_layer (self, n_input, filters, kernel_size = (4, 4), pool_size = (2, 2), activation = None, padding = "same", dropout = True):
+        conv = tf.layers.conv2d (inputs = n_input, filters = filters, kernel_size = kernel_size, strides = 1, padding = padding, activation = activation)
+        maxp = tf.layers.max_pooling2d (inputs = conv, pool_size = pool_size, strides = pool_size [0], padding = padding)
+        return self.dropout (maxp, dropout)
         
     # override theses ----------------------------------------------------------            
     def make_optimizer (self):
