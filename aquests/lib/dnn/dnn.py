@@ -27,7 +27,24 @@ class DNN:
         self.overfitted = False
         self.summaries_dir = None
         self.verbose = True
+        self.filter_func = None
+        
+    def set_filter (self, func):
+        self.filter_func = func
     
+    def filter (self, ys, *args):
+        is_no_x = True
+        xs = None
+        if args:
+            is_no_x = False        
+            xs = args [0]
+             
+        if self.filter_func:
+            ys, xs = self.filter_func (ys, xs)
+        if is_no_x:
+            return ys
+        return ys, xs        
+        
     def turn_off_verbose (self):
         self.verbose = False
             
@@ -51,7 +68,7 @@ class DNN:
             if tf.gfile.Exists(summaries_dir):
                 tf.gfile.DeleteRecursively(summaries_dir)
             tf.gfile.MakeDirs(summaries_dir)
-            tf.summary.merge_all()
+            tf.summary.merge_all ()
                      
     def get_writers (self, *writedirs):        
         return [tf.summary.FileWriter(os.path.join (self.summaries_dir, "%s%s" % (self.name and self.name.strip () + "-" or "", wd)), self.sess.graph) for wd in writedirs]
@@ -60,6 +77,10 @@ class DNN:
         for i, w in enumerate (self.get_writers (*writedirs)):
             self.writers [writedirs [i]] = w
     
+    def get_epoch (self):
+        with self.sess.as_default ():
+            return self.global_step.eval ()
+                
     def write_summary (self, writer, feed_dict, verbose = True):
         if writer not in self.writers:
             return
@@ -80,9 +101,7 @@ class DNN:
         if self.overfitted:
             output.append ("Overfitted %s" % self.overfitted)
         
-        with self.sess.as_default ():
-            epoch = self.global_step.eval ()
-                    
+        epoch = self.get_epoch ()
         self.writers [writer].add_summary(summary, epoch)
         if verbose and self.verbose:
             print ("[%d:%7s] %s" % (epoch, writer, " | ".join (output)))
@@ -138,6 +157,8 @@ class DNN:
         return version    
 
     def run (self, *ops, **kargs):
+        if "y" in kargs:
+            kargs ["y"], kargs ["x"] = self.filter (kargs ["y"], kargs ["x"])
         feed_dict = {}
         for k, v in kargs.items ():
             feed_dict [getattr (self, k)] = v
@@ -229,12 +250,7 @@ class DNN:
         pass
     
     def calculate_complex_accuracy (self, preds, ys, *args, **karg):
-        # filtering predict by org_cd
-        matches = []
-        for i, pred in enumerate (preds):
-            ans_x = self.vectorizer.get_unit_index (pred, xs [i])
-            matches.append (int (ans_x == np.argmax (ys [i])))
-        return np.mean (matches)
+        ys = self.filter (ys)
     measure_accuracy = calculate_complex_accuracy
      
     def calculate_accuracy (self):

@@ -66,7 +66,7 @@ class MultiDNN:
     measure_accuracy = calculate_complex_accuracy
         
     def run (self, *ops, **kargs):
-        ys = kargs.pop ("y")        
+        ys = kargs.pop ("y")
         results = []
         for i in range (len (self.y_div) - 1):
             dnn = self.dnns [i]
