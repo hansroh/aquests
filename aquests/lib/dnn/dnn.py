@@ -205,9 +205,6 @@ class DNN:
             self.init_session ()  
     
     # layering -------------------------------------------------------------------
-    def swish (self, x):
-        return tf.nn.sigmoid(x) * x    
-    
     def dropout (self, layer, dropout = True):
         if not dropout:
             return layer
@@ -255,10 +252,20 @@ class DNN:
         conv = tf.layers.conv2d (inputs = n_input, filters = filters, kernel_size = kernel_size, strides = 1, padding = padding, activation = activation)
         maxp = tf.layers.max_pooling2d (inputs = conv, pool_size = pool_size, strides = pool_size [0], padding = padding)
         return self.dropout (maxp, dropout)
+    
+    # helpers -----------------------------------------------------------------
+    def clip_optimizer (self, min_, max_):
+        train_op = tf.train.AdamOptimizer (learning_rate = self.learning_rate)
+        gradients = train_op.compute_gradients (self.cost)
+        capped_gradients = [(tf.clip_by_value (grad, min_, max_), var) for grad, var in gradients]
+        return train_op.apply_gradients (capped_gradients, global_step = self.global_step)        
+    
+    def swish (self, x):
+        return tf.nn.sigmoid(x) * x
         
     # override theses ----------------------------------------------------------            
     def make_optimizer (self):
-        return tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.cost, global_step=self.global_step)
+        return tf.train.AdamOptimizer (learning_rate = self.learning_rate).minimize (self.cost, global_step = self.global_step)
     get_optimizer = make_optimizer
     
     def make_logits (self):

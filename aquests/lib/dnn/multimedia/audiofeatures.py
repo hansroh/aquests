@@ -145,12 +145,16 @@ def make (wavfile, sample_rate = SAMPLE_RATE, time_lap = 0.2, due_limit = (1, 5)
 def save (wavfile, target_path, sample_rate = SAMPLE_RATE, time_lap = 0.2, due_limit = (1, 5), use_mel = False, use_stft = False):
     features = make (wavfile, sample_rate, time_lap, due_limit, use_mel, use_stft)
     if features is None:
-        return
+        return False
     _save (features, wavfile, target_path)
+    return True
 
 def puff (wavfile, target_path, sample_rate = SAMPLE_RATE, time_lap = 0.2, due_limit = (1, 5), use_mel = False, use_stft = False, n_gen = 4):    
-    save (wavfile, target_path, sample_rate, time_lap, due_limit, use_mel = use_mel, use_stft = use_stft)
-    n = 0
+    _saved = save (wavfile, target_path, sample_rate, time_lap, due_limit, use_mel = use_mel, use_stft = use_stft)
+    if not _saved:
+         return 0
+     
+    n = 1
     for i in range (n_gen * 2):
         params = (random.randrange (2), random.randrange (2), random.randrange (2), random.randrange (2))
         if sum (params) == 0:
@@ -162,7 +166,8 @@ def puff (wavfile, target_path, sample_rate = SAMPLE_RATE, time_lap = 0.2, due_l
         n += 1
         if n == n_gen:
             break
-
+    
+    return n    
 
 if __name__ == '__main__':    
     y, sr = load  (os.path.join (os.path.dirname (__file__), "test.wav"))
