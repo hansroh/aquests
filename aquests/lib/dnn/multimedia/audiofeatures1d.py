@@ -18,9 +18,9 @@ def make (wavfile, sample_rate = af.SAMPLE_RATE, time_lap = 0.2, due_limit = (1,
 def save (wavfile, target_path, sample_rate = af.SAMPLE_RATE, time_lap = 0.2, due_limit = (1, 5), use_mel = False, use_stft = False, seqs = 12):
     features = make (wavfile, sample_rate, time_lap, due_limit, use_mel, use_stft, seqs)
     if features is None:
-        return True
+        return False
     af._save (features, wavfile, target_path)
-    return False
+    return True
 
 def puff (wavfile, target_path, sample_rate = af.SAMPLE_RATE, time_lap = 0.2, due_limit = (1, 5), use_mel = False, use_stft = False, n_gen = 4, seqs = 12):    
     if not save (wavfile, target_path, sample_rate, time_lap, due_limit, use_mel = use_mel, use_stft = use_stft, seqs = seqs):
