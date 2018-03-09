@@ -211,8 +211,8 @@ class DNN:
             return layer
         return tf.layers.dropout (inputs=layer, rate = self.dropout_rate, training=self.phase_train)    
     
-    def make_lstm (self, n_input, seq_len, n_channels, lstm_size, lstm_layers = 1, dynamic = True):
-        # lstm_size larger than n_channels
+    def make_lstm (self, n_input, seq_len, n_channels, hidden_size, lstm_layers = 1, dynamic = True):
+        # hidden_size larger than n_channels
         try:
             rnn = tf.nn.rnn_cell
             type_rnn = dynamic and tf.nn.dynamic_rnn or tf.nn.static_rnn                    
@@ -222,7 +222,7 @@ class DNN:
         
         cells = []
         for i in range (lstm_layers):
-            lstm = rnn.BasicLSTMCell (lstm_size)
+            lstm = rnn.BasicLSTMCell (hidden_size)
             drop = rnn.DropoutWrapper (lstm, output_keep_prob = 1.0 - self.dropout_rate)
             cells.append (drop)
             
@@ -233,7 +233,7 @@ class DNN:
         lstm_in = tf.transpose (n_input, [1, 0, 2])
         if not dynamic:            
             lstm_in = tf.reshape (lstm_in, [-1, n_channels])
-            lstm_in = tf.layers.dense (lstm_in, lstm_size)
+            lstm_in = tf.layers.dense (lstm_in, hidden_size)
             lstm_in = tf.split (lstm_in, seq_len, 0)
             output, final_state = type_rnn (cell, lstm_in, dtype = tf.float32, initial_state = initial_state)
         else:            
@@ -244,9 +244,9 @@ class DNN:
     def make_fc_layer (self, outputs, n_output):
         return tf.reshape (outputs, [-1, n_output])
     
-    def make_sequencial_layer (self, outputs, lstm_size, seq_len, n_output):
+    def make_sequencial_layer (self, outputs, hidden_size, seq_len, n_output):
         # outputs is rnn outputs
-        fc = self.make_fc_layer (outputs, [-1, lstm_size])
+        fc = self.make_fc_layer (outputs, [-1, hidden_size])
         outputs = tf.layers.dense (fc, n_output, activation = None)
         return tf.reshape (outputs, [self.n_sample, seq_len, n_output])
         
