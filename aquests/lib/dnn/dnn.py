@@ -4,7 +4,7 @@ import sys
 import os, shutil
 import random
 from aquests.lib import pathtool
-from . import overfit
+from . import overfit, optimizers
 
 class DNN:
     def __init__ (self, gpu_usage = 0, name = None):
@@ -13,6 +13,7 @@ class DNN:
         
         self.graph = tf.Graph ()
         with self.graph.as_default ():
+            self.make_default_place_holders ()
             self.make_place_holders ()        
             self.dropout_rate = tf.placeholder_with_default (tf.constant(0.0), ())        
             self.phase_train = False
@@ -210,15 +211,15 @@ class DNN:
             return layer
         return tf.layers.dropout (inputs=layer, rate = self.dropout_rate, training=self.phase_train)    
     
-    def make_lstm (self, n_input, seq_len, n_channels, lstm_size, lstm_layers = 1):
+    def make_lstm (self, n_input, seq_len, n_channels, lstm_size, lstm_layers = 1, dynamic = False):
         # lstm_size larger than n_channels
         try:
             rnn = tf.nn.rnn_cell
-            static_rnn = tf.nn.static_rnn
+            type_rnn = dynamic and tf.nn.dynamic_rnn or tf.nn.static_rnn                    
         except AttributeError:
             rnn = tf.contrib.rnn
-            static_rnn = rnn.static_rnn
-                
+            type_rnn = dynamic and rnn.dynamic_rnn or rnn.static_rnn
+
         lstm_in = tf.reshape (n_input, [-1, n_channels])
         lstm_in = tf.layers.dense (lstm_in, lstm_size)
         lstm_in = tf.split (lstm_in, seq_len, 0)
@@ -231,8 +232,17 @@ class DNN:
             
         cell = rnn.MultiRNNCell (cells)
         initial_state = cell.zero_state (self.n_sample, tf.float32)
-        output, final_state = static_rnn (cell, lstm_in, dtype = tf.float32, initial_state = initial_state)            
+        output, final_state = type_rnn (cell, lstm_in, dtype = tf.float32, initial_state = initial_state)            
         return output
+    
+    def make_fc_layer (self, outputs, n_output):
+        return tf.reshape (outputs, [-1, n_output])
+    
+    def make_sequencial_layer (self, outputs, lstm_size, seq_len, n_output):
+        # outputs is rnn outputs
+        fc = self.make_fc_layer (outputs, [-1, lstm_size])
+        outputs = tf.layers.dense (fc, n_output, activation = None)
+        return tf.reshape (outputs, [self.n_sample, seq_len, n_output])
         
     def make_hidden_layer (self, n_input, n_output, activation = None, dropout = True):
         h1 = tf.layers.dense (inputs = n_input, units = n_output)
@@ -253,19 +263,20 @@ class DNN:
         maxp = tf.layers.max_pooling2d (inputs = conv, pool_size = pool_size, strides = pool_size [0], padding = padding)
         return self.dropout (maxp, dropout)
     
-    # helpers -----------------------------------------------------------------
-    def clip_optimizer (self, min_, max_):
-        train_op = tf.train.AdamOptimizer (learning_rate = self.learning_rate)
-        gradients = train_op.compute_gradients (self.cost)
-        capped_gradients = [(tf.clip_by_value (grad, min_, max_), var) for grad, var in gradients]
-        return train_op.apply_gradients (capped_gradients, global_step = self.global_step)        
-    
+    # helpers ------------------------------------------------------------------
     def swish (self, x):
         return tf.nn.sigmoid(x) * x
-        
+    
+    def optimizer (self, name = 'adam', *args, **karg):
+        return getattr (optimizers, name) (self.cost, self.learning_rate, self.global_step, *args, **karg)
+    
+    def transpose_for_rnn (self):
+        return tf.transpose (self.x, [1, 0, 2])
+    
     # override theses ----------------------------------------------------------            
     def make_optimizer (self):
-        return tf.train.AdamOptimizer (learning_rate = self.learning_rate).minimize (self.cost, global_step = self.global_step)
+        return self.optimizer ("adam")
+    
     get_optimizer = make_optimizer
     
     def make_logits (self):
@@ -281,6 +292,9 @@ class DNN:
     def make_place_holders (self):
         self.x = tf.placeholder ("float", [None, n_input])
         self.y = tf.placeholder ("float", [None, n_output])
+    
+    def make_default_place_holders (self):    
+        self.n_sample = tf.placeholder ("int32", [])
     
     def make_cost (self):
         pass

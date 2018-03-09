@@ -66,11 +66,12 @@ packages = [
 	'aquests.lib.athreads',
 	'aquests.lib.pmaster',
 	'aquests.lib.nets',
-	'aquests.lib.awstk',
+	'aquests.lib.awsapi',
+	'aquests.lib.googleapi',
 	'aquests.lib.dnn',
 	'aquests.lib.dnn.text',
-	'aquests.lib.dnn.multimedia',
-	'aquests.lib.googleapi',
+	'aquests.lib.dnn.similarity',
+	'aquests.lib.dnn.multimedia',	
 ]
 
 package_dir = {'aquests': 'aquests'}
@@ -78,7 +79,7 @@ package_dir = {'aquests': 'aquests'}
 package_data = {
 	"aquests": [
 		"protocols/dns/*.txt",
-		"protocols/dns/pydns/*.txt"
+		"protocols/dns/pydns/*.txt",		
 	]
 }
 

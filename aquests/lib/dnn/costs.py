@@ -368,7 +368,7 @@ def iou_coe(output, target, threshold=0.5, axis=(1, 2, 3), smooth=1e-5):
 # exit()
 
 
-def cross_entropy_seq(logits, target_seqs, batch_size=None):  #, batch_size=1, num_steps=None):
+def cross_entropy_seq (logits, target_seqs, batch_size=None):  #, batch_size=1, num_steps=None):
     """Returns the expression of cross-entropy of two sequences, implement
     softmax internally. Normally be used for fixed length RNN outputs, see `PTB example <https://github.com/zsdonghao/tensorlayer/blob/master/example/tutorial_ptb_lstm_state_is_tuple.py>`__.
 
@@ -406,6 +406,12 @@ def cross_entropy_seq(logits, target_seqs, batch_size=None):  #, batch_size=1, n
         cost = cost / batch_size
     return cost
 
+def mean_seq (logits, target_seqs, batch_size, sequence_length):
+    weights = tf.ones ([batch_size, sequence_length])
+    sequence_loss = tf.contrib.seq2seq.sequence_loss (
+        logits = logits, targets = target_seqs, weights = weights
+    )
+    return tf.reduce_mean (sequence_loss)
 
 def cross_entropy_seq_with_mask(logits, target_seqs, input_mask, return_details=False, name=None):
     """Returns the expression of cross-entropy of two sequences, implement
