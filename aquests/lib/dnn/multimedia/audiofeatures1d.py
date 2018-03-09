@@ -25,6 +25,7 @@ def save (wavfile, target_path, sample_rate = af.SAMPLE_RATE, time_lap = 0.2, du
 def puff (wavfile, target_path, sample_rate = af.SAMPLE_RATE, time_lap = 0.2, due_limit = (1, 5), use_mel = False, use_stft = False, n_gen = 4, seqs = 12):    
     if not save (wavfile, target_path, sample_rate, time_lap, due_limit, use_mel = use_mel, use_stft = use_stft, seqs = seqs):
         return 0
+    
     n = 1
     for i in range (n_gen * 2):
         params = (random.randrange (2), random.randrange (2), random.randrange (2), random.randrange (2))
@@ -38,6 +39,7 @@ def puff (wavfile, target_path, sample_rate = af.SAMPLE_RATE, time_lap = 0.2, du
         if n == n_gen:
             break
     return n    
+
         
 if __name__ == '__main__':    
     ft = make  (os.path.join (os.path.dirname (__file__), "test.wav"), seqs = 12)
