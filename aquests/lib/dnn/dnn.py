@@ -211,7 +211,7 @@ class DNN:
             return layer
         return tf.layers.dropout (inputs=layer, rate = self.dropout_rate, training=self.phase_train)    
     
-    def make_lstm (self, n_input, seq_len, n_channels, lstm_size, lstm_layers = 1, dynamic = False):
+    def make_lstm (self, n_input, seq_len, n_channels, lstm_size, lstm_layers = 1, dynamic = True):
         # lstm_size larger than n_channels
         try:
             rnn = tf.nn.rnn_cell
@@ -219,10 +219,6 @@ class DNN:
         except AttributeError:
             rnn = tf.contrib.rnn
             type_rnn = dynamic and rnn.dynamic_rnn or rnn.static_rnn
-
-        lstm_in = tf.reshape (n_input, [-1, n_channels])
-        lstm_in = tf.layers.dense (lstm_in, lstm_size)
-        lstm_in = tf.split (lstm_in, seq_len, 0)
         
         cells = []
         for i in range (lstm_layers):
@@ -232,7 +228,17 @@ class DNN:
             
         cell = rnn.MultiRNNCell (cells)
         initial_state = cell.zero_state (self.n_sample, tf.float32)
-        output, final_state = type_rnn (cell, lstm_in, dtype = tf.float32, initial_state = initial_state)            
+        
+        # transform time major form 
+        lstm_in = tf.transpose (n_input, [1, 0, 2])
+        if not dynamic:            
+            lstm_in = tf.reshape (lstm_in, [-1, n_channels])
+            lstm_in = tf.layers.dense (lstm_in, lstm_size)
+            lstm_in = tf.split (lstm_in, seq_len, 0)
+            output, final_state = type_rnn (cell, lstm_in, dtype = tf.float32, initial_state = initial_state)
+        else:            
+            output, final_state = type_rnn (cell, lstm_in, time_major = True, dtype = tf.float32, initial_state = initial_state)
+                    
         return output
     
     def make_fc_layer (self, outputs, n_output):
@@ -269,9 +275,6 @@ class DNN:
     
     def optimizer (self, name = 'adam', *args, **karg):
         return getattr (optimizers, name) (self.cost, self.learning_rate, self.global_step, *args, **karg)
-    
-    def transpose_for_rnn (self):
-        return tf.transpose (self.x, [1, 0, 2])
     
     # override theses ----------------------------------------------------------            
     def make_optimizer (self):
