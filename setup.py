@@ -25,6 +25,20 @@ if sys.argv[-1] == 'publish':
 		os.remove (os.path.join ('dist', each))
 	sys.exit()
 
+elif sys.argv[-1] == 'develop':
+	import site
+	if os.name == "nt":
+		linkdir = [each for each in site.getsitepackages() if each.endswith ("-packages")][0]		
+	else:
+		linkdir = [each for each in site.getsitepackages() if each.find ("/local/") !=- 1 and each.endswith ("-packages")][0]		
+	target = os.path.join (os.path.join (os.getcwd (), os.path.dirname (__file__)), "aquests")
+	link = os.path.join (linkdir, "aquests")
+	if os.name == "nt":
+		os.system ("mklink /d {} {}".format (link, target))
+	else:
+		os.system ("ln -s {} {}".format (target, link))	
+	sys.exit ()
+	
 classifiers = [
   'License :: OSI Approved :: MIT License',
   'Development Status :: 4 - Beta',
