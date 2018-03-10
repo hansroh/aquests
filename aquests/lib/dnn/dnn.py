@@ -210,9 +210,8 @@ class DNN:
         if not dropout:
             return layer
         return tf.layers.dropout (inputs=layer, rate = self.dropout_rate, training=self.phase_train)    
-    
-    def make_lstm (self, n_input, seq_len, n_channels, hidden_size, lstm_layers = 1, dynamic = True):
-        # hidden_size larger than n_channels
+        
+    def make_lstm (self, n_input, hidden_size, lstm_layers = 1, activation = None, dynamic = True):
         try:
             rnn = tf.nn.rnn_cell
             type_rnn = dynamic and tf.nn.dynamic_rnn or tf.nn.static_rnn                    
@@ -222,23 +221,27 @@ class DNN:
         
         cells = []
         for i in range (lstm_layers):
-            lstm = rnn.BasicLSTMCell (hidden_size)
+            lstm = rnn.BasicLSTMCell (hidden_size, activation = activation)
             drop = rnn.DropoutWrapper (lstm, output_keep_prob = 1.0 - self.dropout_rate)
             cells.append (drop)
             
         cell = rnn.MultiRNNCell (cells)
         initial_state = cell.zero_state (self.n_sample, tf.float32)
         
-        # transform time major form 
-        lstm_in = tf.transpose (n_input, [1, 0, 2])
-        if not dynamic:            
-            lstm_in = tf.reshape (lstm_in, [-1, n_channels])
+        # transform time major form      
+        shape = len (n_input.get_shape())
+        lstm_in = tf.transpose (n_input, [1, 0] + list (range (max (2, shape - 2), shape)))
+        if dynamic:            
+            output, final_state = type_rnn (cell, lstm_in, time_major = True, dtype = tf.float32, initial_state = initial_state)
+        else:
+            seq_len = shape [1]
+            n_channel = len (shape) >= 3 and shape [2] or 0
+            if n_channel:
+                lstm_in = tf.reshape (lstm_in, [-1, n_channel])
             lstm_in = tf.layers.dense (lstm_in, hidden_size)
             lstm_in = tf.split (lstm_in, seq_len, 0)
             output, final_state = type_rnn (cell, lstm_in, dtype = tf.float32, initial_state = initial_state)
-        else:            
-            output, final_state = type_rnn (cell, lstm_in, time_major = True, dtype = tf.float32, initial_state = initial_state)
-                    
+                
         return output
     
     def make_fc_layer (self, outputs, n_output):
