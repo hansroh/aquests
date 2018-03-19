@@ -32,7 +32,8 @@ class h2header_producer:
 
 class h2frame_producer:
 	SIZE_BUFFER = 16384
-	MIN_RFCW = SIZE_BUFFER * 2
+	MIN_RFCW = 4096
+	MIN_IBFCW = 65535
 	def __init__ (self, stream_id, depends_on, weight, producer, encoder, lock):
 		self.stream_id = stream_id
 		self.depends_on = depends_on
@@ -51,6 +52,12 @@ class h2frame_producer:
 			self._ready = producer.ready
 			producer.ready = None
 	
+	def reset_stream (self,error_code = 3):
+		self.encoder.reset_stream (self.stream_id, error_code = 3)
+		self._frame = self.encoder.data_to_send ()
+		self._buf = b''
+		self._end_stream = True		 
+	
 	def ready (self):		
 		if self.is_done ():
 			return True
@@ -64,20 +71,24 @@ class h2frame_producer:
 		if lfcw == 0:
 			# flow control error, graceful close
 			if time.time () - self._last_sent > 10:
-				 self.encoder.reset_stream (self.stream_id, error_code = errcode)
-				 self._frame = self.encoder.data_to_send ()
-				 self._buf = b''
-				 self._end_stream = True
-				 return True
+				self.reset_stream (3)				 
+				return True
 			return False
 		
 		# check remote window
 		rfcw = self.encoder.remote_flow_control_window (self.stream_id)
 		#print ("---RFCW", self.stream_id, rfcw)
-		if rfcw < self.MIN_RFCW:
-			self.encoder.increment_flow_control_window (1048576)				
-			self.encoder.increment_flow_control_window (1048576, self.stream_id)					
+		try:
+			if self.encoder.inbound_flow_control_window < self.MIN_IBFCW:			
+				self.encoder.increment_flow_control_window (1048576)			
 			
+			if rfcw < self.MIN_RFCW:
+				self.encoder.increment_flow_control_window (1048576, self.stream_id)
+		except:
+			raise
+			self.reset_stream (3)				 
+			return True
+				
 		avail_data_length = min (self.SIZE_BUFFER, lfcw)
 		if not self._buf:
 			if self._ready and not self._ready ():

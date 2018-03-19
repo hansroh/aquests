@@ -385,7 +385,7 @@ class Response:
 		elif ct.startswith ('application/grpc'):			
 			msgs = []
 			for msg in result:
-				descriptor, isstream = discover.find_output (self.request.path [1:])					
+				descriptor, isstream = discover.find_output (self.request.path [1:])			
 				f = descriptor ()				
 				f.ParseFromString (msg)
 				msgs.append (f)

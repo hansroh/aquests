@@ -10,7 +10,13 @@ class grpc_producer:
 		self.message = message
 		self.serialized = []
 		self.content_length = 0
-	
+		
+	def get_headers (self):
+		headers = []
+		if self.use_compress:			
+			headers.append (("grpc-encoding", "gzip"))
+		return headers	 
+		
 	def get_size (self):
 		return self.content_length or -1
 			
@@ -22,8 +28,8 @@ class grpc_producer:
 		self.message.send (msg)
 		
 	def serialize (self, msg):
-		serialized = msg.SerializeToString ()		
 		compressed = 0
+		serialized = msg.SerializeToString ()
 		if self.use_compress and len (serialized) > 2048:
 			serialized = self.compressor.compress (serialized) + self.compressor.flush ()
 			compressed = 1		

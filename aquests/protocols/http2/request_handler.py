@@ -181,7 +181,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 				except StreamClosedError: pass
 				else: self.send_data ()
 					
-	def collect_incoming_data (self, data):
+	def collect_incoming_data (self, data):		
 		if not data:  return
 		if self.data_length:
 			self.rfile.write (data)
