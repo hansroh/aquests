@@ -701,6 +701,9 @@ Note: stub's methods and parameters are defined by database engines. Please read
 History
 =========
 
+- 0.7.16
+
+  - fix HTTP/2 remote flow control window
    
 - 0.7.15
 
