@@ -123,6 +123,9 @@ class lines_producer:
 	
 	def get_size (self):
 		return sum ([len (each) for each in self.data])
+	
+	def exhausted (self):
+		return not self.lines
 		
 	def ready (self):
 		return len(self.lines)
@@ -218,7 +221,10 @@ class output_producer:
 		d = b'\r\n'.join (lines)
 		self.proxsize += (len (d) + 2)
 		self.data = self.data + d + b'\r\n'
-
+	
+	def exhausted (self):
+		return not self.data
+		
 	def ready (self):
 		return (len (self.data) > 0)
 
@@ -313,6 +319,9 @@ class ready_globbing_producer (globbing_producer):
 		self.buffer = b''
 		self.buffer_size = buffer_size
 	
+	def exhausted (self):
+		return self.__done
+		
 	def ready (self):
 		if self.__done or len (self.buffer) > self.buffer_size:
 			return True
@@ -347,9 +356,6 @@ class hooked_producer (globbing_producer):
 		self.function = function
 		self.bytes = 0		
 		self.override ()
-	
-	def __getattr__ (self, attr):
-		return getattr (self.producer, attr)
 	
 	def override (self):	
 		if hasattr (self.producer, "ready"):
