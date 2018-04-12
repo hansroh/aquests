@@ -65,7 +65,7 @@ class FakeAsynConnect:
 class FlowControlWindow:
 	MIN_RFCW = 4096
 	MIN_IBFCW = 65535
-	INREMENT_DELTA = 1048576
+	INRCEMENT_DELTA = 1048576
 	
 	def reset_stream (self, stream_id, error_code = 3):
 		self.conn.reset_stream (stream_id, error_code = 3)				 
@@ -73,13 +73,13 @@ class FlowControlWindow:
 	def adjust_flow_control_window (self, stream_id):
 		if self.conn.inbound_flow_control_window < self.MIN_IBFCW:			
 			with self._clock:
-				self.conn.increment_flow_control_window (self.INREMENT_DELTA)
+				self.conn.increment_flow_control_window (self.INRCEMENT_DELTA)
 				
 		rfcw = self.conn.remote_flow_control_window (stream_id)
 		if rfcw < self.MIN_RFCW:
 			try:
 				with self._clock:
-					self.conn.increment_flow_control_window (self.INREMENT_DELTA, stream_id)
+					self.conn.increment_flow_control_window (self.INRCEMENT_DELTA, stream_id)
 			except StreamClosedError:
 				pass
 			except:
