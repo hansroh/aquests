@@ -58,6 +58,9 @@ class h2frame_producer:
 		self._buf = b''
 		self._end_stream = True		 
 	
+	def exhausted (self):
+		return self.is_done ()
+		
 	def ready (self):		
 		if self.is_done ():
 			return True
