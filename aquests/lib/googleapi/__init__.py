@@ -11,22 +11,28 @@ Getting CREDENTIAL File:
 2. create and download JSON file at "Credentials > Service Account Key" from your project
 """
 
-CREDENTIAL = 'credential.json'
-os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.join (os.path.dirname (__file__), CREDENTIAL)
+translate_client = None
+speech_client = None
 
-translate_client = translate.Client()
-speech_client = speech.SpeechClient ()
-
+def set_credential (path):
+    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = path  
+    
 class OverSizeError (Exception):
     pass
 
-
 def get_translate (text, lang = 'en'):
-    translation = translate_client.translate(text, target_language=target)
+    global translate_client
+    if translate_client is None:
+        translate_client = translate.Client()
+    translation = translate_client.translate(text, target_language=lang)
     # translation = {'translatedText': 'Hello', 'detectedSourceLanguage': 'ko', 'input': '안녕'}
     return translation['translatedText']
 
 def get_speech (audio_clip_path, lang = 'en-US'):
+    global speech_client
+    if speech_client is None:
+        speech_client = speech.SpeechClient ()
+        
     if os.path.getsize(audio_clip_path) > 100000000:
         raise OverSizeError
         
@@ -55,7 +61,9 @@ def get_speech (audio_clip_path, lang = 'en-US'):
 
     
 if __name__ == '__main__':
-    #print (get_translate ("안녕"))
+    print (get_translate ("안녕하세요?"))
+    print (get_translate ("Who are you?", "ko"))
+    
     print (get_speech ("test-music.wav"))
     print (get_speech ("test-voice.wav"))
     

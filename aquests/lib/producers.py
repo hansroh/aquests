@@ -348,6 +348,9 @@ class hooked_producer (globbing_producer):
 		self.bytes = 0		
 		self.override ()
 	
+	def __getattr__ (self, attr):
+		return getattr (self.producer, attr)
+	
 	def override (self):	
 		if hasattr (self.producer, "ready"):
 			self.ready = self.producer.ready

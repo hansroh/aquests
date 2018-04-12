@@ -50,7 +50,7 @@ class h2frame_producer:
 		
 		if hasattr (producer, "ready"):
 			self._ready = producer.ready
-			producer.ready = None
+			producer.ready = None			
 	
 	def reset_stream (self,error_code = 3):
 		self.encoder.reset_stream (self.stream_id, error_code = 3)
@@ -74,25 +74,11 @@ class h2frame_producer:
 				self.reset_stream (3)				 
 				return True
 			return False
-		
-		# check remote window
-		rfcw = self.encoder.remote_flow_control_window (self.stream_id)
-		#print ("---RFCW", self.stream_id, rfcw)
-		try:
-			if self.encoder.inbound_flow_control_window < self.MIN_IBFCW:			
-				self.encoder.increment_flow_control_window (1048576)			
-			
-			if rfcw < self.MIN_RFCW:
-				self.encoder.increment_flow_control_window (1048576, self.stream_id)
-		except:
-			raise
-			self.reset_stream (3)				 
-			return True
 				
 		avail_data_length = min (self.SIZE_BUFFER, lfcw)
 		if not self._buf:
 			if self._ready and not self._ready ():
-				return False				
+				return False
 			self._buf = self.producer.more ()
 			self._end_stream = self.is_end_stream (self._buf)			
 		data, self._buf = self._buf [:avail_data_length], self._buf [avail_data_length:]
@@ -118,8 +104,10 @@ class h2frame_producer:
 		return self._end_stream and not self._buf and not self._frame
 	
 	def is_end_stream (self, data):
-		return self._ready and len (data) == 0 or len (data) < self.producer.buffer_size
-				 	
+		if self._ready:			
+			return len (data) == 0				
+		return len (data) < self.producer.buffer_size
+					 	
 	def more (self):
 		#print ('++++++++++++++more', len (self._frame), self.is_done ())
 		self._last_sent = time.time ()

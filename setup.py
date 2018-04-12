@@ -99,7 +99,7 @@ install_requires = [
 	"redis==2.10", 
 	"pymongo==3.4.0", 
 	"event_bus==1.0.2",
-	"protobuf==3.1.0.post1",
+	"protobuf==3.5.2.post1",
 	"html2text",
 ]
 if os.name == "posix":

@@ -16,6 +16,8 @@ try:
 except ImportError:
 	from io import BytesIO
 
+
+			
 class FakeAsynConnect:
 	collector = None
 	def __init__ (self, asyncon, logger):
@@ -59,8 +61,32 @@ class FakeAsynConnect:
 	def disconnect (self):
 		pass
 			
+
+class FlowControlWindow:
+	MIN_RFCW = 4096
+	MIN_IBFCW = 65535
+	INREMENT_DELTA = 1048576
 	
-class RequestHandler (base_request_handler.RequestHandler):
+	def reset_stream (self, stream_id, error_code = 3):
+		self.conn.reset_stream (stream_id, error_code = 3)				 
+		
+	def adjust_flow_control_window (self, stream_id):
+		if self.conn.inbound_flow_control_window < self.MIN_IBFCW:			
+			with self._clock:
+				self.conn.increment_flow_control_window (self.INREMENT_DELTA)
+				
+		rfcw = self.conn.remote_flow_control_window (stream_id)
+		if rfcw < self.MIN_RFCW:
+			try:
+				with self._clock:
+					self.conn.increment_flow_control_window (self.INREMENT_DELTA, stream_id)
+			except StreamClosedError:
+				pass
+			except:
+				self.reset_stream (stream_id, 3)
+	
+		
+class RequestHandler (base_request_handler.RequestHandler, FlowControlWindow):
 	# HTTP2 Adaptor Class	
 	# this class rely: asyncon - this class - http_reqyest_handler
 	def __init__ (self, handler):
@@ -167,19 +193,6 @@ class RequestHandler (base_request_handler.RequestHandler):
 			# is it proper?
 			#payload = producers.ready_globbing_producer (payload)
 			self.asyncon.push (payload)
-	
-	def increment_flow_control_window (self, cl, stream_id = 0):
-		if not stream_id:
-			with self._clock:
-				self.conn.increment_flow_control_window (cl)
-				self.send_data ()
-		else:	
-			with self._clock:
-				self.conn.increment_flow_control_window (cl)
-				try: 
-					self.conn.increment_flow_control_window (cl, stream_id)					
-				except StreamClosedError: pass
-				else: self.send_data ()
 					
 	def collect_incoming_data (self, data):		
 		if not data:  return
@@ -260,7 +273,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 		
 		# finally, make inactive on post, put request 
 		self.asyncon.set_active (False)
-		
+				
 	def handle_events (self, events):
 		for event in events:			
 			if isinstance(event, ResponseReceived):
@@ -280,8 +293,9 @@ class RequestHandler (base_request_handler.RequestHandler):
 			elif isinstance (event, DataReceived):
 				h = self.get_handler (event.stream_id)
 				if h:
-					h.collect_incoming_data (event.data)					
-				
+					h.collect_incoming_data (event.data)
+					self.adjust_flow_control_window (event.stream_id)
+													
 			elif isinstance(event, StreamEnded):
 				h = self.get_handler (event.stream_id)
 				if h:
