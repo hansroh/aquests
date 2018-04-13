@@ -32,6 +32,9 @@ class simple_producer:
 	
 	def get_size (self):
 		return self.proxsize
+	
+	def exhausted (self):
+		return not self.data
 		
 	def more (self):
 		if len (self.data) > self.buffer_size:
@@ -60,14 +63,19 @@ class iter_producer (list_producer):
 	def __init__ (self, data):
 		self.data = data
 		self.proxsize = -1
+		self._done = False
 	
+	def exhausted (self):
+		return not self._done
+		
 	def more (self):
 		try:
 			data = next (self.data)
 			if strutil.is_encodable (data):
 				return data.encode ("utf8")
 			return data
-		except StopIteration:		
+		except StopIteration:
+			self._done = True
 			return b""
 	
 class closing_stream_producer (simple_producer):
@@ -76,9 +84,12 @@ class closing_stream_producer (simple_producer):
 		self.buffer_size = buffer_size
 		self.closed = False
 		self.proxsize = hasattr (data, "get_size") and data.get_size () or -1
+	
+	def exhausted (self):
+		return self.closed
 			
 	def more (self):
-		if self.closed: 
+		if self.exhausted (): 
 			return b""
 		data = self.data.read (self.buffer_size)		
 		if not data:
@@ -101,9 +112,14 @@ class scanning_producer:
 
 	def get_size (self):
 		return self.proxsize
+	
+	def exhausted (self):
+		return self.pos >= len(self.data)
 		
 	def more (self):
-		if self.pos < len(self.data):
+		if self.exhausted ():
+			return b'' 
+		else:
 			lp = self.pos
 			rp = min (
 				len(self.data),
@@ -111,9 +127,7 @@ class scanning_producer:
 				)
 			result = self.data[lp:rp]
 			self.pos = self.pos + len(result)
-			return result
-		else:
-			return b''
+			return result		
 
 class lines_producer:
 	"producer for a list of lines"
@@ -128,15 +142,16 @@ class lines_producer:
 		return not self.lines
 		
 	def ready (self):
-		return len(self.lines)
+		return len (self.lines)
 
 	def more (self):
-		if self.lines:
+		if self.exhausted ():
+			return b''
+		else:	
 			chunk = self.lines[:50]
 			self.lines = self.lines[50:]
 			return b'\r\n'.join (chunk) + b'\r\n'
-		else:
-			return b''
+				
 
 class buffer_list_producer:
 	"producer for a list of buffers"
@@ -149,9 +164,12 @@ class buffer_list_producer:
 		
 	def get_size (self):
 		return len (self.buffers)
+	
+	def exhausted (self):
+		return self.index >= len(self.buffers)
 		
 	def more (self):
-		if self.index >= len(self.buffers):
+		if selfexhausted ():
 			return b''
 		else:
 			data = self.buffers[self.index]
@@ -168,6 +186,9 @@ class file_producer:
 		self.buffer_size = buffer_size
 		self.proxsize = proxsize
 	
+	def exhausted (self):
+		return self.done
+	
 	def get_size (self):
 		if self.proxsize != -1:
 			return self.proxsize
@@ -178,7 +199,7 @@ class file_producer:
 			return -1	
 			
 	def more (self):
-		if self.done:
+		if self.exhausted ():
 			return b''
 		else:
 			data = self.file.read (self.buffer_size)			
@@ -270,6 +291,9 @@ class composite_producer:
 			p.ready = None
 		elif hasattr (self, 'ready'):
 			del self.ready
+	
+	def exhausted (self):
+		return len (self.producers) == 0 or (len (self.producers) == 1 and self.producers.first ().exhausted ())
 						
 	def more (self):
 		while len (self.producers):
@@ -297,6 +321,9 @@ class globbing_producer:
 		self.buffer = b''
 		self.buffer_size = buffer_size
 	
+	def exhausted (self):		
+		return self.producer.exhausted () and not self.buffer
+	
 	def get_size (self):
 		return self.producer.get_size ()
 		
@@ -320,7 +347,7 @@ class ready_globbing_producer (globbing_producer):
 		self.buffer_size = buffer_size
 	
 	def exhausted (self):
-		return self.__done
+		return self.__done and not self.buffer
 		
 	def ready (self):
 		if self.__done or len (self.buffer) > self.buffer_size:
@@ -356,6 +383,9 @@ class hooked_producer (globbing_producer):
 		self.function = function
 		self.bytes = 0		
 		self.override ()
+	
+	def exhausted (self):
+		return self.producer is None	
 	
 	def override (self):	
 		if hasattr (self.producer, "ready"):
@@ -396,6 +426,9 @@ class chunked_producer (hooked_producer):
 		self.producer = producer
 		self.footers = footers
 		self.override ()
+	
+	def exhausted (self):
+		return self.producer is None
 			
 	def more (self):
 		if self.producer:
@@ -443,6 +476,9 @@ class compressed_producer (hooked_producer):
 		self.compressor = zlib.compressobj (level, zlib.DEFLATED)
 		self.override ()
 	
+	def exhausted (self):
+		return self.producer is None
+			
 	def more (self):
 		if self.producer:
 			cdata = b''
@@ -482,7 +518,10 @@ class escaping_producer:
 	
 	def get_size (self):
 		return self.producer.get_size ()
-		
+	
+	def exhausted (self):
+		return not self.buffer
+				
 	def more (self):
 		esc_from = self.esc_from
 		esc_to   = self.esc_to

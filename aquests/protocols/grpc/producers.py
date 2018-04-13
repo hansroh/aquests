@@ -4,7 +4,7 @@ import struct
 
 class grpc_producer:
 	def __init__ (self, message = None, use_compress = False):
-		self.closed = False
+		self.closed = False		
 		self.use_compress = use_compress
 		self.compressor = compressors.GZipCompressor ()
 		self.message = message
@@ -42,7 +42,7 @@ class grpc_producer:
 		return b"".join (self.serialized)
 		
 	def more (self):
-		if self.closed and not self.message:
+		if self.exhausted ():
 			return b""
 		
 		if not isinstance (self.message, Iterable):
@@ -56,7 +56,10 @@ class grpc_producer:
 		except StopIteration:
 			self.close ()
 			return b""
-		
+	
+	def exhausted (self):
+		return self.closed and not self.message
+			
 	def close (self):	
 		self.content_length = 0	
 		self.closed = True

@@ -20,7 +20,7 @@ class GRPCRequest (XMLRPCRequest):
 			"grpc-accept-encoding": "identity,gzip",
 			"user-agent": self.user_agent,
 			"message-type": self.params [0].__class__.__name__,
-			"te": 'trailers', 
+			"te": 'trailers',
 		}
 		if self.use_compress:
 			self.headers ["grpc-encoding"] = "gzip",

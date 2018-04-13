@@ -1,7 +1,7 @@
 from ...protocols.http import base_request_handler
 from h2.connection import H2Connection, GoAwayFrame
 from h2.exceptions import ProtocolError, NoSuchStreamError, StreamClosedError, FlowControlError
-from h2.events import DataReceived, ResponseReceived, StreamEnded, ConnectionTerminated, StreamReset, WindowUpdated, RemoteSettingsChanged
+from h2.events import TrailersReceived, DataReceived, ResponseReceived, StreamEnded, ConnectionTerminated, StreamReset, WindowUpdated, RemoteSettingsChanged
 from h2.errors import ErrorCodes
 from h2.settings import SettingCodes
 from ...lib import producers
@@ -188,7 +188,7 @@ class RequestHandler (base_request_handler.RequestHandler, FlowControlWindow):
 		
 		header = h2header_producer (stream_id, headers, producer, self.conn, self._clock)		
 		self.asyncon.push (header)		
-		if producer:			
+		if producer:
 			payload = h2frame_producer (stream_id, 0, 1, producer, self.conn, self._clock)
 			# is it proper?
 			#payload = producers.ready_globbing_producer (payload)
@@ -270,14 +270,21 @@ class RequestHandler (base_request_handler.RequestHandler, FlowControlWindow):
 		if h:
 			h.collect_incoming_data ("\r\n".join (jheaders).encode ("utf8"))
 			h.found_terminator ()
-		
 		# finally, make inactive on post, put request 
 		self.asyncon.set_active (False)
-				
+	
+	def handle_trailers (self, stream_id, headers):
+		respheader = self.get_handler (stream_id).response.header
+		for k, v in headers:			
+			respheader.append ("{}: {}".format (k.decode ("utf8"), v.decode ("utf8")))
+					
 	def handle_events (self, events):
 		for event in events:			
 			if isinstance(event, ResponseReceived):
 				self.handle_response (event.stream_id, event.headers)
+			
+			elif isinstance(event, TrailersReceived):
+				self.handle_trailers (event.stream_id, event.headers)
 				
 			elif isinstance(event, StreamReset):
 				if event.remote_reset:				

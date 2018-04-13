@@ -34,14 +34,15 @@ class h2frame_producer:
 	SIZE_BUFFER = 16384
 	MIN_RFCW = 4096
 	MIN_IBFCW = 65535
-	def __init__ (self, stream_id, depends_on, weight, producer, encoder, lock):
+	def __init__ (self, stream_id, depends_on, weight, producer, encoder, lock, trailers = False):
 		self.stream_id = stream_id
 		self.depends_on = depends_on
 		self.weight = weight
 		self.producer = producer # globbing_producer
 		self.encoder = encoder
+		self._lock = lock	
+		self.trailers = trailers	
 		
-		self._lock = lock
 		self._buf = b""
 		self._end_stream = False		
 		self._last_sent = time.time ()
@@ -59,14 +60,13 @@ class h2frame_producer:
 		self._end_stream = True		 
 	
 	def exhausted (self):
-		return self.is_done ()
+		return self._end_stream and not self._buf and not self._frame
 		
 	def ready (self):		
-		if self.is_done ():
+		if self.exhausted ():			
 			return True
 			
 		if self._frame:
-			# data or reset
 			return True
 		
 		lfcw = self.encoder.local_flow_control_window (self.stream_id)
@@ -83,38 +83,38 @@ class h2frame_producer:
 			if self._ready and not self._ready ():
 				return False
 			self._buf = self.producer.more ()
-			self._end_stream = self.is_end_stream (self._buf)			
+			self._end_stream = self.producer.exhausted ()
+			#assert self._end_stream == self.is_end_stream (self._buf)
 		data, self._buf = self._buf [:avail_data_length], self._buf [avail_data_length:]
-		
+				
 		# try build frame
+		is_end_stream = self._end_stream and not self._buf
 		with self._lock:		
 			self.encoder.send_data (
 				stream_id = self.stream_id,
 				data = data,
-				end_stream = self._end_stream and not self._buf
+				end_stream = is_end_stream and not self.trailers
 			)
+			if is_end_stream and self.trailers:
+				self.encoder.send_headers (
+					stream_id = self.stream_id,
+					headers = self.trailers,
+					end_stream = True
+				)			
 			self._frame = self.encoder.data_to_send ()
 			
 		return True
-		
+	
 	def get_size (self):			
 		return self._ready and -1 or self.producer.get_size ()
 		
 	def __repr__ (self):
 		return "<h2frame_producer stream_id:%d, weight:%d, depends_on:%d>" % (self.stream_id, self.weight, self.depends_on)
-	
-	def is_done (self):
-		return self._end_stream and not self._buf and not self._frame
-	
-	def is_end_stream (self, data):
-		if self._ready:			
-			return len (data) == 0				
-		return len (data) < self.producer.buffer_size
 					 	
 	def more (self):
-		#print ('++++++++++++++more', len (self._frame), self.is_done ())
+		#print ('++++++++++++++more', len (self._frame), self.exhausted ())
 		self._last_sent = time.time ()
-		if self.is_done ():
+		if self.exhausted ():
 			return b''
 		frame, self._frame = self._frame, b''		
 		return frame

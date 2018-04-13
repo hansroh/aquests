@@ -68,6 +68,9 @@ class multipart_producer:
 			raise ValueError ('Expired Multipart Content')
 		return b"".join (self.serialized)
 	
+	def exhausted (self):
+		return self.closed
+	
 	def more (self):
 		d = self.__more ()
 		if d and self.content_length <= 4096000: # MAX 4M
@@ -102,7 +105,7 @@ class multipart_producer:
 					d += "--%s--" % self.boundary
 				#self.bytes_out += len (d)
 				return d.encode ("utf8")
-			else:				
+			else:
 				path, filename, mimetype = first [2]
 				self.current_file = open (path, "rb")
 				return ('--%s\r\nContent-Disposition: form-data; name="%s"; filename="%s"\r\nContent-Type: %s\r\n\r\n' % (

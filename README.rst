@@ -702,7 +702,8 @@ History
 =========
 
 - 0.7.16
-
+  
+  - fix HTTP2 trailers
   - fix HTTP/2 remote flow control window
    
 - 0.7.15
