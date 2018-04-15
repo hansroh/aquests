@@ -7,16 +7,34 @@ if os.name == "nt":
 
 else:
 	import psutil
-	def kill (pid, including_parent = True):	
+	
+	def kill (pid, including_parent = True, timeout =10):	
 		try: 
 			parent = psutil.Process(pid)
 		except psutil.NoSuchProcess:
 			return
-				
-		children = parent.children(recursive=True)
-		for child in children:
-			child.kill()
-		psutil.wait_procs(children, timeout=5)
+		
+		# send SIGTERM
+		children = parent.children (recursive = True)
 		if including_parent:
-			parent.kill()
-			parent.wait(5)
+			parent.terminate()
+			try:
+				parent.wait (timeout)
+			except psutil.TimeoutExpired:
+				pass
+		
+		# try to terminate children	
+		for child in children:
+			if not child.is_running ():
+				continue			
+			try:
+				child.terminate()
+			except psutil.NoSuchProcess:
+				pass
+		
+		# send SIGKILL 
+		if parent.is_running ():
+			parent.kill ()
+		gone, alive = psutil.wait_procs (children, timeout = timeout)
+		for p in alive:			
+			p.kill ()

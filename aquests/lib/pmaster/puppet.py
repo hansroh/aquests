@@ -41,7 +41,7 @@ class Puppet:
 	def kill (self):
 		if not (self.is_active and self.p):
 			self.set_active (False)
-			return
+			return		
 		killtree.kill (self.p.pid)
 		
 	def wait (self):

@@ -703,6 +703,8 @@ History
 
 - 0.7.16
   
+  - add psutil to requirements.txt
+  - fix killtree.kill
   - fix HTTP2 trailers
   - fix HTTP/2 remote flow control window
    
