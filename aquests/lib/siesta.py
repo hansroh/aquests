@@ -92,7 +92,7 @@ class Response (object):
 			d = s.getvalue()		
 		else:
 			d = self.data	
-		return "response.data: %s" % d	
+		return "%d %s\n%s" % (self.__response.status_code, self.__response.reason, d)
 		
 	def set_data (self, resp):
 		if not resp.text.strip ():
@@ -116,7 +116,7 @@ class Response (object):
 					self.data = data
 			
 		if not str(resp.status_code).startswith("2"):			
-			raise AssertionError ("%s %s\n%s\n%s" % (resp.status_code, resp.reason, "-" * (20 + len (resp.reason)), self))
+			raise AssertionError (self)
 		
 
 class Resource(object):
