@@ -84,7 +84,7 @@ def kill (chdir, procname = None, include_children = True, signaling = True):
 	except FileNotFoundError:	
 		pass
 
-def handle_commandline (sopt, lopt, working_dir, procname):
+def handle_commandline (argopt, working_dir, procname):
 	def _start (working_dir, procname):
 		if not Daemonizer (working_dir, procname).runAsDaemon ():
 			print ("already running")
@@ -105,20 +105,16 @@ def handle_commandline (sopt, lopt, working_dir, procname):
 		time.sleep (2)
 		_start (working_dir, procname)
 	
-	if "d" in sopt:
-		raise SystemError ("Short option -d is reserved")	
-	sopt += "d"
 	pathtool.mkdir (working_dir)
-	argopt = getopt.getopt (sys.argv[1:], sopt, lopt)		
-	daemonics = [] 
 	argdict = []
 	arglist = []
-
+	daemonics = []
+	
 	for k, v in argopt [0]:
 		if k == "-d":
 			daemonics.append ("start")
 		else:
-			argdict.append ((k, v))	
+			argdict.append ((k, v))
 		
 	for arg in argopt [1]:
 	 	if arg in ("start", "restart", "stop", "status"):
