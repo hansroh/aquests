@@ -7,14 +7,15 @@ from . import killtree, processutil
 from .. import pathtool
 
 class Daemonizer:
-	def __init__(self, chdir="/", procname = None, umask=0o22):
+	def __init__(self, chdir="/", procname = None, umask=0o22, lockpath = None):
 		self.chdir = chdir
 		self.procname = procname
 		self.umask = umask
-		self.pidfile = os.path.join (chdir, '.pid')
+		self.lockpath = lockpath or chdir
+		self.pidfile = os.path.join (self.lockpath, '.pid')
 	
 	def runAsDaemon(self):
-		if status (self.chdir, self.procname):
+		if status (self.lockpath, self.procname):
 			return 0
 						
 		self.fork_and_die()
@@ -50,19 +51,19 @@ class Daemonizer:
 			# now only r = 0 (the child) survives.
 		return r
 
-def status (chdir, procname = None):
-	pidfile =  os.path.join (chdir, '.pid')
+def status (lockpath, procname = None):
+	pidfile =  os.path.join (lockpath, '.pid')
 	if not os.path.isfile (pidfile):		
 		return 0
 	with open (pidfile) as f:
 		pid = int (f.read ())
 	return processutil.is_running (pid, procname) and pid or 0
 
-def kill (chdir, procname = None, include_children = True, signaling = True):
+def kill (lockpath, procname = None, include_children = True, signaling = True):
 	import psutil
 	
 	for i in range (2):
-		pid = status (chdir, procname)		
+		pid = status (lockpath, procname)		
 		if not pid:	
 			break
 		
@@ -80,7 +81,7 @@ def kill (chdir, procname = None, include_children = True, signaling = True):
 			time.sleep (1)
 			
 	try:
-		os.remove (os.path.join (chdir, ".pid"))
+		os.remove (os.path.join (lockpath, ".pid"))
 	except FileNotFoundError:	
 		pass
 
