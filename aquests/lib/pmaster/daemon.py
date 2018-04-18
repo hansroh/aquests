@@ -85,26 +85,26 @@ def kill (lockpath, procname = None, include_children = True, signaling = True):
 	except FileNotFoundError:	
 		pass
 
-def handle_commandline (argopt, working_dir, procname):
-	def _start (working_dir, procname):
-		if not Daemonizer (working_dir, procname).runAsDaemon ():
+def handle_commandline (argopt, working_dir, procname, lockpath = None):
+	def _start (working_dir, procname, lockpath):
+		if not Daemonizer (working_dir, procname, lockpath = lockpath).runAsDaemon ():
 			print ("already running")
 			sys.exit ()
 
-	def _stop (working_dir, procname):
-		kill (working_dir, procname, True)
+	def _stop (lockpath, procname):
+		kill (lockpath, procname, True)
 	
-	def _status (working_dir, procname):
-		pid = status (working_dir, procname)
+	def _status (lockpath, procname):
+		pid = status (lockpath, procname)
 		if pid:
 			print ("running [%d]" % pid)
 		else:
 			print ("stopped")
 	
-	def _restart (working_dir, procname):
-		_stop (working_dir, procname)
+	def _restart (working_dir, procname, lockpath):
+		_stop (lockpath, procname)
 		time.sleep (2)
-		_start (working_dir, procname)
+		_start (working_dir, procname, lockpath)
 	
 	pathtool.mkdir (working_dir)
 	argdict = []
@@ -122,16 +122,17 @@ def handle_commandline (argopt, working_dir, procname):
 	 		daemonics.append (arg)
 	 	else:
 	 		arglist.append (arg)
-
+	 		
+	lockpath = lockpath or working_dir		
 	if "start" in daemonics: 
-		_start (working_dir, procname)			
+		_start (working_dir, procname, lockpath)			
 	elif "restart" in daemonics: 
-		_restart (working_dir, procname)			
+		_restart (working_dir, procname, lockpath)			
 	elif "stop" in daemonics:
-		_stop (working_dir, procname)
+		_stop (lockpath, procname)
 		sys.exit ()			
 	elif "status" in daemonics:		
-		_status (working_dir, procname)
+		_status (lockpath, procname)
 		sys.exit ()
 	
 	return (argdict, arglist)
