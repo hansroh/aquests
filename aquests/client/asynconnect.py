@@ -253,14 +253,13 @@ class AsynConnect (asynchat.async_chat):
 		
 	def continue_connect (self, answer = None):
 		self.initialize_connection ()
-		
 		if not adns.query:
 			self.create_socket (socket.AF_INET, socket.SOCK_STREAM)		
 			try: asynchat.async_chat.connect (self, self.address)
 			except:	self.handle_error (714)
 			return
 		
-		ipaddr = answer and answer [-1]["data"] or None		
+		ipaddr = answer and answer [-1]["data"] or None
 		#print (self.handler.request.meta ['sid'], ipaddr, 'continue_connect...')
 		if not ipaddr:			
 			return self.handle_close (704)			
@@ -289,7 +288,7 @@ class AsynConnect (asynchat.async_chat):
 			else:
 				raise
 	
-	def send (self, data):		
+	def send (self, data):
 		try:
 			numsent = self.socket.send (data)			
 			#print ('-------', numsent)
@@ -475,7 +474,7 @@ class AsynSSLConnect (AsynConnect):
 			try: self._proto = self.socket.selected_npn_protocol()
 			except (AttributeError, NotImplementedError): pass
 
-		self._handshaked = True
+		self._handshaked = True		
 		return True
 							
 	def handle_connect_event (self):
@@ -492,7 +491,7 @@ class AsynSSLConnect (AsynConnect):
 			return b''
 			
 		try:
-			data = self.socket.recv (buffer_size)			
+			data = self.socket.recv (buffer_size)						
 			if not data:				
 				self.handle_close (700, "Connection closed unexpectedly")
 				return b''

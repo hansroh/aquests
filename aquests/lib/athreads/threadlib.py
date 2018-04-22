@@ -21,7 +21,7 @@ class request_thread (threading.Thread):
 		
 	def run (self):
 		while 1:		
-			job = self.queue.get ()
+			job = self.queue.get ()		
 			if job is None: break			
 			self.lock.acquire ()
 			self.idle = 0
@@ -69,7 +69,7 @@ class thread_pool:
 			d = request_thread (queue, logger, i)
 			self.tpool [i] = d
 			d.start ()
-	
+			
 	def __len__ (self):
 		return len (self.tpool)
 		
@@ -92,7 +92,7 @@ class request_queue:
 		self.cv = threading.Condition (self.mon)
 		self.queue = []
 
-	def put(self, item, prior = 0):
+	def put(self, item, prior = 0):		
 		self.cv.acquire()
 		if prior:
 			self.queue.insert (0, item)
@@ -146,9 +146,8 @@ class request_queue2 (queue.Queue):
 		self.mutex.acquire()
 		if qsize > self.maxq:
 			self.maxq = qsize
-		self.mutex.release()	
-		queue.Queue.put(self, item, block, timeout)
-		
+		self.mutex.release()
+		queue.Queue.put (self, item, block, timeout)		
 			
 	def status(self):
 		self.mutex.acquire()

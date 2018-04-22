@@ -12,7 +12,8 @@ def start_trigger (logger = None):
 		the_trigger = trigger (logger)
 
 def wakeup (thunk = None):
-	global the_trigger, the_logger	
+	global the_trigger, the_logger
+		
 	if the_trigger is None:
 		if thunk:
 			try:
