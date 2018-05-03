@@ -1,5 +1,5 @@
 import re
-from . import http_date
+from . import http_date, http_util
 from ...lib import compressors, attrdict
 import time
 import json
@@ -192,22 +192,10 @@ class Response:
 			self.p.feed (data)
 	
 	def get_header_with_attr (self, header, default = None):
-		d = {}
 		v = self.get_header (header)
 		if v is None:
-			return default, d
-			
-		v2 = v.split (";")
-		for each in v2:
-			if not each: continue
-			each = each.strip ()
-			#print (each)
-			try:
-				a, b = each.split ("=", 1)
-			except ValueError:
-				a, b = each, None				
-			d [a.lower ()] = b
-		return v2 [0], d
+			return default, {}			
+		return http_util.parse_params (v)
 				
 	def get_header (self, header = None, default = None):
 		if header is None:

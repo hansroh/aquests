@@ -4,7 +4,6 @@ except ImportError:
 	from urlparse import urlparse
 	from urllib import quote_plus	
 
-
 def dictencode (data):
 	cdata = []
 	for k, v in list (data.items ()):

@@ -120,4 +120,33 @@ def md5uniqid (length = 13):
 	for i in range (0, length):
 		_id += random.choice(ALNUM)
 	return md5 (_id.encode ("utf8")).hexdigest ()[length:]
+
+def parse_params (header_val):
+	d = {}
+	header_filed = ""
+	last_key = None
+	for each in header_val.split (";"):
+		if last_key:
+			d [last_key] += ";" + each
+			if each [-1] == '"':
+				last_key = None
+			continue
+		
+		each = each.strip ()
+		if not each: continue
+		
+		try:
+			a, b = each.split ("=", 1)
+		except ValueError:
+			if header_filed:
+				header_filed += ":" + each
+			else:	
+				header_filed = each
+			continue
+			
+		key = a.lower ()
+		d [key] = b
+		if len (b) >= 2 and  b [0] == '"' and b [-1] != '"':
+			last_key = key	
 	
+	return header_filed, d
