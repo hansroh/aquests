@@ -143,7 +143,7 @@ class RequestHandler (base_request_handler.RequestHandler, FlowControlWindow):
 			return len (self.requests)
 		
 	def go_away (self, errcode = 0, msg = None):
-		with self._plock:
+		with self._clock:
 			self.conn.close_connection (errcode, msg)
 		self.send_data ()
 		self.channel.close_when_done ()	
