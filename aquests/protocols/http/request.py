@@ -153,7 +153,7 @@ class XMLRPCRequest:
 			else:
 				port = 443	
 		
-		return (host, port)	, path
+		return (host, port), path
 		
 	def serialize (self):
 		self.__xmlrpc_serialized = True		

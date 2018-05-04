@@ -38,13 +38,13 @@ class GRPCRequest (XMLRPCRequest):
 		return False
 			
 	def split (self, uri):
-		(host, port), path = XMLRPCRequest.split (self, uri)				
+		address, path = XMLRPCRequest.split (self, uri)
 		if path [-1] != "/":
 			path += "/"
 			self.uri += "/"
 		path += self.method
 		self.uri += self.method
-		return (host, port), path
+		return address, path
 	
 	def serialize (self):		
 		return grpc_producer (self.params [0], self.use_compress)
