@@ -14,12 +14,12 @@ def get_claim (secret_key, token):
 	jheader = json.loads (b64decode (add_padding (header)).decode ("utf8"))
 	alg = jheader.get ("alg")
 	if not alg or alg [:2] != "HS":
-		return	
+		raise TypeError ("Unknown Algorithm")
 	hash_method = getattr (hashlib, "sha" + alg [2:])	
 	mac = hmac (secret_key, None, hash_method)
 	mac.update (("%s.%s" % (header, claim)).encode ("utf8"))
 	if mac.digest() != b64decode (add_padding (sig)):
-		return
+		raise ValueError ("Verificationn Failed")
 	return json.loads (b64decode (add_padding (claim)).decode ("utf8"))
 	
 def gen_token (secret_key, claim, alg = "HS256"):
