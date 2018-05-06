@@ -1,4 +1,5 @@
 import time
+from datetime import datetime
 
 class Timer:
 	def __init__ (self):		
@@ -29,4 +30,25 @@ class Timer:
 		due = time.time () - self.created
 		print ('-------------------')
 		print ('* Finished script for {:2.4f} seconds'.format (due))
+
+
+class Timer2:
+	def __init__ (self):
+		self.stime = 0
+		
+	def begin (self):
+		self.stime = datetime.now ()
+	
+	def finish (self, n = 0):
+		diff = datetime.now () - self.stime
+		print ('Duration: {}'.format (diff))
+		if n:
+			sec = diff.seconds + (diff.microseconds / 1000000)
+			print ('Speed: {:.3f} IPS'.format (n / sec))
+		    
+if __name__ == "__main__":
+    detect ('face560x840.jpg', 100)
+    detect ('face250x250.jpg', 100)
+    
+
 		
