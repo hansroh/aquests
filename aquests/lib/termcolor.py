@@ -27,15 +27,15 @@ class tc:
     
     @classmethod
     def expt (cls, s):
-        return cls._wrap (s, cls.FAIL)
-    
-    @classmethod
-    def fail (cls, s):
         return cls._wrap (s, cls.MAGENTA)
     
     @classmethod
-    def error (cls, s):
+    def fail (cls, s):
         return cls._wrap (s, cls.FAIL)
+    
+    @classmethod
+    def error (cls, s):
+        return cls._wrap (s, cls.MAGENTA)
     
     @classmethod
     def primary (cls, s):
