@@ -6,6 +6,7 @@ import os
 from . import pathtool
 import types
 import codecs
+from .termcolor import tc
 
 PY_MAJOR_VERSION = sys.version_info.major
 
@@ -78,13 +79,7 @@ class base_logger:
 			tag = "[%s%s] " % (type, name and ":" + name or "")
 		return tag
 		
-	def log (self, line, type = "info", name = ""):
-		line = str (line).strip ()
-		line = "%s %s%s\n" % (now(), self.tag (type, name), line)
-		
-		if self.filter and type not in self.filter:
-			return line
-		
+	def _writeln (self, line):
 		self.lock.acquire ()	
 		try:
 			self.out.write (line)
@@ -94,6 +89,13 @@ class base_logger:
 		self.cache (line)
 		self.lock.release ()
 		return line
+	
+	def log (self, line, type = "info", name = ""):
+		line = str (line).strip ()
+		line = "%s %s%s\n" % (now(), self.tag (type, name), line)
+		if self.filter and type not in self.filter:
+			return line
+		return self._writeln (line)
 		
 	def close (self): 
 		self.out.close ()
@@ -105,15 +107,33 @@ class base_logger:
 	def read (self):
 		return self.__cache
 		
-	
 class screen_logger (base_logger):
 	def __init__ (self, cacheline = 200, flushnow = 1):
 		base_logger.__init__(self, sys.stdout, cacheline, flushnow)
 		
 	def close (self): 
 		pass
-
-
+	
+	def log (self, line, type = "info", name = ""):		
+		line = str (line).strip ()
+		if line and line [0] == "[":
+			e = line.find ("]")
+			if e != -1:
+				type = line [1:e]
+				line = line [e + 1:].strip ()
+		
+		basetype = type.split (":", 1) [0]
+		if self.filter and basetype not in self.filter:
+			return line
+		
+		try: 
+			type_color = getattr (tc, basetype)
+		except AttributeError:
+			type_color = tc.default
+		
+		line = "{} {}{}\n".format (tc.white (now()), type_color (self.tag (type, name)), line)
+		return self._writeln (line)
+	
 class null_logger (screen_logger):
 	def log (self, line, type = "info", name = ""): 
 		pass
