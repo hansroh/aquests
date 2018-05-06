@@ -80,14 +80,14 @@ class base_logger:
 		return tag
 		
 	def _writeln (self, line):
-		self.lock.acquire ()	
-		try:
-			self.out.write (line)
-		except UnicodeEncodeError:			
-			self.out.write (repr (line.encode ("utf8")))
-		if self.flushnow: self.flush ()
-		self.cache (line)
-		self.lock.release ()
+		with self.lock:	
+			try:
+				self.out.write (line)
+			except UnicodeEncodeError:			
+				self.out.write (repr (line.encode ("utf8")))
+			if self.flushnow: 
+				self.flush ()
+			self.cache (line)		
 		return line
 	
 	def log (self, line, type = "info", name = ""):
@@ -131,7 +131,7 @@ class screen_logger (base_logger):
 		except AttributeError:
 			type_color = tc.default
 		
-		line = "{} {}{}\n".format (tc.white (now()), type_color (self.tag (type, name)), line)
+		line = "{} {}{}\n".format (tc.primary (now()), type_color (self.tag (type, name)), line)
 		return self._writeln (line)
 	
 class null_logger (screen_logger):

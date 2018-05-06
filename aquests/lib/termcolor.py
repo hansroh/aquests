@@ -8,7 +8,7 @@ if os.name == "nt":
         def void (self, s):
             return s
     tc = tc_ ()
-    
+
 else:
     class tc:
         WHITE = '\033[97m'
@@ -67,3 +67,4 @@ else:
         @classmethod
         def grey (cls, s):
             return cls._wrap (s, cls.GREY)
+
