@@ -71,12 +71,18 @@ class Puppet:
 	
 	def set_last_activate (self):
 		self.__last_activated = time.time ()
-			
+	
+	def remove_date (self, line):	
+		if line[0].isdigit ():
+			# auqests.lib.logger classes
+			line = line [20:].strip ()
+		elif line [0] == "\x1b":
+			line = line [29:].strip ()
+		return line
+				
 	def log (self, line, type = ""):
 		if self.logger:
-			if line[0].isdigit ():
-				# auqests.lib.logger classes
-				line = line [20:].strip ()
+			line = self.remove_date (line)
 			if type:
 				line = "[{}] {}".format (type, line)				
 			self.logger (line, "")
