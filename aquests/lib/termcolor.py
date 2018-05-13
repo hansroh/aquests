@@ -33,20 +33,32 @@ else:
             return s
         
         @classmethod
+        def critical (cls, s):
+            return cls._wrap (s, cls.GREY)
+
+        @classmethod
+        def info (cls, s):
+            return cls._wrap (s, cls.OKGREEN)
+        
+        @classmethod
         def warn (cls, s):
             return cls._wrap (s, cls.WARNING)
         
         @classmethod
         def expt (cls, s):
-            return cls._wrap (s, cls.FAIL)
+            return cls._wrap (s, cls.MAGENTA)
         
         @classmethod
         def fail (cls, s):
-            return cls._wrap (s, cls.MAGENTA)
+            return cls._wrap (s, cls.CYAN)
         
         @classmethod
         def error (cls, s):
             return cls._wrap (s, cls.FAIL)
+        
+        @classmethod
+        def debug (cls, s):
+            return cls._wrap (s, cls.WHITE)
         
         @classmethod
         def primary (cls, s):
@@ -56,15 +68,3 @@ else:
         def secondary (cls, s): 
             return cls._wrap (s, cls.CYAN)
         
-        @classmethod
-        def info (cls, s):
-            return cls._wrap (s, cls.OKGREEN)
-        
-        @classmethod
-        def white (cls, s):
-            return cls._wrap (s, cls.WHITE)
-        
-        @classmethod
-        def grey (cls, s):
-            return cls._wrap (s, cls.GREY)
-
