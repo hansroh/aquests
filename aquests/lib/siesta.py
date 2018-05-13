@@ -49,7 +49,7 @@ class Auth(object):
 
 
 class APIKeyAuth(Auth):
-	def __init__(self, api_key, auth_header_name="X-Authorization"):
+	def __init__(self, api_key, auth_header_name="Authorization"):
 		self.api_key = api_key
 		self.auth_header_name = auth_header_name
 
@@ -61,7 +61,7 @@ class APIKeyAuth(Auth):
 
 
 class BasicAuth(Auth):
-	def __init__(self, api_username, api_password, auth_header_name="X-Authorization"):
+	def __init__(self, api_username, api_password, auth_header_name="Authorization"):
 		self.api_username = api_username
 		self.api_password = api_password
 		self.auth_header_name = auth_header_name

@@ -14,11 +14,13 @@ def trace (multirows = False):
 	(file, fun, line), t, v, tbinfo = asyncore.compact_traceback()
 	try: v = str (v)
 	except:	v = repr (v)
-	line = "%s %s Traceback: %s" % (t, v, tbinfo)
-	if multirows:
+	if multirows:		
+		line = "%s\n%s Traceback: %s" % (t, v, tbinfo)
 		line = trace ().replace ("] [", "\n  - ")
 		line = line.replace ("Traceback: [", "\n  -----------\n  + Traceback\n  ===========\n  - ")
 		line = line [:-1] + "\n  -----------"
+	else:
+		line = "%s %s Traceback: %s" % (t, v, tbinfo)
 	return line
 		
 def now (detail = 1):
