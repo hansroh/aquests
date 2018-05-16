@@ -110,8 +110,9 @@ class base_logger:
 		return self.__cache
 		
 class screen_logger (base_logger):
-	def __init__ (self, cacheline = 200, flushnow = 1):
+	def __init__ (self, cacheline = 200, flushnow = 1, colored = True):
 		base_logger.__init__(self, sys.stdout, cacheline, flushnow)
+		self.colored = colored
 		
 	def close (self): 
 		pass
@@ -128,12 +129,15 @@ class screen_logger (base_logger):
 		if self.filter and basetype not in self.filter:
 			return line
 		
-		try: 
-			type_color = getattr (tc, basetype)
-		except AttributeError:
-			type_color = tc.default
-		
-		line = "{} {}{}\n".format (tc.primary (now()), type_color (self.tag (type, name)), line)
+		if not self.colored:
+			line = "{} {}{}\n".format (now(), self.tag (type, name), line)
+		else:
+			try: 
+				type_color = getattr (tc, basetype)
+			except AttributeError:
+				type_color = tc.default
+			line = "{} {}{}\n".format (tc.primary (now()), type_color (self.tag (type, name)), line)
+				
 		return self._writeln (line)
 	
 class null_logger (screen_logger):
