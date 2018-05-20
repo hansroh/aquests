@@ -136,8 +136,7 @@ class screen_logger (base_logger):
 				type_color = getattr (tc, basetype)
 			except AttributeError:
 				type_color = tc.default
-			line = "{} {}{}\n".format (tc.primary (now()), type_color (self.tag (type, name)), line)
-				
+			line = "{} {}{}\n".format (tc.primary (now()), type_color (self.tag (type, name)), line)				
 		return self._writeln (line)
 	
 class null_logger (screen_logger):

@@ -31,7 +31,7 @@ else:
 	raise NotImplementedError("platform not supported")
 
 if __name__ == "__main__":    	
-	du = disk_usage (r"C:\")
+	du = disk_usage (r"C:\\")
 	print ("%d GB Free" % du.free / 1024 / 1024 / 1024)
 
 
