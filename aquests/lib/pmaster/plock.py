@@ -20,4 +20,11 @@ if os.name == "posix":
 			
 		def __del__(self):
 			self.handle.close()
+		
+		def __enter__ (self):
+			self.acquire ()
+			return self
 	
+		def __exit__ (self, type, value, tb):
+			self.release ()
+			
