@@ -27,4 +27,9 @@ if os.name == "posix":
 	
 		def __exit__ (self, type, value, tb):
 			self.release ()
-			
+
+else:
+	import multiprocessing
+	
+	Lock = multiprocessing.RLock ()
+	
