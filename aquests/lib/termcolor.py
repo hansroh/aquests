@@ -59,6 +59,10 @@ else:
         @classmethod
         def debug (cls, s):
             return cls._wrap (s, cls.WHITE)
+                
+        @classmethod
+        def echo (cls, s):
+            return cls._wrap (s, cls.WHITE)
         
         @classmethod
         def primary (cls, s):
