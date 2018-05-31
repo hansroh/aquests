@@ -1,4 +1,4 @@
-import os
+import os, sys
 from setproctitle import setproctitle
 import time
 
@@ -6,10 +6,11 @@ if os.name == "nt":
     import win32serviceutil
     
 class Service:
-    def __init__ (self, name, working_dir, lockpath):
+    def __init__ (self, name, working_dir, lockpath, win32service = None):
         self.name = name
         self.working_dir = working_dir
-        self.lockpath = lockpath        
+        self.lockpath = lockpath
+        self.win32service = win32service        
         setproctitle (name)
         os.chdir (working_dir)
         
@@ -67,11 +68,10 @@ class Service:
     
     if os.name == "nt":
         def set_service_config (self, argv = []):
-            global Win32Service            
-            #sys.stdout = sys.stderr = open (r"D:\apps\skitai\examples\err.log", "a")
+            
             argv.insert (0, "")            
             script = os.path.join (os.getcwd (), sys.argv [0])
-            win32serviceutil.HandleCommandLine(Win32Service, "%s.%s" % (script [:-3], Win32Service.__name__), argv)
+            win32serviceutil.HandleCommandLine(self.win32service, "%s.%s" % (script [:-3], self.win32service.__name__), argv)
                 
         def install (self):
             self.set_service_config (['--startup', 'auto', 'install'])
