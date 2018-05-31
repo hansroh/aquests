@@ -37,6 +37,10 @@ else:
             return cls._wrap (s, cls.GREY)
 
         @classmethod
+        def fatal (cls, s):
+            return cls._wrap (s, cls.GREY)
+
+        @classmethod
         def info (cls, s):
             return cls._wrap (s, cls.OKGREEN)
         
@@ -58,6 +62,10 @@ else:
         
         @classmethod
         def debug (cls, s):
+            return cls._wrap (s, cls.WHITE)
+                
+        @classmethod
+        def echo (cls, s):
             return cls._wrap (s, cls.WHITE)
         
         @classmethod

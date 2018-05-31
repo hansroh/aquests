@@ -14,7 +14,6 @@ import threading
 from ... import lifetime
 
 defaults = Base.defaults
-Base.DiscoverNameServers ()
 
 class UDPClient (asynchat.async_chat):
 	protocol = "udp"
@@ -359,11 +358,14 @@ PUBLIC_DNS_SERVERS = [
 	'8.8.4.4'
 ]
 
+Base.DiscoverNameServers ()
+PRIVATE_DNS_SERVERS = Base.defaults['server']
+
 pool = None			
 def create_pool (dns_servers, logger):
-	global pool, PUBLIC_DNS_SERVERS
+	global pool, PUBLIC_DNS_SERVERS, PRIVATE_DNS_SERVERS
 	if not dns_servers:
-		dns_servers = PUBLIC_DNS_SERVERS
+		dns_servers = PRIVATE_DNS_SERVERS or PUBLIC_DNS_SERVERS
 	pool = Pool (dns_servers, logger)
 
 testset = [
