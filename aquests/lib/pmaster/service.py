@@ -7,10 +7,10 @@ if os.name == "nt":
     import win32serviceutil
     
 class Service:
-    def __init__ (self, name, working_dir, lockpath, win32service = None):
+    def __init__ (self, name, working_dir, lockpath = None, win32service = None):
         self.name = name
         self.working_dir = working_dir
-        self.lockpath = lockpath
+        self.lockpath = lockpath or working_dir
         self.win32service = win32service        
         setproctitle (name)
         os.chdir (working_dir)
