@@ -17,10 +17,13 @@ if os.name == "posix":
 			
 		def release(self):
 			fcntl.flock(self.handle, fcntl.LOCK_UN)
-			
-		def __del__(self):
-			self.handle.close()
 		
+		def close (self):
+			self.handle.close()			
+				
+		def __del__(self):
+			self.close ()
+			
 		def __enter__ (self):
 			self.acquire ()
 			return self

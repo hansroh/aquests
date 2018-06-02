@@ -2,7 +2,8 @@ from .. import pathtool, logger
 import os, signal
 import time, sys
 
-EXIT_CODE = None
+class ExitNow (Exception):
+    pass
 
 class DaemonClass:
     NAME = "base"
@@ -22,11 +23,11 @@ class DaemonClass:
         self.make_logger ()
         self.setup ()
     
-    def log (self, msg, type = "info"):
-        self.logger (msg, type)
+    def log (self, msg, type = "info", name = ""):
+        self.logger (msg, type, name)
     
-    def trace (self):
-        self.logger.trace (self.NAME)    
+    def trace (self, name = ""):
+        self.logger.trace (name or self.NAME)    
                 
     def make_logger (self):        
         self.logger = logger.multi_logger ()
@@ -37,22 +38,23 @@ class DaemonClass:
             self.log ("{} log path: {}".format (self.NAME, self.logpath), "info")        
         self.log ("{} tmp path: {}".format (self.NAME, self.varpath), "info")
             
-    def bind_signal (self, term, kill, hup):
+    def bind_signal (self, term = None, hup = None):
         if os.name == "nt":
             signal.signal(signal.SIGBREAK, term)
         else:    
             def hUSR1 (signum, frame):    
                 self.logger.rotate ()                
             signal.signal(signal.SIGUSR1, hUSR1)
-            signal.signal(signal.SIGTERM, term)            
-            signal.signal(signal.SIGHUP, hup)
+            term and signal.signal(signal.SIGTERM, term)
+            term and signal.signal(signal.SIGINT, term)
+            hup and signal.signal(signal.SIGHUP, hup)
     
     def start (self):
         self.log ("service %s started" % self.NAME)    
         try:
             self.run ()
-        except KeyboardInterrupt:
-            pass    
+        except (ExitNow, KeyboardInterrupt):
+            return        
         except:
             self.trace ()
     
