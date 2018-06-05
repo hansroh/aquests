@@ -15,22 +15,22 @@ class await_fifo:
 		return (self.has_None or self.l) and 1 or 0
 	
 	def __len__ (self):
+		if not self.l:
+			if self.has_None:
+				# for return None
+				self.l.append (None)
+				self.has_None = False
+				return 1
+			return 0
+			
 		for i in range (len (self.l)):
 			try:
 				readyfunc = getattr (self.l [0], 'ready')
 			except AttributeError:
-				return 1
-				
+				return 1				
 			if readyfunc ():
-				return 1
-				
+				return 1				
 			self.l.rotate (-1)
-		
-		if self.has_None and not self.l:
-			# for return None
-			self.l.append (None)
-			self.has_None = False
-			return 1
 			
 		return 0
 			
@@ -42,7 +42,7 @@ class await_fifo:
 		
 	def __delitem__ (self, index):
 		del self.l [index]
-	
+
 	def append (self, item):
 		self.insert (-1, item)
 	
