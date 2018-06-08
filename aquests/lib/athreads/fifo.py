@@ -31,7 +31,6 @@ class await_fifo:
 			if readyfunc ():
 				return 1				
 			self.l.rotate (-1)
-			
 		return 0
 			
 	def __getitem__(self, index):

@@ -2,6 +2,7 @@ import os, sys
 from setproctitle import setproctitle
 from . import daemon
 import time
+from aquests.lib import pathtool
 from aquests.lib.termcolor import tc
 if os.name == "nt":
     import win32serviceutil
@@ -13,6 +14,9 @@ class Service:
         self.lockpath = lockpath or working_dir
         self.win32service = win32service        
         setproctitle (name)
+        pathtool.mkdir (working_dir)
+        if lockpath:
+            pathtool.mkdir (lockpath)
         os.chdir (working_dir)
         
     def start (self):

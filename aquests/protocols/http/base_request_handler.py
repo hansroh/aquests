@@ -11,4 +11,7 @@ class RequestHandler:
 
 	def trace (self):
 		self.logger.trace (self.request.uri)
+	
+	def working (self):
+		return False
 		

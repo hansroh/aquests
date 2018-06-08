@@ -701,6 +701,14 @@ Note: stub's methods and parameters are defined by database engines. Please read
 History
 =========
 
+- 0.7.19
+
+  - fix asyndns DNS server choicing
+
+- 0.7.18
+
+  - fix deleting item of await_fifo
+  
 - 0.7.16
   
   - add psutil to requirements.txt

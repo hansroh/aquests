@@ -184,7 +184,7 @@ class AsynConnect (asynchat.async_chat):
 		
 	def clean_shutdown_control (self, phase, time_in_this_phase):	
 		self.__no_more_request = True
-		if self.isactive () or (self.handler and self.handler.working ()):
+		if self.isactive () or (self.handler and self.handler.working ()):		
 			return 1
 		else:				
 			self.handle_close (712, "Controlled Shutdown")
