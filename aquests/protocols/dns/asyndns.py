@@ -328,17 +328,14 @@ class Pool:
 					client.collect_incoming_data (b'', id)
 			
 	def tcp (self, exclude = None):
-		while 1:
-			addr = random.choice (self.servers)
-			if addr != exclude:
-				return TCPClient (addr, self.logger)
+		random.shuffle (self.servers)
+		addr = self.servers [0]
+		return TCPClient (addr, self.logger)
 		
 	def udp (self, exclude = None):
-		while 1:
-			conn = random.choice (self.udps)
-			if conn.addr != exclude:
-				return conn
-
+		random.shuffle (self.udps)
+		return self.udps [0]
+	
 
 def query (name, **args):
 	global pool
