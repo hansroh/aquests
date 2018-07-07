@@ -102,6 +102,7 @@ install_requires = [
 	"protobuf==3.5.2.post1",
 	"psutil",
 	"html2text",	
+  "requests"
 ]
 if os.name == "posix":
 	install_requires.append ("psutil")
