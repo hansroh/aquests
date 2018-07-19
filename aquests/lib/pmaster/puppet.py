@@ -13,7 +13,8 @@ class Puppet:
 		self.__last_activated = time.time ()
 		self.__communicate = communicate		
 		self.counter += 1
-	
+		self.__thread = None
+		
 	def __str__ (self):	
 		return 'Puppet #%d' % self.counter
 		
@@ -27,10 +28,14 @@ class Puppet:
 		with self.__lock:
 			r = self.__active		
 		return r
-			
+	
+	def join (self):
+		self.__thread.join ()
+				
 	def start (self, command):
 		self.set_active (True)
-		threading.Thread (target = self.threaded_run, args = (command,)).start ()
+		self.__thread = threading.Thread (target = self.threaded_run, args = (command,))
+		self.__thread.start ()
 		
 	def threaded_run (self, command):
 		try:
@@ -99,9 +104,9 @@ class Puppet:
 		try:
 			self.p = Popen (
 				cmd,
-		    universal_newlines=True,
-		    stdout=self.__communicate and PIPE or None, stderr=self.__communicate and PIPE or None,
-		    shell = False
+			    universal_newlines=True,
+			    stdout=self.__communicate and PIPE or None, stderr=self.__communicate and PIPE or None,
+			    shell = False
 			)
 		finally:
 			self.__lock.release ()
@@ -110,7 +115,6 @@ class Puppet:
 			return
 		
 		self.read_stdout ()
-		
 		self.p.stdout.close ()
 		e = self.p.stderr.read ()
 		if e: self.log (e)		
