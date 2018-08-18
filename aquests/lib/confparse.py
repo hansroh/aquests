@@ -143,8 +143,9 @@ class ConfParse:
 
 				if secttype not in (TPAIR, TLINE, TDATA):
 					raise UnknownSectorType("%s:%s" % (cursect, secttype))
-				self.conf [cursect] = self._secttype (secttype)
-				self.sectionlist.append (cursect)
+				if cursect not in self.conf:
+					self.conf [cursect] = self._secttype (secttype)
+					self.sectionlist.append (cursect)
 				
 			elif not cursect:
 				raise MissingSectionHeaderError
