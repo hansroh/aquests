@@ -1,6 +1,6 @@
 import re
 from . import http_date, http_util
-from ...lib import compressors, attrdict
+from rs4 import compressors, attrdict
 import time
 import json
 import struct

@@ -2,8 +2,8 @@ import os, sys
 from setproctitle import setproctitle
 from . import daemon
 import time
-from aquests.lib import pathtool
-from aquests.lib.termcolor import tc
+from rs4 import pathtool
+from rs4.termcolor import tc
 if os.name == "nt":
     import win32serviceutil
     
@@ -23,7 +23,7 @@ class Service:
         if os.name == "nt":
             set_service_config (['start'])
         else:    
-            from aquests.lib.pmaster import Daemonizer
+            from rs4.psutil import Daemonizer
             if not Daemonizer (self.working_dir, self.name, lockpath = self.lockpath).runAsDaemon ():
                 pid = daemon.status (self.lockpath, self.name)
                 print ("{} {}".format (tc.debug (self.name), tc.error ("[already running:{}]".format (pid))))

@@ -1,4 +1,4 @@
-from .lib.attrdict import AttrDict
+from rs4.attrdict import AttrDict
 
 class HTTPResponse:	
 	def __init__ (self, response):

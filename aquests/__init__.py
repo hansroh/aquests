@@ -9,11 +9,11 @@ import asyncore
 import timeit
 import time, math, random
 from . import lifetime, queue, request_builder, response_builder, stubproxy
-from .lib import logger as logger_f
+from rs4 import logger as logger_f
 from .client import socketpool
 from .dbapi import dbpool
 from .client import adns, asynconnect
-from .lib.athreads.fifo import await_fifo
+from .athreads.fifo import await_fifo
 from . import client, dbapi
 from aquests.protocols.dns import asyndns
 from .protocols.http import localstorage as ls

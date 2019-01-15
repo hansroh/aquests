@@ -8,7 +8,7 @@ import os
 from hyperframe.frame import SettingsFrame
 from ..http2 import H2_PROTOCOLS
 from ...client import socketpool
-from ...lib.cbutil import tuple_cb
+from rs4.cbutil import tuple_cb
 import asyncore
 
 class ProtocolSwitchError (Exception):

@@ -1,6 +1,6 @@
 import re
 import sys
-from ...lib import strutil
+from rs4 import strutil
 HAS_SKILLSET = True
 try:
 	import html5lib	

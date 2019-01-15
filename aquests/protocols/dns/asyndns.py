@@ -392,7 +392,7 @@ def _print (ans):
 		
 		
 if __name__	== "__main__":
-	from aquests.lib import logger
+	from rs4 import logger
 	import pprint
 	
 	create_pool (PUBLIC_DNS_SERVERS, logger.screen_logger ())

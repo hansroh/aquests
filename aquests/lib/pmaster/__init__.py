@@ -1,4 +1,4 @@
-from aquests.lib import logger as lf
+from rs4 import logger as lf
 import os, sys, time
 from .puppet import Puppet
 import types

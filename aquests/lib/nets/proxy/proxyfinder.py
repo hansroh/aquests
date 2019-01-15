@@ -2,12 +2,12 @@ import urllib.request, urllib.parse, urllib.error
 import re
 import time
 from ...client.http import ClientCookie
-from ...lib import timeoutsocket, confparse
-from ...lib import logger as loggerfactory
+from rs4 import timeoutsocket, confparse
+from rs4 import logger as loggerfactory
 import tempfile
 import os
 import random
-from ...lib import pathtool
+from rs4 import pathtool
 from . import __init__
 import math
 

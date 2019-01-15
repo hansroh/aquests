@@ -12,8 +12,8 @@ import select
 import threading
 from . import adns
 from ..protocols.http2 import H2_PROTOCOLS
-from ..lib.athreads.fifo import await_fifo
-from ..lib.ssl_ import resolve_cert_reqs, resolve_ssl_version, create_urllib3_context
+from ..athreads.fifo import await_fifo
+from rs4.ssl_ import resolve_cert_reqs, resolve_ssl_version, create_urllib3_context
 from collections import deque
 from ..protocols.http import respcodes
 import random

@@ -1,4 +1,4 @@
-from ...lib import compressors
+from rs4 import compressors
 from collections import Iterable
 import struct
 

@@ -1,4 +1,4 @@
-from ...lib.athreads.fifo import await_fifo, await_ts_fifo
+from ...athreads.fifo import await_fifo, await_ts_fifo
 
 class http2_producer_fifo (await_fifo):
 	# asyncore await_fifo replacement

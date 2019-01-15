@@ -16,7 +16,7 @@ try:
 except ImportError:
 	from urllib import quote
 	from urlparse import urlparse, urljoin
-from ...lib import strutil, attrdict, compressors
+from rs4 import strutil, attrdict, compressors
 from .producer import multipart_producer
 
 class HistoricalResponse:

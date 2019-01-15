@@ -1,10 +1,10 @@
 import urllib.request, urllib.parse, urllib.error
 import re
 import time
-from ...lib import logger as loggerfactory
+from rs4 import logger as loggerfactory
 import os
 import random
-from ...lib import pathtool
+from rs4 import pathtool
 import math
 
 class ProxyServerList:

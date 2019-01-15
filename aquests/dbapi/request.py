@@ -1,5 +1,5 @@
-from ..lib.attrdict import AttrDict
-from ..lib.cbutil import tuple_cb
+from rs4.attrdict import AttrDict
+from rs4.cbutil import tuple_cb
 
 class Request:
 	reauth_count = 0

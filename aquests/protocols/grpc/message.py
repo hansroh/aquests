@@ -1,4 +1,4 @@
-from ...lib import producers, compressors
+from rs4 import producers, compressors
 import struct
 	
 def get_messages (fp):

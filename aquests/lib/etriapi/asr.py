@@ -1,11 +1,11 @@
-from aquests.lib import siesta
+from rs4 import siesta
 import json
 import base64
 import librosa
 from io import BytesIO
 import soundfile
 import os
-from aquests.lib import pathtool
+from rs4 import pathtool
 
 def resampling (audioFilePath):
     y, sr = librosa.load (audioFilePath, sr = 22050, mono = True)

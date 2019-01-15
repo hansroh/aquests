@@ -4,7 +4,7 @@ from h2.exceptions import ProtocolError, NoSuchStreamError, StreamClosedError, F
 from h2.events import TrailersReceived, DataReceived, ResponseReceived, StreamEnded, ConnectionTerminated, StreamReset, WindowUpdated, RemoteSettingsChanged
 from h2.errors import ErrorCodes
 from h2.settings import SettingCodes
-from ...lib import producers
+from rs4 import producers
 from .producers import h2frame_producer, h2header_producer
 from ..http import respcodes
 from ..http import response as http_response

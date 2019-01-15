@@ -61,7 +61,7 @@ def cleanup ():
 
 if __name__ == "__main__":
 	from skitai import lifetime
-	from aquests.lib import logger
+	from rs4 import logger
 	from aquests.server.threads import trigger
 	
 	trigger.start_trigger ()

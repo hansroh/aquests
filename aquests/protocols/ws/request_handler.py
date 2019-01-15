@@ -2,7 +2,7 @@ from . import response, request
 from ..http import request_handler, http_auth
 from ..http.response import FailedResponse
 from ...client import asynconnect
-from ...lib import strutil
+from rs4 import strutil
 
 try:
 	from urllib.parse import urlparse

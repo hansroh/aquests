@@ -47,7 +47,7 @@ except ImportError:
 	from email.utils import parseaddr
 from email.base64mime import body_encode as encode_base64
 from . import composer
-from ...lib import producers
+from rs4 import producers
 
 OLDSTYLE_AUTH = re.compile(r"auth=(.*)", re.I)
 FEATURE = re.compile (r'(?P<feature>[A-Za-z0-9][A-Za-z0-9\-]*)')
@@ -423,7 +423,7 @@ class SMTP_SSL (SMTP):
 	
 
 if __name__ == "__main__":		
-	from aquests.lib import logger
+	from rs4 import logger
 	from skitai import lifetime
 	
 	log = logger.screen_logger ()

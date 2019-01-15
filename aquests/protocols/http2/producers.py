@@ -3,7 +3,7 @@ try:
 	from h2.exceptions import FlowControlError
 except ImportError:
 	pass	
-from aquests.lib import producers
+from rs4 import producers
 import asynchat
 
 class h2header_producer:

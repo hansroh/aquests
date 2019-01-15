@@ -79,7 +79,7 @@ class Puppet:
 	
 	def remove_date (self, line):	
 		if line[0].isdigit ():
-			# auqests.lib.logger classes
+			# rs4.logger classes
 			line = line [20:].strip ()
 		elif line [0] == "\x1b":
 			line = line [29:].strip ()
