@@ -142,30 +142,32 @@ class Resource(object):
 				key += str (id)	
 		return Resource(uri=key, api=self._api, logger = self._logger)		
 	
-	def _request (self, method, data, headers, **kwargs):
-		url = self._url
+	def _request (self, method, data, headers, slash, **kwargs):
+		if slash:
+			self._url = self._url + "/"
+		url = self._url		
 		if len(kwargs) > 0:
 			url = "%s?%s" % (url, urlencode(kwargs))		
 		headers = headers or {"Content-Type": "application/json"}
 		return self._continue_request(method, url, data, headers)		
 	
-	def get(self, headers = None, **kwargs):
-		return self._request ('GET', None, headers, **kwargs)
+	def get(self, headers = None, slash = False, **kwargs):
+		return self._request ('GET', None, headers, slash, **kwargs)
 	
-	def delete(self, headers = None, **kwargs):
-		return self._request ('DELETE', None, headers, **kwargs)
+	def delete(self, headers = None, slash = False, **kwargs):
+		return self._request ('DELETE', None, headers, slash, **kwargs)
 	
-	def options(self, headers = None, **kwargs):
-		return self._request ('OPTIONS', None, headers, **kwargs)	
+	def options(self, headers = None, slash = False, **kwargs):
+		return self._request ('OPTIONS', None, headers, slash, **kwargs)	
 				
-	def post(self, data, headers = None, **kwargs):
-		return self._request ('POST', data, headers, **kwargs)
+	def post(self, data, headers = None, slash = False, **kwargs):
+		return self._request ('POST', data, headers, slash, **kwargs)
 	
-	def put(self, data, headers = None, **kwargs):
+	def put(self, data, headers = None, slash = False, **kwargs):
 		return self._request ('PUT', data, headers, **kwargs)
 	
-	def patch(self, data, headers = None, **kwargs):
-		return self._request ('PATCH', data, headers, **kwargs)
+	def patch(self, data, headers = None, slash = False, **kwargs):
+		return self._request ('PATCH', data, headers, slash, **kwargs)
 
 	def _continue_request(self, method, url, data, headers):
 		if self._api.auth:

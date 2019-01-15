@@ -71,7 +71,7 @@ class DBConnect:
 	def close (self, deactive = 1):
 		self.request = None
 		addr = type (self.address) is tuple and ("%s:%d" % self.address) or str (self.address)
-		self.logger ("[info] .....dbo %s has been closed" % addr)	
+		self.logger ("[info] ..dbo %s has been closed" % addr)	
 		if deactive:
 			self.set_active (False)
 					

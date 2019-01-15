@@ -103,7 +103,7 @@ class ConfParse:
 		cursect = None
 		optname = None
 		secttype = None
-
+		
 		while 1:
 			line = fp.readline ()
 			if not line: break

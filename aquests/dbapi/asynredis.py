@@ -27,7 +27,7 @@ class AsynConnect (dbconnect.AsynDBConnect, asynchat.async_chat):
 		self.producer_fifo.clear()
 				
 		dbconnect.AsynDBConnect.close (self, deactive)
-		self.logger ("[info] .....dbo %s:%d has been closed" % self.address)
+		self.logger ("[info] ..dbo %s:%d has been closed" % self.address)
 		
 	def handle_connect (self):
 		self.set_event_time ()

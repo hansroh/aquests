@@ -55,8 +55,14 @@ def status (lockpath, procname = None):
 	pidfile =  os.path.join (lockpath, '.pid')
 	if not os.path.isfile (pidfile):		
 		return 0
-	with open (pidfile) as f:
-		pid = int (f.read ())
+	f = open (pidfile)
+	data = f.read ()
+	f.close ()
+	try: 
+		pid = int (data)
+	except ValueError:
+		os.remove (pidfile)
+		return 0		
 	return processutil.is_running (pid, procname) and pid or 0
 
 def kill (lockpath, procname = None, include_children = True, signaling = True):

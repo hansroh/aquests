@@ -103,9 +103,7 @@ install_requires = [
 	"psutil",
 	"html2text",	
 	"requests",
-	"setproctitle",
-	"future",
-	"networkx"
+	"setproctitle"
 ]
 if os.name == "posix":
 	install_requires.append ("psutil")
