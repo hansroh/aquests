@@ -76,12 +76,7 @@ packages = [
 	'aquests.protocols.smtp',
 	'aquests.protocols.grpc',
 	'aquests.protocols.proxy',
-	'aquests.athreads',
-  'aquests.lib',
-	'aquests.lib.pmaster',
-	'aquests.lib.nets',
-	'aquests.lib.awsapi',
-	'aquests.lib.googleapi',	
+	'aquests.athreads'		
 ]
 
 package_dir = {'aquests': 'aquests'}
@@ -94,17 +89,16 @@ package_data = {
 }
 
 install_requires = [
-  "rs4",
+	"rs4",
+	"psutil",
+	"setproctitle",
+	"protobuf",		
+	"requests",
 	"h2==3.0.1",
 	"psycopg2==2.7.3.1",
 	"redis==2.10", 
 	"pymongo==3.4.0", 
 	"event_bus==1.0.2",
-	"protobuf",
-	"psutil",
-	"html2text",	
-	"requests",
-	"setproctitle"
 ]
 if os.name == "posix":
 	install_requires.append ("psutil")
