@@ -701,6 +701,10 @@ Note: stub's methods and parameters are defined by database engines. Please read
 History
 =========
 
+- 0.8
+
+  - aquests.lib moved to rs4, pip install rs4  
+
 - 0.7.19
 
   - fix asyndns DNS server choicing
