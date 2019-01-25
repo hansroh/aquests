@@ -259,7 +259,7 @@ class AsynConnect (asynchat.async_chat):
 			except:	self.handle_error (714)
 			return
 		
-		ipaddr = answer and answer [-1]["data"] or None
+		ipaddr = answer [-1]["data"]
 		#print (self.handler.request.meta ['sid'], ipaddr, 'continue_connect...')
 		if not ipaddr:			
 			return self.handle_close (704)			

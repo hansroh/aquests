@@ -1,21 +1,28 @@
-from ..protocols.dns import asyndns
+from ..protocols import dns
 import time
 import threading
 import os
 
 class DNSCache:
 	maintern_interval = 17
+	too_many_errors = 3
 	def __init__ (self, prefer_protocol, logger = None):
 		self.logger = logger
 		self.prefer_protocol = prefer_protocol
 		self.__last_maintern = time.time ()
 		self.__lock = threading.RLock ()
 		self.cache = {}
+		self.errors = {} 
 		self.hits = 0
 
 	def set (self, answers):
-		if not answers:
-			return
+		if not answers [-1]["data"]:
+			name = answers [0]["name"]
+			if name not in self.errors:
+				self.errors [name] = 1
+			else:
+				self.errors [name] += 1	
+			return		
 		
 		with self.__lock:
 			for answer in answers:
@@ -23,8 +30,8 @@ class DNSCache:
 				try:
 					ttl = int (answer ["ttl"])	
 				except (KeyError, ValueError):
-					ttl = 300
-				answer ["valid"]	= time.time () + max (ttl, 300)
+					ttl = 1800
+				answer ["valid"] = time.time () + max (ttl, 1800)
 				if name not in self.cache:					
 					self.cache [name] = answer
 			
@@ -56,6 +63,8 @@ class DNSCache:
 				try: 
 					answer = self.cache [host]
 				except KeyError: 
+					if self.errors.get (host, 0) >= self.too_many_errors:	
+						return [{"name": host, "data": None, "error": "too many error"} ]
 					return []
 				else:
 					tn = answer ['typename']
@@ -85,7 +94,7 @@ class DNSCache:
 	def __call__ (self, host, qtype, callback):
 		self.hits += 1
 		hit = self.get (host, qtype, True)		
-		if hit: 
+		if hit:
 			return callback (hit)
 		
 		if host.lower () == "localhost":
@@ -94,8 +103,8 @@ class DNSCache:
 			self.set ([{"name": host, "data": host, "typename": qtype}])
 			return callback ([{"name": host, "data": host, "typename": qtype}])
 		
-		try:			
-			asyndns.query (host, qtype = qtype, protocol = self.prefer_protocol, callback = [self.set, callback])			
+		try:
+			dns.query (host, qtype = qtype, protocol = self.prefer_protocol, callback = [self.set, callback])			
 		except:
 			self.logger.trace (host)
 			hit = [{"name": host, "data": None, "typename": qtype, 'ttl': 60}]
@@ -105,8 +114,8 @@ class DNSCache:
 
 query = None
 
-def init (logger, dns_servers = [], prefer_protocol = os.name == "nt" and "tcp" or "udp"):
-	asyndns.create_pool (dns_servers, logger)
+def init (logger, dns_servers = [], prefer_protocol = "tcp"):
+	dns.create_pool (dns_servers, logger)
 	global query
 	if query is None:
 		query = DNSCache (prefer_protocol, logger)
@@ -114,3 +123,4 @@ def init (logger, dns_servers = [], prefer_protocol = os.name == "nt" and "tcp" 
 def get (name, qtype = "A"):	
 	global query
 	return query.get (name, qtype, False)
+

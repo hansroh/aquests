@@ -15,6 +15,8 @@ Supported requests are:
 - MongoDB
 - Redis
 
+Aquests is a kind of sub module which is mainly used by `Skitai App Engine`_, you can consider Python3 asyncio alternatively. 
+
 .. _`Skitai App Engine`: https://pypi.python.org/pypi/skitai
 
 .. contents:: Table of Contents
@@ -703,7 +705,7 @@ History
 
 - 0.8
 
-  - aquests.lib moved to rs4, pip install rs4  
+  - aquests.lib moved to new rs4 package, and aquests.lib has been removed
 
 - 0.7.19
 

@@ -169,11 +169,10 @@ class Composer:
 				data = f.read ()
 				f.close ()
 				self.contents.append (self.encode_attachment (cid, name, data, mimetype))
-				
-			for content in self.contents:
+
+			for content in self.contents:				
 				body += "--%s\r\n%s\r\n\r\n" % (boundary, content)
 			body += "--%s--\r\n" % boundary
-			
 		return body
 
 
@@ -192,8 +191,8 @@ I promise your request is processed with very high priority.
 
 Thanks.
 	"""
-	m = Composer ("e-Mail Test", '"Tester"<hansroh@lufex.com>', '"Hans Roh"<hansroh@gmail.com>')
-	m.set_smtp ("smtp.gmail.com:465", "eunheemax@gmail.com", "!kms2000", True)
+	m = Composer ("e-Mail Test", '"Tester"<hansroh@xxx.com>', '"Hans Roh"<hansroh2@xxx.com>')
+	m.set_smtp ("smtp.gmail.com:465", "ehmax@xxx.com", "password", True)
 	m.add_content (data, "text/html", "utf8")
 	m.add_attachment (r"d:/download/setup.py", cid="AAA")
 	m.save (r"d:/download")

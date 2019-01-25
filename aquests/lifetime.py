@@ -6,7 +6,7 @@ import bisect
 import socket
 import time
 import types
-from .protocols.dns import asyndns
+from .protocols import dns
 
 try:
 	from pympler import muppy, summary, tracker
@@ -191,7 +191,7 @@ def poll_fun_wrap (timeout, map = None):
 		map = asyncore.socket_map	
 	
 	if EXHAUST_DNS:
-		asyndns.pop_all ()	
+		dns.pop_all ()	
 	
 	try:		
 		poll_fun (timeout, map)

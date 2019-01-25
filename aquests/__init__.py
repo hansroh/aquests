@@ -15,7 +15,7 @@ from .dbapi import dbpool
 from .client import adns, asynconnect
 from .athreads.fifo import await_fifo
 from . import client, dbapi
-from aquests.protocols.dns import asyndns
+from aquests.protocols import dns
 from .protocols.http import localstorage as ls
 from .protocols.http import request_handler, response as http_response
 from .protocols import http2
@@ -401,7 +401,7 @@ def _add (method, url, params = None, auth = None, headers = {}, callback = None
 			_dns_query_req [host] = None
 			_dns_reqs += 1
 			adns.query (host, "A", callback = lambda x: None)		
-		asyndns.pop_all ()
+		dns.pop_all ()
 		asyncore.loop (0.1, count = 2)
 	
 	#print ('~~~~~~~~~~~~~~~', asyndns.pool.connections)

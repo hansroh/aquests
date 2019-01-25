@@ -357,8 +357,7 @@ class Response:
 				
 		self.p.close ()
 		result = self.u.close ()
-		ct = self.get_header ("content-type")
-		
+		ct = self.get_header ("content-type", "")		
 		if self.is_xmlrpc_return:
 			if len (result) == 1:
 				result = result [0]
