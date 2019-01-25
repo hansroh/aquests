@@ -1,6 +1,6 @@
 # 2016. 1. 10 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.8"
+__version__ = "0.8.1"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 
@@ -400,9 +400,11 @@ def _add (method, url, params = None, auth = None, headers = {}, callback = None
 		if _dns_reqs < _workers and host not in _dns_query_req:
 			_dns_query_req [host] = None
 			_dns_reqs += 1
-			adns.query (host, "A", callback = lambda x: None)		
-		dns.pop_all ()
-		asyncore.loop (0.1, count = 2)
+			adns.query (host, "A", callback = lambda x: None)
+			
+		if dns.qsize ():
+			dns.pop_all ()
+			asyncore.loop (0.1, count = 2)
 	
 	#print ('~~~~~~~~~~~~~~~', asyndns.pool.connections)
 	
