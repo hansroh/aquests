@@ -10,7 +10,7 @@ def request_finished_and_req (r):
 	global TOTAL, DONE
 	
 	DONE += 1
-	if DONE % int (TOTAL / 10) == 0:
+	if TOTAL >= 10 and DONE % int (TOTAL / 10) == 0:
 		aquests.log ("progress: {:.0f}%".format (DONE / TOTAL * 100))
 		
 	args = (r.status_code, r.reason, len (r.content))

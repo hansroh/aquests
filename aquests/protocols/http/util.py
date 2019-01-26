@@ -3,6 +3,29 @@
 except ImportError:
 	from urlparse import urlparse
 	from urllib import quote_plus	
+from rs4 import attrdict
+
+def normheader (headers):
+    nheader = attrdict.CaseInsensitiveDict ({})
+    if not headers:
+        return nheader
+    for k, v in type (headers) is dict and headers.items () or headers:
+        nheader [k] = v
+    return nheader
+
+def set_content_types (headers, data, defaults):    
+    no_accept_header = True
+    no_content_type_header = True        
+    for k, v in headers.items ():
+        if k.lower () == "accept":
+            no_accept_header = False
+        elif k.lower () == "content-type":
+            no_content_type_header = False
+    
+    if data and no_content_type_header:
+        headers ['Content-Type'] = defaults [0]        
+    if no_accept_header:
+        headers ['Accept'] = defaults [1]
 
 def dictencode (data):
 	cdata = []

@@ -1,6 +1,6 @@
 # 2016. 1. 10 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.8.1.1a1"
+__version__ = "0.8.2"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 
@@ -344,7 +344,7 @@ def fetchall ():
 		# wait all availabale	
 		while qsize ():			
 			lifetime.lifetime_loop (select_timeout, 1)
-			target_socks = sum ([1 for conn in asyncore.socket_map.values () if not isinstance (conn, (asyndns.UDPClient, asyndns.TCPClient)) and conn.get_proto () in H2_PROTOCOLS and conn.connected and not conn.isactive ()])
+			target_socks = sum ([1 for conn in asyncore.socket_map.values () if hasattr (conn, "get_proto") and not isinstance (conn, (dns.UDPClient, dns.TCPClient)) and conn.get_proto () in H2_PROTOCOLS and conn.connected and not conn.isactive ()])
 			if target_socks == _workers:
 				#_logger ('%d connection(s) created' % target_socks, 'info')				
 				break

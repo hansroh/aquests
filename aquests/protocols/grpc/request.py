@@ -1,4 +1,5 @@
 import struct
+from rs4 import attrdict
 from .producers import grpc_producer
 from ..http.request import XMLRPCRequest
 
@@ -15,13 +16,13 @@ class GRPCRequest (XMLRPCRequest):
 		self.http_version = http_version
 		self.address, self.path = self.split (uri)
 	
-		self.headers = {
+		self.headers = attrdict.CaseInsensitiveDict ({
 			"grpc-timeout": "10S",			
 			"grpc-accept-encoding": "identity,gzip",
 			"user-agent": self.user_agent,
 			"message-type": self.params [0].__class__.__name__,
 			"te": 'trailers',
-		}
+		})
 		if self.use_compress:
 			self.headers ["grpc-encoding"] = "gzip",
 			

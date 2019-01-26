@@ -53,18 +53,26 @@ class XMLRPCRequest:
 		self._history = []
 		self.__xmlrpc_serialized = False
 		
-		self.headers = attrdict.CaseInsensitiveDict ()
-		self.headers ["Accept"] = "*/*"
-		self.headers ["Accept-Encoding"] = "gzip"		
-		if headers:			
-			for k, v in type (headers) is dict and headers.items () or headers:
-				n = k.lower ()
-				if n in ("accept-encoding	", "content-length", "connection"):
-					# reanalyze
-					continue					
-				self.headers [k] = v			
+		self.fit_headers (headers)
 		self.payload = self.serialize ()
 	
+	def fit_headers (self, headers):
+		if isinstance (headers, attrdict.CaseInsensitiveDict):
+			self.headers = headers
+			self.remove_header ("content-length", "connection")
+			if not self.headers.get ("accept"):
+				self.headers ["Accept"] = "*/*"
+		else:	
+			self.headers = attrdict.CaseInsensitiveDict ()			
+			self.headers ["Accept-Encoding"] = "gzip"
+			if headers:			
+				for k, v in type (headers) is dict and headers.items () or headers:
+					n = k.lower ()
+					if n in ("content-length", "connection"):
+						# reanalyze
+						continue					
+					self.headers [k] = v
+					
 	def add_history (self, response):
 		self._history.append (HistoricalResponse (response))
 	
@@ -193,28 +201,17 @@ class XMLRPCRequest:
 			
 	get_data = get_payload	
 	
-	def remove_header (self, key):
-		if not self.headers:	
-			return
-		k = k.lower ()
-		deletable = None
-		for n, v in self.headers.items ():
-			if n.lower () == k:
-				deletable = n
-		if deletable:
-			del self.headers [n]		
+	def remove_header (self, *keys):
+		for key in keys:
+			try:
+				del self.headers [key]
+			except KeyError:
+				pass			
 		
 	def get_header (self, k, with_key = False):
-		if self.headers:			
-			k = k.lower ()
-			for n, v in self.headers.items ():
-				if n.lower () == k:					
-					if with_key:
-						return n, v
-					return v
-					
 		if with_key:
-			return None, None		
+			return k, self.headers.get (k)
+		return self.headers.get (k)
 		
 	def get_headers (self):
 		self.build_header ()
@@ -249,9 +246,8 @@ class HTTPRequest (XMLRPCRequest):
 		)
 	
 	def to_bytes (self, data, set_content_length = True):
-		if type (self.params) is not bytes:			
-			if strutil.is_encodable (self.params):
-				data = self.params.encoding ("utf8")			
+		if type (self.params) is str:			
+			data = self.params.encode ("utf8")			
 			
 		if set_content_length:
 			# when only bytes type, in case proxy_request this value will be just bool type
