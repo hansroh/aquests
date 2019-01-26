@@ -54,6 +54,7 @@ classifiers = [
 
 packages = [
 	'aquests',	
+	'aquests.bin'
 	'aquests.client',
 	'aquests.dbapi',	
 	'aquests.protocols',
@@ -104,7 +105,7 @@ setup(
         'console_scripts': [
 			'aquests=aquests.bin.aquests:main',
 		],
-    },
+	},
 	license='MIT',
 	platforms = ["posix", "nt"],
 	download_url = "https://pypi.python.org/pypi/aquests",
