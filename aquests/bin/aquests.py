@@ -2,12 +2,19 @@
 
 import aquests
 import os, sys
+import time
 
+TOTAL = 0
+DONE = 0
 def request_finished_and_req (r):
 	global TOTAL, DONE
+	
 	DONE += 1
+	if DONE % int (TOTAL / 10) == 0:
+		aquests.log ("progress: {:.0f}%".format (DONE / TOTAL * 100))
+		
 	args = (r.status_code, r.reason, len (r.content))
-	print ("%s %s %d bytes received" % args, r.version)
+	#print ("%s %s %d bytes received" % args, r.version)
 	if (DONE + len(aquests._currents) + aquests.qsize ()) < TOTAL:
 		aquests.get (r.url)
 
@@ -35,7 +42,6 @@ def test_load (h1, client, streams, urls):
 		for i in range (client * streams):
 			for url in urls:
 				aquests.get (url)
-
 	aquests.fetchall ()
 
 def usage ():
@@ -52,7 +58,9 @@ options:
 	""")
 	sys.exit ()
 
-if __name__ == "__main__":
+def main ():
+	global TOTAL
+	
 	import getopt, time
 	argopt = getopt.getopt(sys.argv[1:], "en:c:m:", ["h1", "help"])
 	
@@ -61,8 +69,6 @@ if __name__ == "__main__":
 	client = 1
 	streams = 1
 	test_example = 0
-	TOTAL = 0
-	DONE = 0
 	for k, v in argopt [0]:
 		if k == "--h1":
 			h1 = 1
@@ -78,4 +84,10 @@ if __name__ == "__main__":
 			test_example = 1
 			
 	test_load (h1, min (client, TOTAL), streams, test_example or argopt [1])
+	print ("---")
+	aquests.result.report ()
+	
+	
+if __name__ == "__main__":
+	main ()
 	

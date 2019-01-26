@@ -100,6 +100,11 @@ setup(
 	packages=packages,
 	package_dir=package_dir,
 	package_data = package_data,
+	entry_points = {
+        'console_scripts': [
+			'aquests=aquests.bin.aquests:main',
+		],
+    },
 	license='MIT',
 	platforms = ["posix", "nt"],
 	download_url = "https://pypi.python.org/pypi/aquests",

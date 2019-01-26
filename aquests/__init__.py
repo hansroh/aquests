@@ -1,6 +1,6 @@
 # 2016. 1. 10 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.8.1"
+__version__ = "0.8.1.1a1"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 
@@ -9,7 +9,7 @@ import asyncore
 import timeit
 import time, math, random
 from . import lifetime, queue, request_builder, response_builder, stubproxy
-from rs4 import logger as logger_f
+from rs4 import logger as logger_f, tc
 from .client import socketpool
 from .dbapi import dbpool
 from .client import adns, asynconnect
@@ -21,6 +21,7 @@ from .protocols.http import request_handler, response as http_response
 from .protocols import http2
 from .protocols.http2 import H2_PROTOCOLS
 from .dbapi import request as dbo_request
+import copy
 
 DEBUG = 0
 
@@ -74,6 +75,9 @@ _max_conns = 0
 _bytesrecv = 0
 _allow_redirects = True
 _force_h1 = False
+result = None
+_http_status = {}
+_http_version = {}
 	
 def configure (
 	workers = 1, 
@@ -182,6 +186,7 @@ def handle_status_3xx (response):
 	
 def _request_finished (handler):
 	global _cb_gateway, _currents, _concurrent, _finished_total, _logger, _bytesrecv,_force_h1
+	global _http_status, _http_version
 	
 	req_id = handler.request.meta ['req_id']	
 	try: 
@@ -207,6 +212,12 @@ def _request_finished (handler):
 	_finished_total += 1
 	response.logger = _logger
 	_bytesrecv += len (response.content)
+	
+	try: _http_status [response.status_code] += 1
+	except KeyError: _http_status [response.status_code] = 1
+	try: _http_version [response.version] += 1
+	except KeyError: _http_version [response.version] = 1
+	
 	callback = response.meta ['req_callback'] or _cb_gateway
 	try:
 		callback (response)
@@ -309,6 +320,7 @@ def concurrent ():
 		
 def fetchall ():
 	global _workers, _logger, _que, _timeout, _max_conns, _bytesrecv, _concurrent, _finished_total, _max_conns, _force_h1, _request_total, _bytesrecv
+	global result, _http_status, _http_version
 	
 	if not qsize ():
 		_logger.log ('no item in queue.')
@@ -355,23 +367,42 @@ def fetchall ():
 	lifetime._polling = 0
 	_duration = timeit.default_timer () - _fetch_started
 	socketpool.cleanup ()
-	dbpool.cleanup ()
-	
-	_logger.log ("* %d tasks during %1.2f sec (%1.2f tasks/s), recieved %d bytes (%d bytes/s), max %d conns" % (
-		_finished_total, _duration, 
-		_finished_total / _duration, 
-		_bytesrecv,
-		_bytesrecv / _duration,
-		_max_conns
-		)
-	)
+	dbpool.cleanup ()	
+	result = Result (_finished_total, _duration, _bytesrecv, _max_conns, copy.copy (_http_status), copy.copy (_http_version))
 	
 	# reinit for next session
 	_request_total = 0			
 	_finished_total = 0		
 	_max_conns = 0
 	_bytesrecv = 0
+	_http_status = {}
+	_http_version = {}
+
+class Result:
+	def __init__ (self, tasks, duration, bytes_recv, max_conns, _http_status, _http_version):
+		self.tasks = tasks
+		self.duration = duration
+		self.bytes_recv = bytes_recv
+		self.max_conns = max_conns
+		self._http_status = _http_status
+		self._http_version = _http_version
 	
+	def report (self):
+		print (tc.debug ("summary"))
+		print ("- finished in: {:.2f} seconds".format (self.duration))
+		print ("- requests: {:,} requests".format (self.tasks))
+		print ("- requests/sec: {:.2f} requests".format (self.tasks / self.duration))
+		print ("- bytes recieved: {:,} bytes".format (self.bytes_recv))
+		print ("- bytes recieved/sec: {:,} bytes".format (int (self.bytes_recv / self.duration)))
+		
+		print (tc.debug ("response status codes"))
+		for k, v in sorted (self._http_status.items ()):
+			print ("- {}: {:,}".format (k, v))
+		print (tc.debug ("response HTTP versions")	)
+		for k, v in sorted (self._http_version.items ()):
+			print ("- {}: {:,}".format (k, v))	
+			
+		
 def suspend (timeout):
 	a, b = math.modf (timeout)
 	for i in range (int (b)):		
@@ -395,9 +426,9 @@ def _add (method, url, params = None, auth = None, headers = {}, callback = None
 	_que.add ((method, url, params, auth, headers, meta, proxy))
 	
 	# DNS query for caching and massive
-	if not lifetime._polling:
+	if not lifetime._polling  and  _dns_reqs < _workers:
 		host = urlparse (url) [1].split (":")[0]
-		if _dns_reqs < _workers and host not in _dns_query_req:
+		if host not in _dns_query_req:
 			_dns_query_req [host] = None
 			_dns_reqs += 1
 			adns.query (host, "A", callback = lambda x: None)
@@ -405,8 +436,12 @@ def _add (method, url, params = None, auth = None, headers = {}, callback = None
 		if dns.qsize ():
 			dns.pop_all ()
 			asyncore.loop (0.1, count = 2)
-	
 	#print ('~~~~~~~~~~~~~~~', asyndns.pool.connections)
+
+
+def log (msg, type = "info"):
+	global _logger
+	_logger (msg, type)
 	
 #----------------------------------------------------
 # Add Reuqest (protocols.*.request) Object
