@@ -54,7 +54,7 @@ classifiers = [
 
 packages = [
 	'aquests',	
-	'aquests.bin'
+	'aquests.bin',
 	'aquests.client',
 	'aquests.dbapi',	
 	'aquests.protocols',
