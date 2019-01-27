@@ -54,7 +54,7 @@ class DnsRequest:
 	""" high level Request object """
 	def __init__(self,*name,**args):
 		self.donefunc=None
-		self.async=None
+		self._async=None
 		self.defaults = {}
 		self.argparse(name,args)
 		self.defaults = self.args
@@ -181,7 +181,7 @@ class DnsRequest:
 		else:
 			self.sendTCPRequest(server)
 			
-		if self.async:
+		if self._async:
 			return None
 			
 		else:
@@ -197,7 +197,7 @@ class DnsRequest:
 				#self.s.connect((self.ns, self.port))
 				self.conn()
 				self.time_start=time.time()
-				if not self.async:
+				if not self._async:
 					self.s.send(self.request)
 					self.response=self.processUDPReply()
 			#except socket.error:
@@ -205,7 +205,7 @@ class DnsRequest:
 				continue
 			break
 		if not self.response:
-			if not self.async:
+			if not self._async:
 				raise DNSError('no working nameservers found')
 
 	def sendTCPRequest(self, server):
@@ -238,7 +238,7 @@ class DnsAsyncRequest(DnsRequest,asyncore.dispatcher_with_send):
 		else:
 			self.donefunc=self.showResult
 		#self.realinit(name,args) # XXX todo
-		self.async=1
+		self._async=1
 	
 	def conn(self):
 		import time
