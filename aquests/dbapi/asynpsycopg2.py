@@ -27,6 +27,12 @@ else:
 			dbconnect.AsynDBConnect.__init__ (self, address, params, lock, logger)			
 			self.conn = None
 			self.cur = None			
+			try:
+				from sqlalchemy.dialects import postgresql
+			except ImportError:
+				self.dialect = None
+			else:
+				self.dialect = postgresql.dialect ()						
 			asyncore.dispatcher.__init__ (self)
 			
 		def check_state (self, state):
@@ -167,7 +173,14 @@ else:
 
 		def begin_tran (self, request):			
 			dbconnect.AsynDBConnect.begin_tran (self, request)
-			self.out_buffer = request.params [0]			
+			statement = request.params [0]
+			if isinstance(statement, str):
+				self.out_buffer = statement
+			elif self.dialect:
+				# sqlalchemy ClauseElement
+				self.out_buffer = str (statement.compile (dialect = self.dialect, compile_kwargs = {"literal_binds": True}))
+			else:
+				raise TypeError ("SQL Statement Error")
 			
 		def execute (self, request):			
 			self.begin_tran (request)			

@@ -14,6 +14,12 @@ class SynConnect (asynpsycopg2.AsynConnect, dbconnect.DBConnect):
 		self.connected = False
 		self.conn = None
 		self.cur = None
+		try:
+			from sqlalchemy.dialects import sqlite
+		except ImportError:
+			self.dialect = None
+		else:
+			self.dialect = sqlite.dialect ()	
 	
 	def close_if_over_keep_live (self):
 		# doesn't need disconnect with local file
@@ -53,10 +59,19 @@ class SynConnect (asynpsycopg2.AsynConnect, dbconnect.DBConnect):
 			self.connect ()
 			self.conn.isolation_level = None
 		
-		sql = request.params [0].strip ()
+		statement = request.params [0]
+		if not isinstance (statement, str):
+			if self.dialect:
+				# sqlalchemy ClauseElement
+				sql = str (statement.compile (dialect = self.dialect, compile_kwargs = {"literal_binds": True}))				
+			else:
+				raise TypeError ("SQL Statement Error")
+		else:								 
+			sql = request.params [0].strip ()
+		
 		try:
 			if len (request.params) > 1 or sql [:7].lower () == "select ":
-				self.cur.execute (*request.params)
+				self.cur.execute (sql, *request.params [1:])
 			else:			
 				self.cur.executescript (sql)
 		except:

@@ -704,7 +704,8 @@ History
 =========
 
 - 0.8
-
+  
+  - support SQLAlchemy query statement object 
   - aquests.lib moved to new rs4 package, and aquests.lib has been removed
 
 - 0.7.19
