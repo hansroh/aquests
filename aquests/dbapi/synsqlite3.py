@@ -52,23 +52,20 @@ class SynConnect (asynpsycopg2.AsynConnect, dbconnect.DBConnect):
 			self.handle_error ()
 		else:	
 			self.connected = True
-				
+	
+	def begin_tran (self, request):			
+		dbconnect.DBConnect.begin_tran (self, request)
+						
 	def execute (self, request):
 		self.begin_tran (request)		
 		if not self.connected:
 			self.connect ()
 			self.conn.isolation_level = None
 		
-		statement = request.params [0]
-		if not isinstance (statement, str):
-			if self.dialect:
-				# sqlalchemy ClauseElement
-				sql = str (statement.compile (dialect = self.dialect, compile_kwargs = {"literal_binds": True}))				
-			else:
-				raise TypeError ("SQL Statement Error")
-		else:								 
-			sql = request.params [0].strip ()
-		
+		sql = self._compile (request, OperationalError)
+		if not sql:
+			return
+				
 		try:
 			if len (request.params) > 1 or sql [:7].lower () == "select ":
 				self.cur.execute (sql, *request.params [1:])

@@ -166,10 +166,10 @@ class DBConnect:
 		self.handle_close (OperationalError, "Operation Timeout")
 	
 	def handle_error (self):
-		dummy, exception_class, exception_str, tbinfo = asyncore.compact_traceback()
+		dummy, t, v, info = asyncore.compact_traceback()
 		self.has_result = False		
 		self.logger.trace ()
-		self.handle_close (exception_class, exception_str)
+		self.handle_close (v.__class__, str (v))
 	
 	def handle_close (self, expt = None, msg = ""):
 		if not expt and not self.retried:			

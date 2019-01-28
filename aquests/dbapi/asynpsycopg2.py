@@ -170,22 +170,31 @@ else:
 		def end_tran (self):				
 			if not self.backend:
 				self.del_channel ()
-
-		def begin_tran (self, request):			
-			dbconnect.AsynDBConnect.begin_tran (self, request)
+		
+		def _compile (self, request, expt_class = psycopg2.OperationalError):
 			statement = request.params [0]
 			if isinstance(statement, str):
-				self.out_buffer = statement
+				return statement
 			elif self.dialect:
 				# sqlalchemy ClauseElement
-				self.out_buffer = str (statement.compile (dialect = self.dialect, compile_kwargs = {"literal_binds": True}))
+				try:
+					return str (statement.compile (dialect = self.dialect, compile_kwargs = {"literal_binds": True}))
+				except:
+					self.handle_error ()
 			else:
-				raise TypeError ("SQL Statement Error")
+				self.handle_close (expt_class, "SQL statement error")				
+			return ""
+		
+		def begin_tran (self, request):			
+			dbconnect.AsynDBConnect.begin_tran (self, request)
+			self.out_buffer = self._compile (request)
+			return len (self.out_buffer)			
 			
-		def execute (self, request):			
-			self.begin_tran (request)			
+		def execute (self, request):
+			if not self.begin_tran (request):				
+				return	
 			if not self.connected:
-				self.connect ()				
+				self.connect ()
 			else:
 				state = self.poll ()
 				if state != POLL_OK:
