@@ -153,7 +153,7 @@ class Composer:
 		body = "\r\n".join (["%s: %s" % (k, v) for k, v in self.H.items ()]) + "\r\n"		
 		
 		if len (self.contents) == 0: 
-			raise AttributeError		
+			raise AttributeError
 		
 		elif len (self.contents) == 1 and not self.attachments:
 			body += self.contents [0]
