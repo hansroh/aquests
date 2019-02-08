@@ -191,7 +191,7 @@ else:
 			return len (self.out_buffer)			
 			
 		def execute (self, request):
-			if not self.begin_tran (request):				
+			if not self.begin_tran (request):
 				return	
 			if not self.connected:
 				self.connect ()
