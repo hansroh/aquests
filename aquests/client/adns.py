@@ -11,7 +11,7 @@ class DNSCache:
 		self.prefer_protocol = prefer_protocol
 		self.__last_maintern = time.time ()
 		self.__lock = threading.RLock ()
-		self.cache = {"localhost": {"data": "127.0.0.1", "ttl": 2**32, "typename": "A"}}
+		self.cache = {"localhost": {"data": "127.0.0.1", "valid": 2**32, "typename": "A"}}
 		self.errors = {} 
 		self.hits = 0
 
