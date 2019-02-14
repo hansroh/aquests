@@ -11,7 +11,7 @@ class DNSCache:
 		self.prefer_protocol = prefer_protocol
 		self.__last_maintern = time.time ()
 		self.__lock = threading.RLock ()
-		self.cache = {}
+		self.cache = {"localhost": {"data": "127.0.0.1", "ttl": 2**32, "typename": "A"}}
 		self.errors = {} 
 		self.hits = 0
 
@@ -97,8 +97,6 @@ class DNSCache:
 		if hit:
 			return callback (hit)
 		
-		if host.lower () == "localhost":
-			host = "127.0.0.1"
 		if self.is_ip (host):
 			self.set ([{"name": host, "data": host, "typename": qtype}])
 			return callback ([{"name": host, "data": host, "typename": qtype}])
