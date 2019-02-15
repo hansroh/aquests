@@ -49,7 +49,6 @@ class DNSCache:
 					deletables.append (host)					
 			for host in deletables:
 				del self.cache [host]
-		
 		self.__last_maintern = time.time ()
 			
 	def get (self, host, qtype = "A", check_ttl = True):
