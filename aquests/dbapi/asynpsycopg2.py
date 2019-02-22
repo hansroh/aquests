@@ -171,26 +171,33 @@ else:
 			if not self.backend:
 				self.del_channel ()
 		
-		def _compile (self, request, expt_class = psycopg2.OperationalError):
+		def _compile (self, request):
 			statement = request.params [0]
+			sql = ''
 			if isinstance(statement, str):
-				return statement
+				sql = statement
 			elif self.dialect:
 				# sqlalchemy ClauseElement
 				try:
-					return str (statement.compile (dialect = self.dialect, compile_kwargs = {"literal_binds": True}))
+					sql = str (statement.compile (dialect = self.dialect, compile_kwargs = {"literal_binds": True}))
 				except:
 					self.handle_error ()
-			else:
-				self.handle_close (expt_class, "SQL statement error")				
-			return ""
+					return									
+			if not sql.strip ():
+				self.handle_close (dbconnect.SQLError, "Empty SQL statement")
+				return				
+			return sql
 		
-		def begin_tran (self, request):			
-			dbconnect.AsynDBConnect.begin_tran (self, request)
-			self.out_buffer = self._compile (request)
-			return len (self.out_buffer)			
+		def begin_tran (self, request):
+			if not dbconnect.DBConnect.begin_tran (self, request):
+				return False
+			sql = self._compile (request)
+			if not sql: 
+				return False
+			self.out_buffer = sql
+			return True
 			
-		def execute (self, request):
+		def execute (self, request):		
 			if not self.begin_tran (request):
 				return	
 			if not self.connected:

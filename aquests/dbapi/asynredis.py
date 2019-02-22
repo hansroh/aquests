@@ -143,15 +143,18 @@ class AsynConnect (dbconnect.AsynDBConnect, asynchat.async_chat):
 			self.del_channel ()
 		
 	def begin_tran (self, request):
-		dbconnect.AsynDBConnect.begin_tran (self, request)
+		if not dbconnect.AsynDBConnect.begin_tran (self, request):
+			return False
 		self.response = [[]]
 		self.data = []
 		self.length = -1
 		self.num_elements = [0]
-		self.last_command = None		
+		self.last_command = None
+		return True		
 						
 	def execute (self, request):
-		self.begin_tran (request)
+		if self.begin_tran (request):
+			return
 		# SHOULD push before adding to map, otherwise raised threading collision
 		self.push_command (request.method, *request.params)
 		self.set_terminator (LINE_FEED)

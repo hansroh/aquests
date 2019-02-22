@@ -8,6 +8,9 @@ DEBUG = False
 
 class OperationalError (Exception):
 	pass
+
+class SQLError (Exception):
+	pass
 	
 class DBConnect:
 	zombie_timeout = 120
@@ -208,16 +211,17 @@ class DBConnect:
 				raise OperationalError ("Entered Shutdown Process")
 			except: 
 				self.handle_error ()
-				return
-		
+				return False
 		self.request = request	
 		self.__history = []
+		self.out_buffer = ''
 		self.has_result = False
 		self.exception_str = ""
 		self.exception_class = None		
 		self.execute_count += 1
 		self.close_if_over_keep_live ()
 		self.set_event_time ()
+		return True
 		
 	def execute (self, request):		
 		self.begin_tran (request)		

@@ -52,19 +52,16 @@ class SynConnect (asynpsycopg2.AsynConnect, dbconnect.DBConnect):
 			self.handle_error ()
 		else:	
 			self.connected = True
-	
-	def begin_tran (self, request):			
-		dbconnect.DBConnect.begin_tran (self, request)
 						
 	def execute (self, request):
-		self.begin_tran (request)		
+		if not dbconnect.DBConnect.begin_tran (self, request):
+			return
+		sql = self._compile (request)		
+		if not sql: return
+						
 		if not self.connected:
 			self.connect ()
 			self.conn.isolation_level = None
-		
-		sql = self._compile (request, OperationalError)
-		if not sql:
-			return
 				
 		try:
 			if len (request.params) > 1 or sql [:7].lower () == "select ":

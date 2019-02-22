@@ -245,11 +245,13 @@ class AsynConnect (asynredis.AsynConnect):
         self.push_command (msg)
     
     def begin_tran (self, request):
-        asynredis.AsynConnect.begin_tran (self, request)
+        if not asynredis.AsynConnect.begin_tran (self, request):
+            return False
         self.response = None
         self.last_command = request.method.lower ()
         self.preserve_cursor = False
         self.data = []
+        return True
     
     REQ_OPS_OF_WIRE_PROTOCOL = (
         "find", "findone", "findall", 
