@@ -31,7 +31,6 @@ class Response (response.Response):
 			return None
 		return self.content [0][0]
 	
-	
 	@property
 	def headers (self):
 		return {}

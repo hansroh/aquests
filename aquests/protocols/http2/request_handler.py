@@ -280,7 +280,7 @@ class RequestHandler (base_request_handler.RequestHandler, FlowControlWindow):
 					
 	def handle_events (self, events):
 		for event in events:			
-			if isinstance(event, ResponseReceived):
+			if isinstance(event, ResponseReceived):				
 				self.handle_response (event.stream_id, event.headers)
 			
 			elif isinstance(event, TrailersReceived):

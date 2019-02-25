@@ -40,8 +40,11 @@ class await_fifo:
 		self.l [index] = item
 		
 	def __delitem__ (self, index):
-		del self.l [index]
-
+		try:
+			del self.l [index]
+		except IndexError:			
+			pass	
+		
 	def append (self, item):
 		self.insert (-1, item)
 	

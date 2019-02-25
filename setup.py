@@ -82,7 +82,7 @@ install_requires = [
 	"rs4",
 	"protobuf",
 	"h2",
-	"psycopg2",
+	"psycopg2-binary",
 	"redis", 
 	"pymongo",
 ]

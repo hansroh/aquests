@@ -163,7 +163,7 @@ else:
 				password = self.password,
 				host = host,
 				port = port,
-				async = 1
+				async_ = 1
 			)
 			self.set_socket (sock)
 		
