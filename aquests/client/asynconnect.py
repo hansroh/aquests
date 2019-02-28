@@ -68,8 +68,8 @@ class AsynConnect (asynchat.async_chat):
 		new_asyncon.keep_connect = self.keep_connect
 		return new_asyncon
 	
-	def set_backend (self, backend_keep_alive = 10):
-		#self.backend = True
+	def set_backend (self, backend_keep_alive = 1200):
+		self.backend = True		
 		self.keep_alive = backend_keep_alive
 		
 	def set_auth (self, auth):
@@ -334,7 +334,7 @@ class AsynConnect (asynchat.async_chat):
 	
 	def handle_error (self, code = 701):
 		self.trace ()
-		self.handle_close(code)
+		self.handle_close (code)
 	
 	def handle_timeout (self):		
 		self.handle_close (702)

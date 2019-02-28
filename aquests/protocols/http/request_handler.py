@@ -19,14 +19,14 @@ class RequestHandler (base_request_handler.RequestHandler):
 	FORCE_HTTP_11 = False	
 	
 	def __init__ (self, asyncon, request, callback, connection = "keep-alive"):
-		self.asyncon = asyncon		
+		base_request_handler.RequestHandler.__init__ (self, request.logger)
+		self.asyncon = asyncon
 		self.wrap_in_chunk = False
 		self.end_of_data = False
 		self.expect_disconnect = False
 		
 		self.request = request
-		self.callback = callback
-		base_request_handler.RequestHandler.__init__ (self, request.logger)
+		self.callback = callback		
 		self.connection = connection				
 		
 		self.retry_count = 0
@@ -44,12 +44,6 @@ class RequestHandler (base_request_handler.RequestHandler):
 		self.header = []
 		if request.get_address () is None:
 			request.set_address (self.asyncon.address)
-		
-	def _del_ (self):
-		self.callback = None
-		self.asyncon = None
-		self.request = None
-		self.response = None
 		
 	#------------------------------------------------
 	# handler must provide these methods
@@ -250,10 +244,11 @@ class RequestHandler (base_request_handler.RequestHandler):
 		self.asyncon.handle_close (705)
 		
 	def connection_closed (self, why, msg):		
+		if not self.asyncon:
+			return # server side disconnecting because timeout, ignored
 		if self.response and self.expect_disconnect:
 			self.close_case ()
-			return
-		
+			return		
 		# possibly disconnected cause of keep-alive timeout
 		# but works only HTTP 1.1
 		if not self.http2_handler and why == 700 and self.response is None and self.retry_count == 0:
