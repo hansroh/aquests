@@ -69,7 +69,7 @@ class AsynConnect (asynchat.async_chat):
 		return new_asyncon
 	
 	def set_backend (self, backend_keep_alive = 1200):
-		self.backend = True		
+		self.backend = True
 		self.keep_alive = backend_keep_alive
 		
 	def set_auth (self, auth):

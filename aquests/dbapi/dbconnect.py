@@ -53,8 +53,8 @@ class DBConnect:
 		if time.time () - self.event_time > max (self.keep_alive - 10, 5):			
 			self.disconnect ()
 			
-	def set_backend (self, backend_keep_alive = 10):
-		#self.backend = True
+	def set_backend (self, backend_keep_alive = 1200):
+		self.backend = True
 		self.keep_alive = backend_keep_alive
 		
 	def duplicate (self):
