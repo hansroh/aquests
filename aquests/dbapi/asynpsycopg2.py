@@ -90,7 +90,7 @@ else:
 				self.handle_write ()
 		
 		def handle_expt (self):
-			self.handle_close (psycopg2.OperationalError, "socket panic")
+			self.handle_close (psycopg2.OperationalError, "Socket Panic")
 			
 		def handle_connect (self):
 			self.del_channel ()

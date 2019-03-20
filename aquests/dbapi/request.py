@@ -2,9 +2,10 @@ from rs4.attrdict import AttrDict
 from rs4.cbutil import tuple_cb
 
 class Request:
+	IS_DB_REQUEST = True
+
 	reauth_count = 0
-	retry_count = 0
-		
+	retry_count = 0		
 	def __init__ (self, dbtype, server, dbname, auth, method, params, callback = None, meta = {}):
 		self.server = server
 		self.dbname = dbname
@@ -19,14 +20,13 @@ class Request:
 		self.__data = None
 		self.__content = None
 		self.expt_class = None
-		self.expt_str = None
-		
-		self.code, self.msg, self.version = 200, "OK", None
+		self.expt_str = None		
+		self.code, self.msg, self.version = 200, "OK", None		
 	
 	def set_callback (self, callback):
 		self.callback = callback
 	
-	def raise_for_status (self):
+	def raise_for_status (self):		
 		if self.expt_class:
 			raise self.expt_class (self.expt_str)
 	reraise = raise_for_status
@@ -53,8 +53,7 @@ class Request:
 	def handle_result (self, description, expt_class, expt_str, data):
 		self.expt_class, self.expt_str = expt_class, expt_str		
 		if expt_class:
-			self.code, self.msg = 500, "Error"
-
+			self.code, self.msg = 500, "Database Error"			
 		self.description = description
 		self.__content = data
 		self.handle_callback ()
