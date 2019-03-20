@@ -166,23 +166,23 @@ class DBConnect:
 		self.zombie_timeout = timeout
 		
 	def handle_timeout (self):
-		self.handle_close (OperationalError, "Operation Timeout")
+		self.handle_close (OperationalError ("Operation Timeout"))
 	
 	def handle_error (self):
-		dummy, t, v, info = asyncore.compact_traceback()
+		dummy, t, v, info = asyncore.compact_traceback ()
 		self.has_result = False		
 		self.logger.trace ()
-		self.handle_close (v.__class__, str (v))
+		self.handle_close (v)
 	
-	def handle_close (self, expt = None, msg = ""):
+	def handle_close (self, expt = None):
 		if not expt and not self.retried:			
 			self.disconnect ()
 			self.retried = 1
 			self.execute (self.request)			
 			return
 		
-		if self.exception_class is None:	
-			self.exception_class, self.exception_str = expt, msg		
+		if self.expt is None:	
+			self.expt = expt
 		self.close_case_with_end_tran ()
 		self.close ()
 	
@@ -216,8 +216,7 @@ class DBConnect:
 		self.__history = []
 		self.out_buffer = ''
 		self.has_result = False
-		self.exception_str = ""
-		self.exception_class = None		
+		self.expt = None		
 		self.execute_count += 1
 		self.close_if_over_keep_live ()
 		self.set_event_time ()

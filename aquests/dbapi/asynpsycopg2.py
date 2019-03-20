@@ -90,7 +90,7 @@ else:
 				self.handle_write ()
 		
 		def handle_expt (self):
-			self.handle_close (psycopg2.OperationalError, "Socket Panic")
+			self.handle_close (psycopg2.OperationalError ("Socket Panic"))
 			
 		def handle_connect (self):
 			self.del_channel ()
@@ -122,9 +122,9 @@ else:
 		def close_case (self):			
 			if self.request:
 				if self.has_result and self.cur.description:					
-					self.request.handle_result (self.cur.description, self.exception_class, self.exception_str, self.fetchall ())					
+					self.request.handle_result (self.cur.description, self.expt, self.fetchall ())					
 				else:
-					self.request.handle_result (None, self.exception_class, self.exception_str, None)
+					self.request.handle_result (None, self.expt, None)
 					self.has_result = False
 				self.request = None
 			self.set_active (False)
@@ -184,7 +184,7 @@ else:
 					self.handle_error ()
 					return									
 			if not sql.strip ():
-				self.handle_close (dbconnect.SQLError, "Empty SQL statement")
+				self.handle_close (dbconnect.SQLError ("Empty SQL statement"))
 				return				
 			return sql
 		
