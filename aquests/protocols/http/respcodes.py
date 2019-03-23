@@ -41,6 +41,7 @@ responses = {
 		505: "HTTP Version Not Supported",
 		506: "Proxy Error",
 		507: "Failed Establishing Connection",		
+		530: "Parameter Mismatch",
 		700: "Socket Error",
 		701: "Exception Occured",
 		702: "Socket Timeout",
@@ -48,7 +49,7 @@ responses = {
 		704: "DNS Not Found",
 		705: "Entered Shutdown Process",
 		706: "Unknown Authedentification Method",
-		707: "HTTP Header/Body Error",
+		707: "HTTP Entity Error",
 		708: "No Data Recieved",
 		709: "Invalid Content",
 		710: "Channel Closed",
@@ -58,12 +59,12 @@ responses = {
 		714: "Connection Failure",
 		715: "Response Header Error",
 		716: "Protocol Switching Failure",
-		717: "Invalid Cotnent Type",
+		717: "Invalid Cotennt Type",
 		718: "Unacceptable Content Type",	
 		719: "Too Large Content",	
 		720: "HTTP2 Connection Closed",
 		721: "HTTP2 Stream Reset",
-		722: "Object timeout"	
+		722: "Object Timeout"	
 }
 
 def get (code, default = "Undefined Error"):
