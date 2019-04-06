@@ -106,7 +106,7 @@ class AsynConnect (asynchat.async_chat):
 		handler, self.handller = self.handler, None
 		keep_active = False
 		try:
-			keep_active = handler.connection_closed (self.errcode, self.errmsg)
+			keep_active = handler.connection_closed (self.errcode, self.errmsg)			
 		except: 
 			self.trace ()
 		
@@ -274,7 +274,7 @@ class AsynConnect (asynchat.async_chat):
 		
 	def recv (self, buffer_size):
 		try:
-			data = self.socket.recv (buffer_size)
+			data = self.socket.recv (buffer_size)			
 			if not data:
 				self.handle_close (700, "Connection closed unexpectedly in recv")
 				return b''
@@ -290,8 +290,7 @@ class AsynConnect (asynchat.async_chat):
 	
 	def send (self, data):
 		try:
-			numsent = self.socket.send (data)			
-			#print ('-------', numsent)
+			numsent = self.socket.send (data)
 			if numsent:
 				self.set_event_time ()
 			return numsent	

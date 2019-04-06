@@ -115,7 +115,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 			return [self.get_request_header (http_version, upgrade) + payload]
 		return [self.get_request_header (http_version, upgrade), payload]	
 		
-	def collect_incoming_data (self, data):
+	def collect_incoming_data (self, data):		
 		if not data:
 			self.end_of_data = True
 			return
@@ -172,18 +172,16 @@ class RequestHandler (base_request_handler.RequestHandler):
 					if self.will_be_close ():
 						self.expect_disconnect = True
 						if self.response.get_header ("content-type"):
-							clen = None							
-						
+							clen = None						
 				if clen == 0:
-					return self.found_end_of_body ()
-					
+					return self.found_end_of_body ()					
 				self.asyncon.set_terminator (clen)
 			
 	def create_response (self):
-		buffer, self.buffer = self.buffer, b""
+		buffer, self.buffer = self.buffer, b""		
 		try:
-			self.response = http_response.Response (self.request, buffer.decode ("utf8"))			
-			if self.handle_response_code ():
+			response = http_response.Response (self.request, buffer.decode ("utf8"))			
+			if self.handle_response_code (response):
 				return
 		except ProtocolSwitchError:
 			return self.asyncon.handle_error (716)
@@ -191,27 +189,27 @@ class RequestHandler (base_request_handler.RequestHandler):
 			self.log ("response header error: `%s`" % repr (buffer [:80]), "error")
 			return self.asyncon.handle_error (715)			
 		
-		ct = self.response.check_accept ()
+		ct = response.check_accept ()
 		if ct:	
-			self.log ("response content-type error: `%s`" % ct, "error")
+			self.log ("response content-type error: `%s`" % ct, "error")			
 			return self.asyncon.handle_close (718)
 		
-		cl = self.response.check_max_content_length ()
+		cl = response.check_max_content_length ()
 		if cl:
 			self.log ("response content-length error: `%d`" % cl, "error")
 			return self.asyncon.handle_close (719)
-		
-	def handle_response_code (self):
+			
+		self.response = response
+
+	def handle_response_code (self, response):
 		# default header never has "Expect: 100-continue"
 		# ignore, wait next message	
-		if self.response.code == 100:
-			self.asyncon.set_terminator (b"\r\n\r\n")
-			self.response = None			
+		if response.code == 100:
+			self.asyncon.set_terminator (b"\r\n\r\n")			
 			return 1
 			
-		elif self.response.code == 101 and self.response.get_header ("Upgrade") == "h2c":	# swiching protocol		
+		elif response.code == 101 and response.get_header ("Upgrade") == "h2c":	# swiching protocol		
 			self.asyncon._proto = "h2c"
-			self.response = None
 			try:				
 				self.switch_to_http2 ()
 			except:	
@@ -246,16 +244,17 @@ class RequestHandler (base_request_handler.RequestHandler):
 	def connection_closed (self, why, msg):		
 		if not self.asyncon:
 			return # server side disconnecting because timeout, ignored
-		if self.response and self.expect_disconnect:
-			self.close_case ()
-			return		
 		# possibly disconnected cause of keep-alive timeout
 		# but works only HTTP 1.1
 		if not self.http2_handler and why == 700 and self.response is None and self.retry_count == 0:
 			self.retry_count = 1			
 			self.handle_rerequest ()
-			return True
-		
+			return True		
+
+		if self.response and (self.expect_disconnect or why >= 700):
+			self.close_case ()
+			return
+
 		self.response = http_response.FailedResponse (why, msg, self.request)
 		if hasattr (self.asyncon, "begin_tran"):
 			self.close_case ()
@@ -269,7 +268,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 		if self.callbacked:
 			return
 		tuple_cb (self, self.callback)
-		self.callbacked = 1
+		self.callbacked = 1		
 	
 	def close_case (self):		
 		self.handle_callback ()

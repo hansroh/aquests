@@ -84,7 +84,7 @@ class Response:
 		ct = self.get_header ('content-type')
 		if not ct:
 			return
-			
+
 		acs = []
 		for each in ac.split (","):
 			a = each.split (";", 1)[0].strip ()
