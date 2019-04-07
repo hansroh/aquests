@@ -71,6 +71,7 @@ def quotedata(data):
 
 class SMTP (asynchat.async_chat):
 	zombie_timeout = 120
+	debug = False
 	
 	def __init__(self, composer, logger = None, callback = None):
 		self.composer = composer						
@@ -154,15 +155,17 @@ class SMTP (asynchat.async_chat):
 			s = "\0%s\0%s" % (user, password)
 			return encode_base64(s.encode('ascii'), eol='')
 		
+		try:
+			advertised_authlist = self.esmtp_features["auth"].split()		
+		except KeyError:
+			advertised_authlist = []	
 		user, password = self.composer.get_LOGIN ()
 		
 		AUTH_PLAIN = "PLAIN"
 		AUTH_CRAM_MD5 = "CRAM-MD5"
 		AUTH_LOGIN = "LOGIN"
-		
-		advertised_authlist = self.esmtp_features["auth"].split()
-		preferred_auths = [AUTH_CRAM_MD5, AUTH_PLAIN, AUTH_LOGIN]
-		
+
+		preferred_auths = [AUTH_CRAM_MD5, AUTH_PLAIN, AUTH_LOGIN]		
 		authlist = [auth for auth in preferred_auths if auth in advertised_authlist]
 		if not authlist:
 			self.__code, self.__resp = 900, "No Suitable Authentication Method"			
