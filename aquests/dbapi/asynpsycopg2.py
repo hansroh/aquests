@@ -23,7 +23,7 @@ else:
 	_STATE_OK = (POLL_OK, POLL_WRITE, POLL_READ)
 	_STATE_RETRY = -1
 	_STATE_IGNORE = -2
-	REREY_TEST = False
+	REREY_TEST = False	
 
 	class AsynConnect (dbconnect.AsynDBConnect, asyncore.dispatcher):
 		def __init__ (self, address, params = None, lock = None, logger = None):
@@ -38,11 +38,10 @@ else:
 				self.dialect = postgresql.dialect ()						
 			asyncore.dispatcher.__init__ (self)
 
-		def retry (self):
+		def retry (self, request):
 			self.logger ("[warn] closed psycopg2 connection, retrying...")
-			self.request.retry_count += 1			
 			self.disconnect ()
-			self.execute (self.request)
+			self.execute (request)
 			return _STATE_RETRY
 
 		def check_state (self, state):
@@ -60,11 +59,13 @@ else:
 				return self.socket.poll ()
 			except psycopg2.OperationalError:				
 				if self.request:
-					raise				
+					raise
 			except psycopg2.InterfaceError:				
-				if self.request:	
-					if self.request.retry_count == 0:
-						return self.retry ()						
+				if self.request:
+					request = self.request
+					if request.retry_count == 0:
+						request.retry_count += 1
+						return self.retry (request)
 					else:
 						raise
 				self.logger.trace ()				
