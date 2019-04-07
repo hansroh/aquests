@@ -43,10 +43,11 @@ else:
 			self.request.retry_count += 1			
 			self.disconnect ()
 			self.execute (self.request)
+			return _STATE_RETRY
 
 		def check_state (self, state):
 			if state == _STATE_RETRY:
-				return self.retry ()
+				return
 			if state not in (_STATE_OK):
 				self.logger ("[warn] psycopg2.poll() returned %s" % state)
 				self.handle_close ()
@@ -63,7 +64,7 @@ else:
 			except psycopg2.InterfaceError:				
 				if self.request:	
 					if self.request.retry_count == 0:
-						return _STATE_RETRY
+						return self.retry ()						
 					else:
 						raise
 				self.logger.trace ()				
