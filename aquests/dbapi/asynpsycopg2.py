@@ -21,7 +21,10 @@ else:
 
 	from psycopg2.extensions import POLL_OK, POLL_WRITE, POLL_READ
 	_STATE_OK = (POLL_OK, POLL_WRITE, POLL_READ)
-		
+	_STATE_RETRY = -1
+	_STATE_IGNORE = -2
+	REREY_TEST = False
+
 	class AsynConnect (dbconnect.AsynDBConnect, asyncore.dispatcher):
 		def __init__ (self, address, params = None, lock = None, logger = None):
 			dbconnect.AsynDBConnect.__init__ (self, address, params, lock, logger)			
@@ -34,26 +37,42 @@ else:
 			else:
 				self.dialect = postgresql.dialect ()						
 			asyncore.dispatcher.__init__ (self)
-			
+
+		def retry (self):
+			self.logger ("[warn] closed psycopg2 connection, retrying...")
+			self.request.retry_count += 1			
+			self.disconnect ()
+			self.execute (self.request)
+
 		def check_state (self, state):
-			if state not in (_STATE_OK):				
+			if state == _STATE_RETRY:
+				return self.retry ()
+			if state not in (_STATE_OK):
 				self.logger ("[warn] psycopg2.poll() returned %s" % state)
 				self.handle_close ()
-		
+			
 		def poll (self):
 			# 2 cases, if on requesting raise immediatly, else handle silently
-			try:
+			try:				 
+				if REREY_TEST and self.readable () and self.request.retry_count == 0:
+					raise psycopg2.InterfaceError
 				return self.socket.poll ()
 			except psycopg2.OperationalError:				
 				if self.request:
-					raise
-				# else usually timeout	
+					raise				
+			except psycopg2.InterfaceError:				
+				if self.request:	
+					if self.request.retry_count == 0:
+						return _STATE_RETRY
+					else:
+						raise
+				self.logger.trace ()				
 			except:
+				# else usually timeout	
 				if self.request:
 					raise
-				# logging
 				self.logger.trace ()
-			return -1
+			return _STATE_IGNORE
 			
 		def writable (self):			
 			return self.out_buffer or not self.connected
@@ -97,9 +116,9 @@ else:
 			self.conn = self.socket
 			self.cur = self.conn.cursor()		
 			self.set_socket (self.cur.connection)
-					
+	
 		def handle_read (self):
-			state = self.poll ()
+			state = self.poll ()			
 			if self.cur and state == POLL_OK:
 				self.set_event_time ()
 				self.has_result = True
