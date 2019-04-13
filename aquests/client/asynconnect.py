@@ -32,6 +32,7 @@ class AsynConnect (asynchat.async_chat):
 	active = 0
 	fifo_class = deque
 	keep_connect = True
+	is_ssl = False
 	
 	def __init__ (self, address, lock = None, logger = None):
 		self.address = address
@@ -274,7 +275,7 @@ class AsynConnect (asynchat.async_chat):
 		
 	def recv (self, buffer_size):
 		try:
-			data = self.socket.recv (buffer_size)			
+			data = self.socket.recv (buffer_size)
 			if not data:
 				self.handle_close (700, "Connection closed unexpectedly in recv")
 				return b''
@@ -443,19 +444,23 @@ class AsynConnect (asynchat.async_chat):
 
 
 class AsynSSLConnect (AsynConnect):	
-	ac_negotiate_http2 = True
+	is_ssl = True
+
+	def __init__ (self, address, lock = None, logger = None):
+		AsynConnect.__init__ (self, address, lock, logger)
+		self.ac_negotiate_http2 = True
 	
 	def negotiate_http2 (self, flag):
 		self.ac_negotiate_http2 = flag
 		
-	def handshake (self):
+	def handshake (self):		
 		if not self._handshaking:
 			err = self.socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
 			if err != 0:
 				raise OSError(err, asyncore._strerror(err))
 				
 			ssl_context = create_urllib3_context(ssl_version=resolve_ssl_version(None), cert_reqs=resolve_cert_reqs(None))
-			if self.ac_negotiate_http2:
+			if self.ac_negotiate_http2:								
 				try: ssl_context.set_alpn_protocols (H2_PROTOCOLS)
 				except AttributeError: ssl_context.set_npn_protocols (H2_PROTOCOLS)								
 			self.socket = ssl_context.wrap_socket (self.socket, do_handshake_on_connect = False, server_hostname = self.address [0])			
@@ -481,7 +486,7 @@ class AsynSSLConnect (AsynConnect):
 			if not self._handshaked and not self.handshake ():
 				return
 		except:
-			return self.handle_error (713)
+			return self.handle_error (713)		
 		AsynConnect.handle_connect_event (self)		
 		
 	def recv (self, buffer_size):
@@ -490,7 +495,7 @@ class AsynSSLConnect (AsynConnect):
 			return b''
 			
 		try:
-			data = self.socket.recv (buffer_size)						
+			data = self.socket.recv (buffer_size)			
 			if not data:				
 				self.handle_close (700, "Connection closed unexpectedly")
 				return b''
@@ -513,13 +518,13 @@ class AsynSSLConnect (AsynConnect):
 			else:
 				raise
 
-	def send (self, data):
+	def send (self, data):		
 		if self._closed:
 			# usually handshaking failure, already handled exception
 			return
 			
 		try:
-			numsent = self.socket.send (data)			
+			numsent = self.socket.send (data)	
 			if numsent:
 				self.set_event_time ()
 			return numsent	
@@ -535,13 +540,18 @@ class AsynSSLConnect (AsynConnect):
 
 
 class AsynSSLProxyConnect (AsynSSLConnect, AsynConnect):
+	is_ssl = True
+
+	def __init__ (self, address, lock = None, logger = None):
+		AsynConnect.__init__ (self, address, lock, logger)
+
 	def handle_connect_event (self):
 		if self.established:
 			AsynSSLConnect.handle_connect_event (self)
 		else:	
 			AsynConnect.handle_connect_event (self)
 	
-	def recv (self, buffer_size):	
+	def recv (self, buffer_size):		
 		if self._handshaked or self._handshaking:
 			return AsynSSLConnect.recv (self, buffer_size)				
 		else:
