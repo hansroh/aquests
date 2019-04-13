@@ -299,7 +299,6 @@ class RequestHandler (base_request_handler.RequestHandler):
 						
 	def handle_request (self):
 		if self.asyncon.isconnected () and self.asyncon.get_proto ():			
-			#print (self.request.meta ['sid'], 'switch_to_http2')
 			return self.switch_to_http2 ()
 		
 		self.buffer, self.response = b"", None
@@ -312,15 +311,12 @@ class RequestHandler (base_request_handler.RequestHandler):
 				upgrade = False
 			elif self.asyncon.isconnected ():
 				upgrade = False
-			
 			for data in self.get_request_buffer ("1.1", upgrade):
 				self.asyncon.push (data)
-				
+
 		if self._ssl and self.FORCE_HTTP_11 and self.request.initial_http_version != "2.0":
 			self.asyncon.negotiate_http2 (False)
-			
-		self.asyncon.begin_tran (self)
-		#print (self.request.meta ['sid'], 'begin tran')
+		self.asyncon.begin_tran (self)		
 	
 	def will_be_close (self):
 		if self.connection == "close": #server misbehavior ex.paxnet
