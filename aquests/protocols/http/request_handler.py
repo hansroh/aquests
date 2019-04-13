@@ -181,7 +181,7 @@ class RequestHandler (base_request_handler.RequestHandler):
 		buffer, self.buffer = self.buffer, b""		
 		try:
 			response = http_response.Response (self.request, buffer.decode ("utf8"))			
-			if self.handle_response_code (response):
+			if self.handle_response_code (response):				
 				return
 		except ProtocolSwitchError:
 			return self.asyncon.handle_error (716)
@@ -299,7 +299,6 @@ class RequestHandler (base_request_handler.RequestHandler):
 						
 	def handle_request (self):
 		if self.asyncon.isconnected () and self.asyncon.get_proto ():			
-			#print (self.request.meta ['sid'], 'switch_to_http2')
 			return self.switch_to_http2 ()
 		
 		self.buffer, self.response = b"", None
@@ -320,7 +319,6 @@ class RequestHandler (base_request_handler.RequestHandler):
 			self.asyncon.negotiate_http2 (False)
 			
 		self.asyncon.begin_tran (self)
-		#print (self.request.meta ['sid'], 'begin tran')
 	
 	def will_be_close (self):
 		if self.connection == "close": #server misbehavior ex.paxnet
