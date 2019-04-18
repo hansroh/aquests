@@ -24,14 +24,14 @@ def crack_query (r):
     q = [x.split('=', 1) for x in r.split('&')]
     
     for each in q:
-        k = unquote_plus (each[0])
+        k = unquote (each [0])
         try: 
             t, k = k.split (":", 1)
         except ValueError:
             t = "str"
-            
+
+        v = unquote(each [1])
         if len (each) == 2:
-            v = unquote_plus(each[1])
             if t == "str":
                 pass
             elif t in ("i", "int"):
