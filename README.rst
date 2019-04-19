@@ -705,6 +705,7 @@ History
 
 - 0.8
   
+  - drop SQLAlchemy query statement object 
   - remove specific version dependancy with redis, pymongo 
   - support SQLAlchemy query statement object 
   - aquests.lib moved to new rs4 package, and aquests.lib has been removed
