@@ -13,13 +13,7 @@ class SynConnect (asynpsycopg2.AsynConnect, dbconnect.DBConnect):
 		dbconnect.DBConnect.__init__ (self, address, params, lock, logger)
 		self.connected = False
 		self.conn = None
-		self.cur = None
-		try:
-			from sqlalchemy.dialects import sqlite
-		except ImportError:
-			self.dialect = None
-		else:
-			self.dialect = sqlite.dialect ()	
+		self.cur = None		
 	
 	def close_if_over_keep_live (self):
 		# doesn't need disconnect with local file

@@ -30,12 +30,6 @@ else:
 			dbconnect.AsynDBConnect.__init__ (self, address, params, lock, logger)			
 			self.conn = None
 			self.cur = None			
-			try:
-				from sqlalchemy.dialects import postgresql
-			except ImportError:
-				self.dialect = None
-			else:
-				self.dialect = postgresql.dialect ()						
 			asyncore.dispatcher.__init__ (self)
 
 		def retry (self, request):
@@ -193,17 +187,7 @@ else:
 				self.del_channel ()
 		
 		def _compile (self, request):
-			statement = request.params [0]
-			sql = ''
-			if isinstance(statement, str):
-				sql = statement
-			elif self.dialect:
-				# sqlalchemy ClauseElement
-				try:
-					sql = str (statement.compile (dialect = self.dialect, compile_kwargs = {"literal_binds": True}))
-				except:
-					self.handle_error ()
-					return									
+			sql = request.params [0]			
 			if not sql.strip ():
 				self.handle_close (dbconnect.SQLError ("Empty SQL statement"))
 				return				
