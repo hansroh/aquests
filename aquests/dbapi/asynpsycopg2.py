@@ -188,9 +188,12 @@ else:
 		
 		def _compile (self, request):
 			sql = request.params [0]			
-			if not sql.strip ():
-				self.handle_close (dbconnect.SQLError ("Empty SQL statement"))
-				return				
+			try:
+				sql = sql.strip ()
+			except AttributeError:				
+				return self.handle_close (dbconnect.SQLError ("Invalid SQL"))				
+			if not sql:
+				return self.handle_close (dbconnect.SQLError ("Empty SQL"))				
 			return sql
 		
 		def begin_tran (self, request):
