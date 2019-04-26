@@ -381,6 +381,12 @@ class Response:
 				return msgs [0]
 			return msgs
 		
+		elif ct.startswith ('text/'):
+			return self.text
+
+		else:
+			return self.binary
+		
 		self.__data_cache = result	
 		return result
 	
