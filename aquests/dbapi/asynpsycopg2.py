@@ -191,23 +191,17 @@ else:
 			try:
 				sql = sql.strip ()
 			except AttributeError:				
-				return self.handle_close (dbconnect.SQLError ("Invalid SQL"))				
+				raise dbconnect.SQLError ("Invalid SQL")
 			if not sql:
-				return self.handle_close (dbconnect.SQLError ("Empty SQL"))				
+				raise dbconnect.SQLError ("Empty SQL")
 			return sql
 		
 		def begin_tran (self, request):
-			if not dbconnect.DBConnect.begin_tran (self, request):
-				return False
-			sql = self._compile (request)
-			if not sql: 
-				return False
-			self.out_buffer = sql
-			return True
+			dbconnect.DBConnect.begin_tran (self, request)				
+			self.out_buffer = self._compile (request)			 
 			
 		def execute (self, request):		
-			if not self.begin_tran (request):
-				return	
+			self.begin_tran (request)			
 			if not self.connected:
 				self.connect ()
 			else:

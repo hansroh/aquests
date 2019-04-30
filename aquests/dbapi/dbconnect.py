@@ -207,11 +207,7 @@ class DBConnect:
 						
 	def begin_tran (self, request):
 		if self.__no_more_request:			
-			try: 
-				raise OperationalError ("Entered Shutdown Process")
-			except: 
-				self.handle_error ()
-				return False
+			raise OperationalError ("Entered Shutdown Process")			
 		self.request = request	
 		self.__history = []
 		self.out_buffer = ''
@@ -219,8 +215,7 @@ class DBConnect:
 		self.expt = None		
 		self.execute_count += 1
 		self.close_if_over_keep_live ()
-		self.set_event_time ()
-		return True
+		self.set_event_time ()		
 		
 	def execute (self, request):		
 		self.begin_tran (request)		

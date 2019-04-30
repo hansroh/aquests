@@ -245,13 +245,11 @@ class AsynConnect (asynredis.AsynConnect):
         self.push_command (msg)
     
     def begin_tran (self, request):
-        if not asynredis.AsynConnect.begin_tran (self, request):
-            return False
+        asynredis.AsynConnect.begin_tran (self, request)            
         self.response = None
         self.last_command = request.method.lower ()
         self.preserve_cursor = False
-        self.data = []
-        return True
+        self.data = []        
     
     REQ_OPS_OF_WIRE_PROTOCOL = (
         "find", "findone", "findall", 
@@ -264,7 +262,6 @@ class AsynConnect (asynredis.AsynConnect):
         command = request.method.lower ()
         if command not in self.REQ_OPS_OF_WIRE_PROTOCOL:
             raise NotImplementedError ("Command %s Not Impemented" % command)
-
         self.begin_tran (request)        
         getattr (self, command) (*request.params)
         self.set_terminator (16)

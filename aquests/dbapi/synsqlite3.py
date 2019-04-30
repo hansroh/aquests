@@ -48,11 +48,9 @@ class SynConnect (asynpsycopg2.AsynConnect, dbconnect.DBConnect):
 			self.connected = True
 						
 	def execute (self, request):
-		if not dbconnect.DBConnect.begin_tran (self, request):
-			return
-		sql = self._compile (request)		
-		if not sql: return
-						
+		dbconnect.DBConnect.begin_tran (self, request)			
+		sql = self._compile (request)
+		
 		if not self.connected:
 			self.connect ()
 			self.conn.isolation_level = None

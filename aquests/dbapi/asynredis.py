@@ -30,7 +30,7 @@ class AsynConnect (dbconnect.AsynDBConnect, asynchat.async_chat):
 		self.logger ("[info] ..dbo %s:%d has been closed" % self.address)
 		
 	def handle_connect (self):
-		self.set_event_time ()
+		self.set_event_time ()		
 		if self.user:			
 			self.push_command ('AUTH', self.password)		
 	
@@ -38,6 +38,7 @@ class AsynConnect (dbconnect.AsynDBConnect, asynchat.async_chat):
 		self.set_event_time ()
 		self.last_command = args [0].upper ()
 		command = self.redis.pack_command (self.last_command, *args [1:])		
+
 		if isinstance(command, list):
 			command = b"".join (command)		
 		self.push (command)
@@ -131,10 +132,10 @@ class AsynConnect (dbconnect.AsynDBConnect, asynchat.async_chat):
 		if not self.num_elements:
 			self.has_result = True
 			self.close_case_with_end_tran ()
-		
+
 	def close_case (self):
 		if self.request:
-			self.request.handle_result (None, self.exception_class, self.exception_str, self.fetchall ())
+			self.request.handle_result (None, self.expt, self.fetchall ())
 			self.request = None
 		self.set_active (False)
 	
@@ -143,18 +144,16 @@ class AsynConnect (dbconnect.AsynDBConnect, asynchat.async_chat):
 			self.del_channel ()
 		
 	def begin_tran (self, request):
-		if not dbconnect.AsynDBConnect.begin_tran (self, request):
-			return False
+		dbconnect.AsynDBConnect.begin_tran (self, request)			
 		self.response = [[]]
 		self.data = []
 		self.length = -1
 		self.num_elements = [0]
-		self.last_command = None
-		return True		
+		self.last_command = None		
 						
 	def execute (self, request):
-		if self.begin_tran (request):
-			return
+		self.begin_tran (request)
+		xx		
 		# SHOULD push before adding to map, otherwise raised threading collision
 		self.push_command (request.method, *request.params)
 		self.set_terminator (LINE_FEED)
