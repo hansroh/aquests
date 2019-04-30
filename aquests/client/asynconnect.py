@@ -38,7 +38,7 @@ class AsynConnect (asynchat.async_chat):
 		self.address = address
 		self.lock = lock
 		self.logger = logger
-		self._cv = threading.Condition ()		
+		self._cv = threading.Condition ()
 		self.__sendlock = None
 		self.__no_more_request = False
 		self.set_event_time ()
