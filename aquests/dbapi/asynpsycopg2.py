@@ -153,7 +153,7 @@ else:
 						data = None
 				self.request.handle_result (description or None, self.expt, data)					
 				self.request = None				
-			# self.disconnect ()
+			self.has_result = False
 			self.close_cursor ()
 			self.set_active (False)
 			
