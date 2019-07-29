@@ -23,7 +23,7 @@ else:
 	_STATE_OK = (POLL_OK, POLL_WRITE, POLL_READ)
 	_STATE_RETRY = -1
 	_STATE_IGNORE = -2
-	REREY_TEST = True	
+	REREY_TEST = False	
 
 	class AsynConnect (dbconnect.AsynDBConnect, asyncore.dispatcher):
 		def __init__ (self, address, params = None, lock = None, logger = None):

@@ -120,7 +120,7 @@ class async_chat(asyncore.dispatcher):
         except OSError as why:
             self.handle_error()
             return
-
+        
         if isinstance(data, str) and self.use_encoding:
             data = bytes(str, self.encoding)
         self.ac_in_buffer = self.ac_in_buffer + data
