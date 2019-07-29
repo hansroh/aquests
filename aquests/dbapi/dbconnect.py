@@ -3,6 +3,7 @@ import re
 import time 
 import sys 
 import threading
+from ..client.asynconnect import DEFAULT_ZOMBIE_TIMEOUT, DEFAULT_KEEP_ALIVE
 
 DEBUG = False
 
@@ -13,8 +14,8 @@ class SQLError (Exception):
 	pass
 	
 class DBConnect:
-	zombie_timeout = 120
-	keep_alive = 120
+	zombie_timeout = DEFAULT_ZOMBIE_TIMEOUT
+	keep_alive = DEFAULT_KEEP_ALIVE
 	
 	def __init__ (self, address, params = None, lock = None, logger = None):
 		self.address = address
@@ -50,12 +51,12 @@ class DBConnect:
 		self.set_event_time ()
 	
 	def close_if_over_keep_live (self):
-		if time.time () - self.event_time > max (self.keep_alive - 10, 5):			
-			self.disconnect ()
+		if time.time () - self.event_time > self.keep_alive:		
+			self.disconnect ()			
 			
-	def set_backend (self, backend_keep_alive = 1200):
+	def set_backend (self, backend_keep_alive = 10):
 		self.backend = True
-		self.keep_alive = backend_keep_alive
+		self.keep_alive = backend_keep_alive		
 		
 	def duplicate (self):
 		new_asyncon = self.__class__ (self.address, self.params, self.lock, self.logger)
@@ -72,11 +73,13 @@ class DBConnect:
 		self.close ()
 		
 	def close (self, deactive = 1):
-		self.request = None
-		addr = type (self.address) is tuple and ("%s:%d" % self.address) or str (self.address)
-		self.logger ("[info] ..dbo %s has been closed" % addr)	
+		addr = type (self.address) is tuple and ("%s:%d" % self.address) or str (self.address)		
 		if deactive:
+			self.logger ("[info] ..dbo %s has been closed" % addr)			
 			self.set_active (False)
+			self.request = None
+		else:
+			self.logger ("[info] ..dbo %s was discoonected or keep alive timeout" % addr)	
 					
 	def get_history (self):
 		return self.__history
@@ -112,9 +115,7 @@ class DBConnect:
 	
 	def disconnect (self):
 		# keep request, just close temporary
-		request = self.request
-		self.close (deactive = 0)
-		self.request = request
+		self.close (deactive = 0)		
 	
 	def close_case (self):
 		raise NotImplementedError

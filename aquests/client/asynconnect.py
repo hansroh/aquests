@@ -19,15 +19,17 @@ from ..protocols.http import respcodes
 import random
 
 DEBUG = 0
-	
+DEFAULT_ZOMBIE_TIMEOUT = 60
+DEFAULT_KEEP_ALIVE = 10
+
 class SocketPanic (Exception): pass
 class TimeOut (Exception): pass
 
 class AsynConnect (asynchat.async_chat):
 	ac_in_buffer_size = 65535
 	ac_out_buffer_size = 65535
-	zombie_timeout = 10
-	keep_alive = 10	
+	zombie_timeout = DEFAULT_ZOMBIE_TIMEOUT
+	keep_alive = DEFAULT_KEEP_ALIVE	
 	request_count = 0
 	active = 0
 	fifo_class = deque
@@ -69,7 +71,7 @@ class AsynConnect (asynchat.async_chat):
 		new_asyncon.keep_connect = self.keep_connect
 		return new_asyncon
 	
-	def set_backend (self, backend_keep_alive = 1200):
+	def set_backend (self, backend_keep_alive = 10):
 		self.backend = True
 		self.keep_alive = backend_keep_alive
 		
@@ -315,7 +317,7 @@ class AsynConnect (asynchat.async_chat):
 				raise
 	
 	def close_if_over_keep_live (self):		
-		if time.time () - self.event_time > max (self.keep_alive - 10, 5):
+		if time.time () - self.event_time > self.keep_alive:
 			self.disconnect ()
 		
 	def set_timeout (self, timeout = 10):

@@ -23,7 +23,7 @@ else:
 	_STATE_OK = (POLL_OK, POLL_WRITE, POLL_READ)
 	_STATE_RETRY = -1
 	_STATE_IGNORE = -2
-	REREY_TEST = False	
+	REREY_TEST = True	
 
 	class AsynConnect (dbconnect.AsynDBConnect, asyncore.dispatcher):
 		def __init__ (self, address, params = None, lock = None, logger = None):
@@ -32,9 +32,10 @@ else:
 			self.cur = None			
 			asyncore.dispatcher.__init__ (self)
 
-		def retry (self, request):
+		def retry (self):
 			self.logger ("[warn] closed psycopg2 connection, retrying...")
-			self.disconnect ()
+			self.disconnect ()			
+			request, self.request = self.request, None
 			self.execute (request)
 			return _STATE_RETRY
 
@@ -47,19 +48,19 @@ else:
 			
 		def poll (self):
 			# 2 cases, if on requesting raise immediatly, else handle silently
-			try:				 
-				if REREY_TEST and self.readable () and self.request.retry_count == 0:
-					raise psycopg2.InterfaceError
+			try:
+				if REREY_TEST and self.writable () and self.request.retry_count == 0:
+					#raise psycopg2.InterfaceError
+					self.disconnect ()
 				return self.socket.poll ()
 			except psycopg2.OperationalError:				
 				if self.request:
 					raise
-			except psycopg2.InterfaceError:				
+			except psycopg2.InterfaceError:							
 				if self.request:
-					request = self.request
-					if request.retry_count == 0:
-						request.retry_count += 1
-						return self.retry (request)
+					if self.request.retry_count == 0:
+						self.request.retry_count += 1
+						return self.retry ()
 					else:
 						raise
 				self.logger.trace ()				
@@ -157,18 +158,18 @@ else:
 			return result
 							
 		def close (self, deactive = 1):
+			asyncore.dispatcher.close (self)
 			if self.cur:
 				try:
 					self.cur.close ()
 				except psycopg2.ProgrammingError:
 					pass						
 				self.cur = None
-			if self.conn:	
+
+			if self.conn:
 				self.conn.close ()
-				self.conn = None	
-				
-			dbconnect.AsynDBConnect.close (self, deactive)
-			asyncore.dispatcher.close (self)
+				self.conn = None
+			dbconnect.AsynDBConnect.close (self, deactive)			
 			
 		def connect (self, force = 0):
 			host, port = self.address		
@@ -179,7 +180,7 @@ else:
 				host = host,
 				port = port,
 				async_ = 1
-			)
+			)			
 			self.set_socket (sock)
 		
 		def end_tran (self):				
@@ -187,7 +188,9 @@ else:
 				self.del_channel ()
 		
 		def _compile (self, request):
-			sql = request.params [0]			
+			sql = request.params [0]
+			if isinstance (sql, (list, tuple)):
+				sql = ";\n".join (map (str, sql)) + ";"
 			try:
 				sql = sql.strip ()
 			except AttributeError:				
@@ -202,7 +205,7 @@ else:
 			
 		def execute (self, request):		
 			self.begin_tran (request)			
-			if not self.connected:
+			if not self.connected:				
 				self.connect ()
 			else:
 				state = self.poll ()
