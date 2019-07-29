@@ -185,8 +185,7 @@ else:
 			self.set_socket (sock)			
 		
 		def end_tran (self):			
-			if not self.backend:
-				self.del_channel ()				
+			pass
 		
 		def _compile (self, request):
 			sql = request.params [0]
