@@ -120,7 +120,9 @@ else:
 				
 		def handle_write (self):
 			state = self.poll ()
-			if state == POLL_OK:				
+			if state == POLL_OK:
+				if not self.cur:
+					self.create_cursor ()				
 				self.set_event_time ()
 				self.cur.execute (self.out_buffer)
 				self.out_buffer = ""
@@ -200,6 +202,7 @@ else:
 		
 		def execute (self, request):		
 			dbconnect.DBConnect.begin_tran (self, request)
+			self.out_buffer = self._compile (request)
 			if not self.connected and not self.connecting:				
 				self.connect ()
 			else:
@@ -207,6 +210,5 @@ else:
 				if state != POLL_OK:
 					self.reconnect ()
 				else:
-					self.create_cursor ()	
-			self.out_buffer = self._compile (request)
+					self.create_cursor ()				
 				
