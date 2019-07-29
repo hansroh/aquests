@@ -19,7 +19,7 @@ else:
 	import asyncore
 	from . import dbconnect
 
-	from psycopg2.extensions import POLL_OK, POLL_WRITE, POLL_READ
+	from psycopg2.extensions import POLL_OK, POLL_READ, POLL_WRITE
 	_STATE_OK = (POLL_OK, POLL_WRITE, POLL_READ)
 	_STATE_RETRY = -1
 	_STATE_IGNORE = -2
@@ -28,19 +28,20 @@ else:
 	class AsynConnect (dbconnect.AsynDBConnect, asyncore.dispatcher):
 		def __init__ (self, address, params = None, lock = None, logger = None):
 			dbconnect.AsynDBConnect.__init__ (self, address, params, lock, logger)			
-			self.conn = None
 			self.cur = None			
 			asyncore.dispatcher.__init__ (self)
 
 		def retry (self):
+			if self.request is None:
+				return
 			self.logger ("[warn] closed psycopg2 connection, retrying...")
-			self.disconnect ()			
+			self.disconnect ()
 			request, self.request = self.request, None
 			self.execute (request)
 			return _STATE_RETRY
 
-		def check_state (self, state):
-			if state == _STATE_RETRY:
+		def check_state (self, state):			
+			if state == _STATE_RETRY:				
 				return
 			if state not in (_STATE_OK):
 				self.logger ("[warn] psycopg2.poll() returned %s" % state)
@@ -52,11 +53,8 @@ else:
 				if REREY_TEST and self.writable () and self.request.retry_count == 0:
 					#raise psycopg2.InterfaceError
 					self.disconnect ()
-				return self.socket.poll ()
-			except psycopg2.OperationalError:				
-				if self.request:
-					raise
-			except psycopg2.InterfaceError:							
+				return self.socket.poll ()			
+			except (psycopg2.OperationalError, psycopg2.InterfaceError):							
 				if self.request:
 					if self.request.retry_count == 0:
 						self.request.retry_count += 1
@@ -108,12 +106,9 @@ else:
 		def handle_expt (self):
 			self.handle_close (psycopg2.OperationalError ("Socket Panic"))
 			
-		def handle_connect (self):
-			self.del_channel ()
-			self.conn = self.socket
-			self.cur = self.conn.cursor()		
-			self.set_socket (self.cur.connection)
-	
+		def handle_connect (self):			
+			self.create_cursor ()
+			
 		def handle_read (self):
 			state = self.poll ()			
 			if self.cur and state == POLL_OK:
@@ -123,10 +118,10 @@ else:
 			else:
 				self.check_state (state)
 				
-		def handle_write (self):
+		def handle_write (self):			
 			state = self.poll ()
 			if self.cur and state == POLL_OK:
-				self.set_event_time ()				
+				self.set_event_time ()
 				self.cur.execute (self.out_buffer)
 				self.out_buffer = ""
 			else:				
@@ -135,40 +130,44 @@ else:
 		#-----------------------------------
 		# Overriden
 		#-----------------------------------
+		def create_cursor (self):
+			if self.cur is None:				
+				self.cur = self.socket.cursor ()						
+
+		def close_cursor (self):
+			if self.cur:
+				self.cur.close ()
+				self.cur = None				
+
 		def close_case (self):			
 			if self.request:
-				if self.has_result and self.cur.description:					
-					self.request.handle_result (self.cur.description, self.expt, self.fetchall ())					
-				else:
-					self.request.handle_result (None, self.expt, None)
-					self.has_result = False
-				self.request = None
+				description, data = self.cur and self.cur.description or None, None
+				if description:
+					try:
+						data = self.fetchall ()
+					except:
+						self.logger.trace ()
+						self.expt = asyncore.compact_traceback () [2]						
+						data = None
+				self.request.handle_result (description or None, self.expt, data)					
+				self.request = None				
+			# self.disconnect ()
+			self.close_cursor ()
 			self.set_active (False)
 			
-		def empty_cursor (self):
-			if self.has_result:
+		def empty_cursor (self):		
+			if self.cur and self.cur.description:
 				try:
 					self.fetchall ()
 				except psycopg2.ProgrammingError:
 					pass				
-		
+	
 		def fetchall (self):
-			result = self.cur.fetchall ()
-			self.has_result = False
-			return result
+			return self.cur.fetchall ()				
 							
-		def close (self, deactive = 1):
+		def close (self, deactive = 1):					
 			asyncore.dispatcher.close (self)
-			if self.cur:
-				try:
-					self.cur.close ()
-				except psycopg2.ProgrammingError:
-					pass						
-				self.cur = None
-
-			if self.conn:
-				self.conn.close ()
-				self.conn = None
+			self.close_cursor ()
 			dbconnect.AsynDBConnect.close (self, deactive)			
 			
 		def connect (self, force = 0):
@@ -181,11 +180,11 @@ else:
 				port = port,
 				async_ = 1
 			)			
-			self.set_socket (sock)
+			self.set_socket (sock)			
 		
-		def end_tran (self):				
+		def end_tran (self):			
 			if not self.backend:
-				self.del_channel ()
+				self.del_channel ()				
 		
 		def _compile (self, request):
 			sql = request.params [0]
@@ -205,11 +204,11 @@ else:
 			
 		def execute (self, request):		
 			self.begin_tran (request)			
-			if not self.connected:				
+			if not self.connected and not self.connecting:				
 				self.connect ()
 			else:
 				state = self.poll ()
 				if state != POLL_OK:
 					self.reconnect ()
-				elif not self.backend:
-					self.add_channel ()
+				else:
+					self.create_cursor ()

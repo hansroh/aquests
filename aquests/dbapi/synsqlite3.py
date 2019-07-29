@@ -40,8 +40,7 @@ class SynConnect (asynpsycopg2.AsynConnect, dbconnect.DBConnect):
 				
 	def connect (self):
 		try:
-			self.conn = sqlite3.connect (self.address, check_same_thread = False)
-			self.cur = self.conn.cursor ()
+			self.conn = sqlite3.connect (self.address, check_same_thread = False)			
 		except:
 			self.handle_error ()
 		else:	
@@ -56,13 +55,18 @@ class SynConnect (asynpsycopg2.AsynConnect, dbconnect.DBConnect):
 			self.conn.isolation_level = None
 				
 		try:
+			if self.cur is None:
+				self.cur = self.conn.cursor ()
+
 			if len (request.params) > 1 or sql [:7].lower () == "select ":
 				self.cur.execute (sql, *request.params [1:])
 			else:			
 				self.cur.executescript (sql)
 		except:
 			self.handle_error ()
-		else:
-			self.has_result = True
+		else:			
 			self.close_case ()
+
+		self.cur.close ()
+		self.cur = None				
 		
