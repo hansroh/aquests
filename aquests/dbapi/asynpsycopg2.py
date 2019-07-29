@@ -183,8 +183,7 @@ else:
 			self.set_socket (sock)			
 		
 		def end_tran (self):			
-			if not self.backend:
-				self.del_channel ()				
+			pass
 		
 		def _compile (self, request):
 			sql = request.params [0]
@@ -209,4 +208,3 @@ else:
 				else:
 					self.create_cursor ()	
 			self.out_buffer = self._compile (request)
-				
