@@ -118,9 +118,9 @@ else:
 			else:
 				self.check_state (state)
 				
-		def handle_write (self):			
+		def handle_write (self):
 			state = self.poll ()
-			if self.cur and state == POLL_OK:
+			if state == POLL_OK:				
 				self.set_event_time ()
 				self.cur.execute (self.out_buffer)
 				self.out_buffer = ""
@@ -198,12 +198,8 @@ else:
 				raise dbconnect.SQLError ("Empty SQL")
 			return sql
 		
-		def begin_tran (self, request):
-			dbconnect.DBConnect.begin_tran (self, request)				
-			self.out_buffer = self._compile (request)			 
-			
 		def execute (self, request):		
-			self.begin_tran (request)			
+			dbconnect.DBConnect.begin_tran (self, request)
 			if not self.connected and not self.connecting:				
 				self.connect ()
 			else:
@@ -211,4 +207,6 @@ else:
 				if state != POLL_OK:
 					self.reconnect ()
 				else:
-					self.create_cursor ()
+					self.create_cursor ()	
+			self.out_buffer = self._compile (request)
+				
