@@ -20,7 +20,7 @@ import random
 
 DEBUG = 0
 DEFAULT_ZOMBIE_TIMEOUT = 60
-DEFAULT_KEEP_ALIVE = 10
+DEFAULT_KEEP_ALIVE = 2
 
 class SocketPanic (Exception): pass
 class TimeOut (Exception): pass

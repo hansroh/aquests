@@ -42,7 +42,6 @@ class DBConnect:
 		
 		# need if there's not any request yet
 		self.active = 0
-		self.retried = 0
 		self.request = None
 		self.has_result = False
 		self.__history = []
@@ -79,7 +78,7 @@ class DBConnect:
 			self.set_active (False)
 			self.request = None
 		else:
-			self.logger ("[info] ..dbo %s was discoonected or keep alive timeout" % addr)	
+			self.logger ("[info] ..dbo %s was disconnected or keep alive timeout" % addr)	
 					
 	def get_history (self):
 		return self.__history
@@ -122,8 +121,7 @@ class DBConnect:
 			
 	def set_active (self, flag, nolock = False):
 		if not flag: 
-			self.set_timeout (self.keep_alive)
-			self.retried = 0
+			self.set_timeout (self.keep_alive)			
 			
 		if flag:
 			flag = time.time ()
@@ -176,12 +174,6 @@ class DBConnect:
 		self.handle_close (v)
 	
 	def handle_close (self, expt = None):
-		if not expt and not self.retried:			
-			self.disconnect ()
-			self.retried = 1
-			self.execute (self.request)			
-			return
-		
 		if self.expt is None:	
 			self.expt = expt
 		self.close_case_with_end_tran ()
