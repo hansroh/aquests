@@ -66,7 +66,4 @@ class SynConnect (asynpsycopg2.AsynConnect, dbconnect.DBConnect):
 			self.handle_error ()
 		else:			
 			self.close_case ()
-
-		self.cur.close ()
-		self.cur = None				
 		
