@@ -40,7 +40,7 @@ else:
 			self.execute (request)
 			return _STATE_RETRY
 
-		def check_state (self, state):			
+		def check_state (self, state):
 			if state == _STATE_RETRY:				
 				return
 			if state not in (_STATE_OK):
@@ -53,7 +53,7 @@ else:
 				if REREY_TEST and self.writable () and self.request.retry_count == 0:
 					#raise psycopg2.InterfaceError
 					self.disconnect ()
-				return self.socket.poll ()			
+				return self.socket.poll ()
 			except (psycopg2.OperationalError, psycopg2.InterfaceError):							
 				if self.request:
 					if self.request.retry_count == 0:
@@ -133,13 +133,19 @@ else:
 		# Overriden
 		#-----------------------------------
 		def create_cursor (self):
-			if self.cur is None:				
-				self.cur = self.socket.cursor ()						
+			if self.cur is None:
+				try:
+					self.cur = self.socket.cursor ()						
+				except:
+					self.handle_error ()
 
 		def close_cursor (self):
 			if self.cur:
-				self.cur.close ()
-				self.cur = None				
+				try:
+					self.cur.close ()
+					self.cur = None				
+				except:
+					self.handle_error ()
 
 		def close_case (self):			
 			if self.request:

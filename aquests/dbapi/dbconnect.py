@@ -50,7 +50,7 @@ class DBConnect:
 		self.set_event_time ()
 	
 	def close_if_over_keep_live (self):
-		if time.time () - self.event_time > self.keep_alive:		
+		if self.connected and time.time () - self.event_time > self.keep_alive:		
 			self.disconnect ()			
 			
 	def set_backend (self, backend_keep_alive = 10):
@@ -78,8 +78,8 @@ class DBConnect:
 			self.set_active (False)
 			self.request = None
 		else:
-			self.logger ("[info] ..dbo %s was disconnected or keep alive timeout" % addr)	
-					
+			self.logger ("[info] ..dbo %s was disconnected or keep alive timeout" % addr)		
+
 	def get_history (self):
 		return self.__history
 		
@@ -97,7 +97,14 @@ class DBConnect:
 			self.fetchall ()			
 	
 	def maintern (self, object_timeout):
-		raise NotImplementedError
+		# when in map, mainteren by lifetime with zombie_timeout
+		if self.is_channel_in_map ():
+			return False
+		idle = time.time () - self.event_time		
+		if idle > object_timeout:				
+			self.close (1)
+			return True # deletable
+		return False
 	
 	def reconnect (self):
 		self.disconnect ()
@@ -212,16 +219,6 @@ class AsynDBConnect (DBConnect):
 		if map is None:
 			map = self._map
 		return self._fileno in map
-
-	def maintern (self, object_timeout):
-		# when in map, mainteren by lifetime with zombie_timeout
-		if self.is_channel_in_map ():
-			return False
-		idle = time.time () - self.event_time		
-		if idle > object_timeout:				
-			self.close (1)
-			return True # deletable
-		return False
 
 	def del_channel (self, map=None):
 		# do not remove self._fileno
