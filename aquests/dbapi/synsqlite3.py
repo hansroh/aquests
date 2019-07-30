@@ -21,6 +21,9 @@ class SynConnect (asynpsycopg2.AsynConnect, dbconnect.DBConnect):
 			
 	def is_channel_in_map (self, map = None):
 		return False
+
+	def del_channel (self, map=None):
+		pass
 			
 	def close (self, deactive = 1):	
 		if self.cur:
@@ -31,9 +34,6 @@ class SynConnect (asynpsycopg2.AsynConnect, dbconnect.DBConnect):
 			self.conn = None	
 		self.connected = False	
 		dbconnect.DBConnect.close (self, deactive)
-	
-	def del_channel (self, map=None):
-		pass
 				
 	def close_case (self):
 		asynpsycopg2.AsynConnect.close_case (self)
@@ -60,6 +60,7 @@ class SynConnect (asynpsycopg2.AsynConnect, dbconnect.DBConnect):
 
 			if len (request.params) > 1 or sql [:7].lower () == "select ":
 				self.cur.execute (sql, *request.params [1:])
+				self.has_result = True
 			else:			
 				self.cur.executescript (sql)
 		except:

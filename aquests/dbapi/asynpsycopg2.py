@@ -153,7 +153,6 @@ else:
 						data = None
 				self.request.handle_result (description or None, self.expt, data)					
 				self.request = None				
-			self.has_result = False
 			self.close_cursor ()
 			self.set_active (False)
 			
@@ -165,11 +164,13 @@ else:
 					pass				
 	
 		def fetchall (self):
-			return self.cur.fetchall ()				
-							
+			data = self.cur.fetchall ()				
+			self.result = False
+			return data
+
 		def close (self, deactive = 1):					
-			asyncore.dispatcher.close (self)
 			self.close_cursor ()
+			asyncore.dispatcher.close (self)			
 			dbconnect.AsynDBConnect.close (self, deactive)			
 			
 		def connect (self, force = 0):

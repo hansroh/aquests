@@ -179,8 +179,7 @@ class AsynConnect (asynredis.AsynConnect):
         
     def fetchall (self):
         r = self.response
-        self.response = None
-        self.has_result = False
+        self.response = None        
         return r
     
     def __query (self, colname, spec, offset = 0, limit = 1):

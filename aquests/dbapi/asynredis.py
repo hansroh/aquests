@@ -59,8 +59,7 @@ class AsynConnect (dbconnect.AsynDBConnect, asynchat.async_chat):
 			res = self.response [0][0]
 		except IndexError:
 			res = None
-		self.response = []
-		self.has_result = False
+		self.response = []		
 		return res
 	
 	def add_element (self, e):

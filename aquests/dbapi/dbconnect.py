@@ -97,16 +97,7 @@ class DBConnect:
 			self.fetchall ()			
 	
 	def maintern (self, object_timeout):
-		# query done but not used
-		if self.has_result and self.isactive () and time.time () - self.event_time > self.zombie_timeout:			
-			self.empty_cursor ()
-			self.set_active (False)
-			
-		if time.time () - self.event_time > object_timeout:
-			if not self.isactive ():
-				self.disconnect ()
-				return True # deletable
-		return False	
+		raise NotImplementedError
 	
 	def reconnect (self):
 		self.disconnect ()
@@ -132,10 +123,11 @@ class DBConnect:
 			self.active = flag
 			return
 		
-		self.lock.acquire ()
-		self.active = flag
-		self.request_count += 1		
-		self.lock.release ()
+		with self.lock:
+			self.active = flag
+			self.request_count += 1		
+			if not flag:
+				self.has_result = False		
 	
 	def get_active (self, nolock = False):
 		if nolock or self.lock is None:
@@ -220,13 +212,17 @@ class AsynDBConnect (DBConnect):
 		if map is None:
 			map = self._map
 		return self._fileno in map
-	
+
 	def maintern (self, object_timeout):
 		# when in map, mainteren by lifetime with zombie_timeout
 		if self.is_channel_in_map ():
 			return False
-		return DBConnect.maintern (self, object_timeout)
-		
+		idle = time.time () - self.event_time		
+		if idle > object_timeout:				
+			self.close (1)
+			return True # deletable
+		return False
+
 	def del_channel (self, map=None):
 		# do not remove self._fileno
 		fd = self._fileno
