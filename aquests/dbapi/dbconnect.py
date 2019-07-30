@@ -77,8 +77,8 @@ class DBConnect:
 			self.logger ("[info] ..dbo %s has been closed" % addr)			
 			self.set_active (False)
 			self.request = None
-		else:
-			self.logger ("[info] ..dbo %s was disconnected or keep alive timeout" % addr)		
+		#else:
+		#	self.logger ("[info] ..dbo %s was disconnected or keep alive timeout" % addr)		
 
 	def get_history (self):
 		return self.__history

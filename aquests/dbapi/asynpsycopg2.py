@@ -28,12 +28,14 @@ else:
 	class AsynConnect (dbconnect.AsynDBConnect, asyncore.dispatcher):
 		def __init__ (self, address, params = None, lock = None, logger = None):
 			dbconnect.AsynDBConnect.__init__ (self, address, params, lock, logger)			
-			self.cur = None			
+			self.cur = None
+			self.retries = 0
 			asyncore.dispatcher.__init__ (self)
 
 		def retry (self):
 			if self.request is None:
 				return
+			self.retries += 1	
 			self.logger ("[warn] closed psycopg2 connection, retrying...")
 			self.disconnect ()
 			request, self.request = self.request, None
@@ -54,7 +56,7 @@ else:
 					#raise psycopg2.InterfaceError
 					self.disconnect ()
 				return self.socket.poll ()
-			except (psycopg2.OperationalError, psycopg2.InterfaceError):							
+			except (psycopg2.OperationalError, psycopg2.InterfaceError):
 				if self.request:
 					if self.request.retry_count == 0:
 						self.request.retry_count += 1
@@ -217,4 +219,3 @@ else:
 					self.reconnect ()
 				else:
 					self.create_cursor ()				
-				
