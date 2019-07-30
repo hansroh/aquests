@@ -144,10 +144,10 @@ else:
 		def close_cursor (self):
 			if self.cur:
 				try:
-					self.cur.close ()
-					self.cur = None				
+					self.cur.close ()							
 				except:
-					self.handle_error ()
+					self.logger.trace ()
+				self.cur = None	
 
 		def close_case (self):
 			if self.request:
