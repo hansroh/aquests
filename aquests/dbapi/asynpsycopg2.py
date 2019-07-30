@@ -149,7 +149,7 @@ else:
 				except:
 					self.handle_error ()
 
-		def close_case (self):			
+		def close_case (self):
 			if self.request:
 				description, data = self.cur and self.cur.description or None, None
 				if description:
@@ -163,14 +163,7 @@ else:
 				self.request = None				
 			self.close_cursor ()
 			self.set_active (False)
-			
-		def empty_cursor (self):		
-			if self.cur and self.cur.description:
-				try:
-					self.fetchall ()
-				except psycopg2.ProgrammingError:
-					pass				
-	
+		
 		def fetchall (self):
 			data = self.cur.fetchall ()				
 			self.result = False

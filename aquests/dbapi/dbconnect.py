@@ -92,10 +92,6 @@ class DBConnect:
 			self.__no_more_request = False
 			return 0
 	
-	def empty_cursor (self):
-		if self.has_result:
-			self.fetchall ()			
-	
 	def maintern (self, object_timeout):
 		# when in map, mainteren by lifetime with zombie_timeout
 		if self.is_channel_in_map ():
