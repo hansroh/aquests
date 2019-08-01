@@ -1,5 +1,5 @@
 ﻿import threading, random
-from . import asynconnect
+from . import asynconnect, synconnect
 import time
 try:
 	from urllib.parse import urlparse
@@ -36,7 +36,9 @@ def select_channel (asyncons):
 class SocketPool:
 	object_timeout = 120
 	maintern_interval = 30
-	
+	use_syn_connection = False
+	ctype = None
+
 	def __init__ (self, logger, backend = False, use_pool = True):
 		self.__socketfarm = {}
 		self.__protos = {}
@@ -190,6 +192,9 @@ class SocketPool:
 			__conn_class = asynconnect.AsynConnect
 			__dft_Port = 80
 		
+		if self.use_syn_connection and scheme in ("https", "http"):		
+			__conn_class = synconnect.SynConnect			
+
 		try:
 			addr, port = server.split (":", 1)
 			port = int (port)

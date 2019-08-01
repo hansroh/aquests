@@ -1,11 +1,20 @@
 import threading
 import time
-from . import asynpsycopg2, asynredis, synsqlite3, asynmongo
+from . import asynpsycopg2, asynredis, synsqlite3, asynmongo, syndbi
 from ..client import socketpool
-from . import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB
+from . import DB_PGSQL, DB_SQLITE3, DB_REDIS, DB_MONGODB, DB_SYN_PGSQL, DB_SYN_MONGODB, DB_SYN_REDIS
 
 class DBPool (socketpool.SocketPool):
-		
+	class_map = {
+        DB_SQLITE3: synsqlite3.SynConnect,
+        DB_PGSQL: asynpsycopg2.AsynConnect,        
+        DB_REDIS: asynredis.AsynConnect,
+        DB_MONGODB: asynmongo.AsynConnect,
+        DB_SYN_PGSQL: syndbi.Postgres,
+        DB_SYN_REDIS: syndbi.Redis,
+        DB_SYN_MONGODB: syndbi.MongoDB,
+    }
+
 	def get_name (self):
 		return "__dbpool__"
 			
@@ -27,14 +36,10 @@ class DBPool (socketpool.SocketPool):
 		elif params [1] in (DB_MONGODB, DB_PGSQL):	
 			dbtype = params [1]
 			params = (params [0], "", params [2])
-			
-		if dbtype == DB_REDIS:
-			con_class = asynredis.AsynConnect 
-		elif dbtype == DB_MONGODB:			
-			con_class = asynmongo.AsynConnect
-		elif dbtype == DB_PGSQL:
-			con_class = asynpsycopg2.AsynConnect
-		else:
+
+		try:
+			con_class = self.class_map [dbtype]	
+		except KeyError:	
 			raise ValueError ("Unknown database type: {}".format (dbtype))	
 		asyncon = con_class ((host, port), params, self.lock, self.logger)
 		self.backend and asyncon.set_backend ()
