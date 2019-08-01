@@ -175,7 +175,7 @@ class SocketPool:
 		asyncon.set_active (True)		
 		return asyncon
 	
-	def create_asyncon (self, server, scheme):
+	def create_asyncon (self, server, scheme):		
 		if scheme in ("https", "wss"):
 			__conn_class = asynconnect.AsynSSLConnect
 			__dft_Port = 443
@@ -191,10 +191,12 @@ class SocketPool:
 		else:
 			__conn_class = asynconnect.AsynConnect
 			__dft_Port = 80
-		
-		if self.use_syn_connection and scheme in ("https", "http"):		
-			__conn_class = synconnect.SynConnect			
 
+		if self.use_syn_connection:
+			if scheme == "https":
+				__conn_class = synconnect.SynSSLConnect
+			elif scheme == "http":	
+				__conn_class = synconnect.SynConnect
 		try:
 			addr, port = server.split (":", 1)
 			port = int (port)

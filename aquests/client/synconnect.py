@@ -8,7 +8,7 @@ class SynConnect (asynconnect.AsynConnect):
     proxy = False
     _proto = None
     
-    def __init__ (self, address, lock = None, logger = None):
+    def __init__ (self, address, lock = None, logger = None):        
         self.address = address
         self.lock = lock
         self.logger = logger 
@@ -17,8 +17,8 @@ class SynConnect (asynconnect.AsynConnect):
 
         self.endpoint = "{}://{}".format (self.ssl and 'https' or 'http', self.address [0])
         port = self.address [1]
-        if not ((self.ssl and port != 443) or (not self.ssl and port != 80)):
-            self.endpoint += ":{}".format (port)                
+        if not ((self.ssl and port == 443) or (not self.ssl and port == 80)):
+            self.endpoint += ":{}".format (port)        
         self.connected = False
 
     def set_auth (self, auth):

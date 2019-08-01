@@ -269,7 +269,7 @@ class AsynConnect (asynchat.async_chat):
 		else:	
 			port = self.address [1]
 		
-		self.create_socket (socket.AF_INET, socket.SOCK_STREAM)
+		self.create_socket (socket.AF_INET, socket.SOCK_STREAM)		
 		try: 
 			asynchat.async_chat.connect (self, (ipaddr, port))
 		except:	
