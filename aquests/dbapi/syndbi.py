@@ -33,8 +33,9 @@ class Postgres (SynConnect):
         try:
             if self.cur is None:
                 self.cur = self.conn.cursor ()
-                self.cur.execute (sql, *request.params [1:])
-                self.has_result = True
+            sql = self._compile (request)
+            self.cur.execute (sql, *request.params [1:])      
+            self.has_result = True        
         except:
             self.handle_error ()
         else:            
@@ -42,10 +43,6 @@ class Postgres (SynConnect):
 
 
 class Redis (Postgres):
-    def connect (self):
-        host, port = self.address
-        self.conn = redis.Redis (host = host, port = port, db = self.dbname)
-
     def close (self, deactive = 1):    
         if self.conn:    
             self.conn.close ()            
@@ -53,29 +50,42 @@ class Redis (Postgres):
         self.connected = False    
         DBConnect.close (self, deactive)
 
-    def _fetchall (self, command):
+    def close_case (self):
+        if self.request:
+            self.request.handle_result (None, self.expt, self.fetchall ())
+            self.request = None
+        self.set_active (False)
+
+    def connect (self):
+        host, port = self.address
+        self.conn = redis.Redis (host = host, port = port, db = self.dbname)
+
+    def fetchall (self):
+        result, self.response = self.response, None
+        return result
+
+    def prefetch (self):
+        self.response = [[]]
+        self.response = getattr (self.conn, self.request.method) (*self.request.params)
+        self.has_result = True
+
+    def execute (self, request):
+        DBConnect.begin_tran (self, request)
         try:
-            resp = getattr (self.conn, command) (*self.request.params)
+            if not self.connected:
+                self.connect ()
+            self.prefetch ()            
         except:
             self.handle_error ()
         else:            
             self.close_case ()
-        self.has_result = False    
-        return resp
-
-    def fetchall (self):
-        return self._fetchall (self.request.method)
-
-    def execute (self, request):
-        DBConnect.begin_tran (self, request)            
-        if not self.connected:
-            self.has_result = True
-            self.connect ()
 
 
 class MongoDB (Redis):
-    def fetchall (self):
-        return self._fetchall (self.request.method.lower ())        
+    def prefetch (self):
+        self.response = None
+        self.response = getattr (self.conn [self.request.dbname], self.request.method.lower ()) (*self.request.params)                 
+        self.has_result = True
 
     def connect (self):
         user, password = "", ""
@@ -91,4 +101,4 @@ class MongoDB (Redis):
         if user: kargs ["username"] = user
         if password: kargs ["password"] = password        
         if port: kargs ["port"] = port        
-        self.conn = pymongo.MongoClient (host = host, **kargs)
+        self.conn = pymongo.MongoClient (host = host, **kargs)        
