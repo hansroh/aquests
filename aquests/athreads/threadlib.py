@@ -23,12 +23,11 @@ class request_thread (threading.Thread):
 		while 1:		
 			job = self.queue.get ()		
 			if job is None: break			
-			self.lock.acquire ()
-			self.idle = 0
-			self.command = str (job)
-			self.lock.release ()
-			start_time = time.time()
+			with self.lock:
+				self.idle = 0
+				self.command = str (job)
 			
+			start_time = time.time()			
 			try:
 				job ()
 			except MemoryError:
@@ -38,10 +37,9 @@ class request_thread (threading.Thread):
 				self.logger.trace ("thread #%d" % self.id)
 				
 			exc_time = time.time() - start_time
-			self.lock.acquire ()
-			self.exec_time = exc_time
-			self.idle = 1
-			self.lock.release ()
+			with self.lock:
+				self.exec_time = exc_time
+				self.idle = 1				
 			del job
 			
 	def getId (self):
@@ -61,7 +59,8 @@ class request_thread (threading.Thread):
 			"command":	command,
 			"exec_time": "%d ms" % (exec_time * 1000,)
 		}
-		
+
+
 class thread_pool:	
 	def __init__ (self, queue, child, logger):
 		self.tpool = {}
@@ -93,28 +92,23 @@ class request_queue:
 		self.queue = []
 
 	def put(self, item, prior = 0):		
-		self.cv.acquire()
-		if prior:
-			self.queue.insert (0, item)
-		else:
-			self.queue.append (item)
-		self.cv.notify ()
-		self.cv.release ()		
-		#print(self.queue)
+		with self.cv:
+			if prior:
+				self.queue.insert (0, item)
+			else:
+				self.queue.append (item)
+			self.cv.notify ()		
 		
 	def get (self):
-		self.cv.acquire()
-		while not self.queue:
-			self.cv.wait()
-		if self.queue:
-			item = self.queue.pop(0)
-		self.cv.release()
+		with self.cv:
+			while not self.queue:
+				self.cv.wait()
+			item = self.queue.pop(0)		
 		return item
 	
 	def cleanup (self):
-		self.cv.acquire()
-		self.queue = []
-		self.cv.release()
+		with self.cv:
+			self.queue = []		
 	
 	def status(self):
 		return {
@@ -143,17 +137,15 @@ class request_queue2 (queue.Queue):
 	
 	def put(self, item, block=True, timeout=None):
 		qsize = self.qsize ()
-		self.mutex.acquire()
-		if qsize > self.maxq:
-			self.maxq = qsize
-		self.mutex.release()
+		with self.mutex:
+			if qsize > self.maxq:
+				self.maxq = qsize		
 		queue.Queue.put (self, item, block, timeout)		
 			
 	def status(self):
-		self.mutex.acquire()
-		qsize = len (self.queue)
-		maxq = self.maxq
-		self.mutex.release()
+		with self.mutex:
+			qsize = len (self.queue)
+			maxq = self.maxq
 		
 		return {
 			"qsize": qsize,

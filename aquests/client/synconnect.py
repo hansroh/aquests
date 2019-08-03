@@ -1,19 +1,20 @@
 from . import asynconnect
 from rs4 import webtest
 import threading
-# testing purpose WAS sync service
+import time
 
 class SynConnect (asynconnect.AsynConnect):
     ssl = False
     proxy = False
-    _proto = None
-    
+       
     def __init__ (self, address, lock = None, logger = None):        
         self.address = address
         self.lock = lock
         self.logger = logger 
         self._cv = threading.Condition ()
         self.auth = None
+        self.set_event_time ()
+        self.initialize_connection ()
 
         self.endpoint = "{}://{}".format (self.ssl and 'https' or 'http', self.address [0])
         port = self.address [1]

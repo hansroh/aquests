@@ -142,7 +142,7 @@ else:
 					self.handle_error ()
 
 		def close_cursor (self):
-			if self.cur:
+			if self.cur:				
 				try:
 					self.cur.close ()							
 				except:
