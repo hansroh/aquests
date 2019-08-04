@@ -703,6 +703,11 @@ Note: stub's methods and parameters are defined by database engines. Please read
 History
 =========
 
+- 0.28
+
+  - version policy has been changed, major version indicate for compatiblity with Skitai App Engine
+  - it is highly recommended use same major version with skitai
+
 - 0.8
   
   - drop SQLAlchemy query statement object 
