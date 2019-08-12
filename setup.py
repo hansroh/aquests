@@ -54,7 +54,6 @@ classifiers = [
 
 packages = [
 	'aquests',	
-	'aquests.bin',
 	'aquests.client',
 	'aquests.dbapi',	
 	'aquests.protocols',
@@ -66,7 +65,7 @@ packages = [
 	'aquests.protocols.smtp',
 	'aquests.protocols.grpc',
 	'aquests.protocols.proxy',
-	'aquests.athreads'		
+	'aquests.athreads'
 ]
 
 package_dir = {'aquests': 'aquests'}
