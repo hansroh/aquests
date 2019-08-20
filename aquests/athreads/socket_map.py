@@ -9,6 +9,15 @@ class thread_safe_socket_map (dict):
 		with self.lock:
 			dict.__setitem__ (self, k, v)		
 	
+	def __getitem__ (self, k):	
+		with self.lock:
+			v = dict.__getitem__ (self, k)
+		return v
+
+	def __delitem__ (self, k):
+		with self.lock:
+			dict.__delitem__ (self, k)	
+			
 	def __contains__ (self, k):	
 		with self.lock:
 			v = dict.__contains__ (self, k)
@@ -23,15 +32,6 @@ class thread_safe_socket_map (dict):
 		with self.lock:
 			v = dict.__len__ (self)
 		return v
-			
-	def __getitem__ (self, k):	
-		with self.lock:
-			v = dict.__getitem__ (self, k)
-		return v
-		
-	def __delitem__ (self, k):
-		with self.lock:
-			dict.__delitem__ (self, k)	
 	
 	def has_key (self, k):
 		with self.lock:
@@ -43,6 +43,10 @@ class thread_safe_socket_map (dict):
 			v = dict.get (self, k, d)
 		return v
 	
+	def set (self, k, v):
+		with self.lock:
+			dict.set (self, k, v)		
+
 	def popitem (self, k):
 		with self.lock:
 			v = dict.popitem (self, k)
