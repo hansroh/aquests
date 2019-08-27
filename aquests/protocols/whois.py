@@ -1,4 +1,4 @@
-import asyncore
+from .. import asyncore
 import socket
 
 class WhoisRequest(asyncore.dispatcher_with_send):

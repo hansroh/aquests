@@ -1,4 +1,4 @@
-import asynchat
+from ... import asynchat
 import socket
 import time
 from .pydns import Base, Type, Class, Lib, Opcode

@@ -1,4 +1,4 @@
-import asyncore
+from .. import asyncore
 import socket
 from .select_trigger import trigger
 

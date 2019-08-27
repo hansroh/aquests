@@ -1,5 +1,5 @@
 from redis import connection as redisconn
-import asynchat
+from .. import asynchat
 from . import dbconnect	
 import socket
 

@@ -3,12 +3,12 @@
 2008 added for asynchronous DNS query by Hans Roh
 """
 
-import asyncore
+from ... import asyncore
+from ... import lifetime
 import time
 import random
 from .pydns import Base, Type, Class, Lib, Opcode
 import threading
-from ... import lifetime
 from .clients import UDPClient, TCPClient
 
 defaults = Base.defaults

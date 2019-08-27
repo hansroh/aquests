@@ -1,4 +1,4 @@
-import asyncore 
+from .. import asyncore 
 import re 
 import time 
 import sys 

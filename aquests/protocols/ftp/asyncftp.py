@@ -1,4 +1,4 @@
-import asyncore, asynchat
+from ... import asyncore, asynchat
 import re, socket, sys
 from ..client.asynlib import asyncon
 import collections

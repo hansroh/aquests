@@ -2,8 +2,8 @@
 
 VERSION_STRING = "$Id: select_trigger.py,v 1.11 1999/07/27 00:05:21 rushing Exp $"
 
-import asyncore
-import asynchat
+from .. import asyncore
+from .. import asynchat
 
 import os
 import socket

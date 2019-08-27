@@ -1,4 +1,5 @@
-import sys, asyncore, time
+import sys, time
+from . import asyncore
 import gc
 import select
 import os

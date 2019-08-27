@@ -9,7 +9,7 @@ To use:
 
 from skitai.lib import logger
 from skitai.protocol.dns import asyndns
-import asyncore
+from aquests import asyncore
 
 import pprint
 f = asyndns.Request (logger.screen_logger ())

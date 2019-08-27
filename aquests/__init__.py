@@ -1,11 +1,11 @@
 # 2016. 1. 10 by Hans Roh hansroh@gmail.com
 
-__version__ = "0.29.0.2"
+__version__ = "0.29.1.0"
 
 version_info = tuple (map (lambda x: not x.isdigit () and x or int (x),  __version__.split (".")))
 
 import os, sys
-import asyncore
+from . import asyncore
 import timeit
 import time, math, random
 from . import lifetime, queue, request_builder, response_builder, stubproxy

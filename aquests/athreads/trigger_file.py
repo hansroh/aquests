@@ -1,4 +1,5 @@
-import re, asyncore
+import re
+from .. import asyncore
 from . import trigger
 
 class ConnectionError (Exception): pass

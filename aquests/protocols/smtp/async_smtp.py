@@ -37,7 +37,8 @@ reply: '221 2.0.0 closing connection lg14sm30993621pab.45 - gsmtp\r\n'
 reply: retcode (221); Msg: 2.0.0 closing connection lg14sm30993621pab.45 - gsmtp
 """
 
-import asynchat, asyncore, re, sys, time
+import from ... import asynchat, asyncore
+import re, sys, time
 import base64, hmac
 import socket, ssl
 

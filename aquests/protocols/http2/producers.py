@@ -4,7 +4,7 @@ try:
 except ImportError:
 	pass	
 from rs4 import producers
-import asynchat
+from ... import asynchat
 
 class h2header_producer:
 	def __init__ (self, stream_id, headers, producer, encoder, lock):
