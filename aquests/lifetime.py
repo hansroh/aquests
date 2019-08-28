@@ -1,5 +1,5 @@
 import sys, time
-from . import asyncore
+from rs4 import asyncore
 import gc
 import select
 import os

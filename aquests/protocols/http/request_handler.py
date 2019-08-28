@@ -9,7 +9,7 @@ from hyperframe.frame import SettingsFrame
 from ..http2 import H2_PROTOCOLS
 from ...client import socketpool
 from rs4.cbutil import tuple_cb
-from ... import asyncore
+from rs4 import asyncore
 
 class ProtocolSwitchError (Exception):
 	pass

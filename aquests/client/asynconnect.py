@@ -1,4 +1,4 @@
-from .. import asynchat, asyncore
+from rs4 import asynchat, asyncore
 import re, os, sys
 import ssl
 import socket

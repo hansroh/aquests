@@ -1,4 +1,4 @@
-from ... import asyncore
+from rs4 import asyncore
 from ..client.http import httprequest
 from ..client.asynlib import asyncon
 from . import asyncftp

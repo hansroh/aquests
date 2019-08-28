@@ -1,5 +1,5 @@
 from redis import connection as redisconn
-from .. import asynchat
+from rs4 import asynchat
 from . import dbconnect	
 import socket
 

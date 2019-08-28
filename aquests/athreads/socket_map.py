@@ -1,5 +1,5 @@
 import threading
-from .. import asyncore
+from rs4 import asyncore
 
 class thread_safe_socket_map (dict):
 	def __init__ (self):

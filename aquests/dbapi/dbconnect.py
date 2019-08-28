@@ -1,4 +1,4 @@
-from .. import asyncore 
+from rs4 import asyncore 
 import re 
 import time 
 import sys 

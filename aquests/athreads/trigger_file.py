@@ -1,5 +1,5 @@
 import re
-from .. import asyncore
+from rs4 import asyncore
 from . import trigger
 
 class ConnectionError (Exception): pass

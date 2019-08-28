@@ -11,7 +11,7 @@ This code is covered by the standard Python License.
 
 import socket, string, types, time
 from . import Type,Class,Opcode
-from .... import asyncore
+from rs4 import asyncore
 
 class DNSError(Exception): pass
 

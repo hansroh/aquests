@@ -16,7 +16,7 @@ except ImportError:
 			raise ImportError ("cannot import psycopg2")
 
 else:	
-	from .. import asyncore
+	from rs4 import asyncore
 	from . import dbconnect
 
 	from psycopg2.extensions import POLL_OK, POLL_READ, POLL_WRITE

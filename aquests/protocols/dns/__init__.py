@@ -3,7 +3,7 @@
 2008 added for asynchronous DNS query by Hans Roh
 """
 
-from ... import asyncore
+from rs4 import asyncore
 from ... import lifetime
 import time
 import random

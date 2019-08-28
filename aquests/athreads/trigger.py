@@ -1,4 +1,4 @@
-from .. import asyncore
+from rs4 import asyncore
 import socket
 from .select_trigger import trigger
 
