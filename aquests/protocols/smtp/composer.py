@@ -118,7 +118,19 @@ class Composer:
 		self.save (path)
 		self.remove (old_path)
 
+	def set_default_smtp (self):
+		self.set_smtp (
+			DefaultSMTPServer.server,
+			DefaultSMTPServer.user,
+			DefaultSMTPServer.password,
+			DefaultSMTPServer.ssl
+		)
+
 	def save (self, path):
+		if self.smtp_server is None:
+			assert DefaultSMTPServer.server, "SMTP server is not specified"
+			self.set_default_smtp ()
+
 		while 1:
 			d = md5 ((self.get_FROM () + self.get_TO () + str (time.time ())).encode ("utf8"))
 			fn = os.path.join (path, "%d.%s" % (self.get_RETRYS (), d.hexdigest ().upper()))
@@ -129,14 +141,6 @@ class Composer:
 				break
 
 	def send (self):
-		if self.smtp_server is None:
-			assert DefaultSMTPServer.server, "SMTP server is not specified"
-			self.set_smtp (
-				DefaultSMTPServer.server,
-				DefaultSMTPServer.user,
-				DefaultSMTPServer.password,
-				DefaultSMTPServer.ssl
-			)
 		self.save (self.SAVE_PATH)
 
 	def is_SSL (self):
@@ -196,7 +200,7 @@ def load (fn):
 	m.inc_retry ()
 	return m
 
-def set_default_smtp (self, server, user = None, password = None, ssl = False):
+def set_default_smtp (server, user = None, password = None, ssl = False):
 	DefaultSMTPServer.server = server
 	DefaultSMTPServer.user = user
 	DefaultSMTPServer.password = password
