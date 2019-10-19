@@ -84,6 +84,7 @@ install_requires = [
 	"psycopg2-binary",
 	"redis", 
 	"pymongo",
+	'bson'
 ]
 
 with open ('README.rst', encoding='utf-8') as f:
