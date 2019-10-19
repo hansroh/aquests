@@ -79,11 +79,11 @@ package_data = {
 
 install_requires = [
 	"rs4",
-	"protobuf",
 	"h2",
-	"redis",
-	"pymongo",
-	"psycopg2-binary" # becasue of bson, install last
+	#"protobuf",
+	#"redis",
+	#"pymongo",
+	#"psycopg2-binary" # becasue of bson, install last
 ]
 
 with open ('README.rst', encoding='utf-8') as f:
