@@ -11,7 +11,6 @@ class RedisError (Exception):
 class AsynConnect (dbconnect.AsynDBConnect, asynchat.async_chat):
 	def __init__ (self, address, params = None, lock = None, logger = None):
 		dbconnect.AsynDBConnect.__init__ (self, address, params, lock, logger)
-		self.redis = redisconn.Connection ()
 		asynchat.async_chat.__init__ (self)
 
 	def close (self, deactive = 1):
@@ -32,7 +31,7 @@ class AsynConnect (dbconnect.AsynDBConnect, asynchat.async_chat):
 	def push_command (self, *args):
 		self.set_event_time ()
 		self.last_command = args [0].upper ()
-		command = self.redis.pack_command (self.last_command, *args [1:])
+		command = pack_command (self.last_command, *args [1:])
 
 		if isinstance(command, list):
 			command = b"".join (command)
@@ -160,6 +159,7 @@ _AsynConnect = AsynConnect # for subclassing
 try:
 	from redis import connection as redisconn
 	import redis.connection
+	pack_command = redisconn.Connection ().pack_command
 
 except ImportError:
 	from ..uninstalled import Uninstalled

@@ -1,6 +1,6 @@
 from . import asynredis
-import struct
 import socket
+import struct
 
 DEBUG = True
 MAXINT = 2 ** (struct.Struct('i').size * 8 - 1) - 1
@@ -90,7 +90,7 @@ class MongoMessageHandler:
 
 class AsynConnect (asynredis._AsynConnect):
     def __init__ (self, address, params = None, lock = None, logger = None):
-        asynredis.AsynConnect.__init__ (self, address, params, lock, logger)
+        super ().__init__ (address, params, lock, logger)
         self.mgh = MongoMessageHandler (self)
         self.codec_option = CodecOptions (SON)
         self._state = None
@@ -114,11 +114,11 @@ class AsynConnect (asynredis._AsynConnect):
             self.handle_response (None)
 
     def handle_write (self):
-        asynredis.AsynConnect.handle_write (self)
+        super ().handle_write (self)
         self.is_response_expected ()
 
     def push (self, data):
-        asynredis.AsynConnect.push (self, data)
+        super ().push (self, data)
         self.is_response_expected ()
 
     def found_terminator (self):
@@ -239,7 +239,7 @@ class AsynConnect (asynredis._AsynConnect):
         self.push_command (msg)
 
     def begin_tran (self, request):
-        asynredis.AsynConnect.begin_tran (self, request)
+        super ().begin_tran (self, request)
         self.response = None
         self.last_command = request.method.lower ()
         self.preserve_cursor = False
