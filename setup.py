@@ -14,11 +14,11 @@ except ImportError:
 
 with open('aquests/__init__.py', 'r') as fd:
 	version = re.search(r'^__version__\s*=\s*"(.*?)"',fd.read(), re.M).group(1)
-	
+
 if sys.argv[-1] == 'publish':
 	buildopt = ['sdist', 'upload']
 	if os.name == "nt":
-		buildopt.insert (0, 'bdist_wheel')		
+		buildopt.insert (0, 'bdist_wheel')
 	os.system('python setup.py %s' % " ".join (buildopt))
 	#os.system('twine upload dist/aquests-%s*' % version)
 	for each in os.listdir ("dist"):
@@ -26,42 +26,42 @@ if sys.argv[-1] == 'publish':
 	sys.exit()
 
 elif sys.argv[-1] == 'link':
-	import site	
+	import site
 	if os.name == "nt":
-		linkdir = [each for each in site.getsitepackages() if each.endswith ("-packages")][0]		
+		linkdir = [each for each in site.getsitepackages() if each.endswith ("-packages")][0]
 	else:
-		linkdir = [each for each in site.getsitepackages() if each.find ("/local/") !=- 1 and each.endswith ("-packages")][0]		
+		linkdir = [each for each in site.getsitepackages() if each.find ("/local/") !=- 1 and each.endswith ("-packages")][0]
 	target = os.path.join (os.path.join (os.getcwd (), os.path.dirname (__file__)), "aquests")
 	link = os.path.join (linkdir, "aquests")
 	if os.name == "nt":
 		os.system ("mklink /d {} {}".format (link, target))
-	else:		
-		os.system ("ln -s {} {}".format (target, link))	
+	else:
+		os.system ("ln -s {} {}".format (target, link))
 	sys.exit ()
-	
+
 classifiers = [
   'License :: OSI Approved :: MIT License',
   'Development Status :: 4 - Beta',
   'Topic :: Internet :: WWW/HTTP',
   'Topic :: Database :: Front-Ends',
-	'Environment :: Console',	
+	'Environment :: Console',
 	'Topic :: Software Development :: Libraries :: Python Modules',
 	'Intended Audience :: Developers',
 	'Intended Audience :: Science/Research',
-	'Programming Language :: Python',	
+	'Programming Language :: Python',
 	'Programming Language :: Python :: 3'
 ]
 
 packages = [
-	'aquests',	
+	'aquests',
 	'aquests.client',
-	'aquests.dbapi',	
+	'aquests.dbapi',
 	'aquests.protocols',
 	'aquests.protocols.dns',
 	'aquests.protocols.dns.pydns',
-	'aquests.protocols.http',	
+	'aquests.protocols.http',
 	'aquests.protocols.http2',
-	'aquests.protocols.ws',	
+	'aquests.protocols.ws',
 	'aquests.protocols.smtp',
 	'aquests.protocols.grpc',
 	'aquests.protocols.proxy',
@@ -73,7 +73,7 @@ package_dir = {'aquests': 'aquests'}
 package_data = {
 	"aquests": [
 		"protocols/dns/*.txt",
-		"protocols/dns/pydns/*.txt",		
+		"protocols/dns/pydns/*.txt",
 	]
 }
 
@@ -81,23 +81,22 @@ install_requires = [
 	"rs4",
 	"protobuf",
 	"h2",
-	"psycopg2-binary",
-	"redis", 
+	"redis",
 	"pymongo",
-	'bson'
+	"psycopg2-binary" # becasue of bson, install last
 ]
 
 with open ('README.rst', encoding='utf-8') as f:
 	long_description = f.read()
-	
+
 setup(
 	name='aquests',
 	version=version,
 	description='Asynchronous Multiplexing HTTP2/DBO Requests',
 	long_description = long_description,
 	url = 'https://gitlab.com/hansroh/aquests',
-	author='Hans Roh',	
-	author_email='hansroh@gmail.com',	
+	author='Hans Roh',
+	author_email='hansroh@gmail.com',
 	packages=packages,
 	package_dir=package_dir,
 	package_data = package_data,
