@@ -87,22 +87,8 @@ class MongoMessageHandler:
         else:
             self.asyncon.handle_response (response)
 
-try:
-    import pymongo
 
-except ImportError:
-    from .uninstalled import Uninstalled
-    AsynConnect = Uninstalled ('pymongo')
-
-else:
-    from pymongo import auth, message
-    import bson
-    from bson.codec_options import CodecOptions
-    from bson.son import SON
-    _UNICODE_REPLACE_CODEC_OPTIONS = CodecOptions (unicode_decode_error_handler='replace')
-
-
-class AsynConnect (asynredis.AsynConnect):
+class AsynConnect (asynredis._AsynConnect):
     def __init__ (self, address, params = None, lock = None, logger = None):
         asynredis.AsynConnect.__init__ (self, address, params, lock, logger)
         self.mgh = MongoMessageHandler (self)
@@ -277,3 +263,20 @@ class AsynConnect (asynredis.AsynConnect):
             self.connect ()
         elif not self.backend:
             self.add_channel ()
+
+_AsynConnect = AsynConnect # for subclassing
+
+try:
+    import pymongo
+
+except ImportError:
+    from ..uninstalled import Uninstalled
+    AsynConnect = Uninstalled ('pymongo')
+
+else:
+    from pymongo import auth, message
+    import bson
+    from bson.codec_options import CodecOptions
+    from bson.son import SON
+    _UNICODE_REPLACE_CODEC_OPTIONS = CodecOptions (unicode_decode_error_handler='replace')
+

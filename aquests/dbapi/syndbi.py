@@ -1,8 +1,6 @@
 from .synsqlite3 import SynConnect
 from .dbconnect import DBConnect
-from .uninstalled import Uninstalled
-import pymongo
-import redis
+from ..uninstalled import Uninstalled
 
 try:
     import psycopg2

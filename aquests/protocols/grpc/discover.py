@@ -5,8 +5,9 @@ all = []
 
 try:
 	from google.protobuf import descriptor_pb2
+
 except ImportError:
-	from .uninstalled import Uninstalled
+	from ...uninstalled import Uninstalled
 	find_object = discover = Uninstalled ('protobuf')
 
 else:
