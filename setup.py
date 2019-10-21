@@ -62,6 +62,12 @@ packages = [
 	'aquests.protocols.http',
 	'aquests.protocols.http2',
 	'aquests.protocols.http2.hyper',
+	'aquests.protocols.http2.hyper.common',
+	'aquests.protocols.http2.hyper.http11',
+	'aquests.protocols.http2.hyper.http20',
+	'aquests.protocols.http2.hyper.http20.h2',
+	'aquests.protocols.http2.hyper.packages',
+	'aquests.protocols.http2.hyper.packages.rfc3986',
 	'aquests.protocols.ws',
 	'aquests.protocols.smtp',
 	'aquests.protocols.grpc',
@@ -76,6 +82,7 @@ package_data = {
 		"protocols/dns/*.txt",
 		"protocols/dns/pydns/*.txt",
 		"protocols/http2/hyper/*.txt",
+		"protocols/http2/hyper/*.pem",
 	]
 }
 
