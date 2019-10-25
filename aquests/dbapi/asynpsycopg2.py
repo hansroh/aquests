@@ -5,6 +5,7 @@
 #-------------------------------------------------------
 from rs4 import asyncore
 from . import dbconnect
+import sys
 
 DEBUG = False
 REREY_TEST = False
@@ -200,6 +201,9 @@ class AsynConnect (dbconnect.AsynDBConnect, asyncore.dispatcher):
 _AsynConnect = AsynConnect # for subclassing
 
 try:
+	if '__pypy__' in sys.builtin_module_names:
+		from psycopg2cffi import compat
+		compat.register()
 	import psycopg2
 
 except ImportError:

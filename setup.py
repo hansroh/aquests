@@ -49,7 +49,8 @@ classifiers = [
 	'Intended Audience :: Developers',
 	'Intended Audience :: Science/Research',
 	'Programming Language :: Python',
-	'Programming Language :: Python :: 3'
+	'Programming Language :: Python :: 3',
+	'Programming Language :: Python :: Implementation :: PyPy'
 ]
 
 packages = [
