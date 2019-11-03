@@ -9,6 +9,7 @@ import time
 import types
 from .protocols import dns
 from collections import deque
+import threading
 
 try:
 	from pympler import muppy, summary, tracker
@@ -31,25 +32,52 @@ _logger = None
 
 EXHAUST_DNS = True
 
+class Timer:
+	def __init__ (self):
+		self.onces = []
+		self._call_id = 0
+		self._lock = threading.Lock ()
+
+	def later (self, delay, func, args = ()):
+		return self.at (time.monotonic () + delay, func, args)
+
+	def at (self, at, func, args = ()):
+		# at is time.monotonic ()
+		with self._lock:
+			self._call_id += 1
+			call_id = self._call_id
+			self.onces.append ((call_id, at, func, args))
+			self.onces = sorted (self.onces, key = lambda x: x [1])
+		return call_id
+
+	def cancel (self, call_id):
+		with self._lock:
+			for idx, call in enumerate (self.onces):
+				if call_id == call [0]:
+					self.onces.pop (idx)
+					break
+
+	def check (self):
+		with self._lock:
+			if not self.onces:
+				return
+		now = time.monotonic ()
+		funcs = []
+		with self._lock:
+			for i in range (len (self.onces)):
+				at = self.onces [0][1]
+				if at > now:
+					break
+				call_id, at, func, args = self.onces.pop (0)
+				funcs.append ((func, args))
+		for func, args in funcs:
+			func (*args)
+
 class Maintern:
 	def __init__ (self):
 		self.q = []
-		self.onces = []
 
-	def call_at (self, at, func, args = ()):
-		# at is time.monotonic ()
-		self.onces.append ((at, func, args))
-		self.onces = sorted (self.onces, key = lambda x: x [0])
-
-	def call_onces (self):
-		now = time.monotonic ()
-		while self.onces:
-			at = self.onces [0][0]
-			if at > now:
-				break
-			at, func, args = self.onces.pop (0)
-			func (*args)
-
+	# mainternacing -----------------------------------------
 	def sched (self, interval, func, args = None):
 		now = time.time ()
 		self.q.append ((now + interval, interval, func, args))
@@ -96,13 +124,15 @@ def maintern_zombie_channel (now, map = None):
 					channel.handle_error ()
 
 maintern = None
+timer = None
 def init (kill_zombie_interval = 10.0, logger = None):
-	global maintern, _logger
+	global timer, maintern, _logger
 
 	_logger = logger
 	maintern = Maintern ()
 	maintern.sched (kill_zombie_interval, maintern_zombie_channel)
 	maintern.sched (300.0, maintern_gc)
+	timer = Timer ()
 
 summary_tracker = None
 def summary_track (now):
@@ -245,7 +275,7 @@ def lifetime_loop (timeout = 30.0, count = 0):
 
 	while map and _shutdown_phase == 0:
 		poll_fun_wrap (timeout, map)
-		maintern.onces and maintern.call_onces ()
+		timer.check ()
 		now = time.time()
 		if (now - _last_maintern) > _maintern_interval:
 			maintern (now)
