@@ -24,7 +24,7 @@ class h2header_producer:
 		return 0
 
 	def __repr__ (self):
-		return "<h2header_producer stream_id:%d end_strem: %s>" % (self.__stream_id, not self.__producer and True or False)
+		return "<%s stream_id:%d end_strem: %s>" % (self.__class__.__name__, self.__stream_id, not self.__producer and True or False)
 
 	def more (self):
 		data_to_send, self.data_to_send = self.data_to_send, b''
