@@ -17,7 +17,7 @@ from aioquic.asyncio.client import connect
 from aioquic.asyncio.protocol import QuicConnectionProtocol
 from aioquic.h0.connection import H0_ALPN, H0Connection
 from aioquic.h3.connection import H3_ALPN, H3Connection
-from aioquic.h3.events import DataReceived, H3Event, HeadersReceived
+from aioquic.h3.events import DataReceived, H3Event, HeadersReceived, PushPromiseReceived
 from aioquic.quic.configuration import QuicConfiguration
 from aioquic.quic.events import QuicEvent
 from aioquic.quic.logger import QuicLogger
@@ -119,6 +119,7 @@ class HttpClient(QuicConnectionProtocol):
             self._http = H0Connection(self._quic)
         else:
             self._http = H3Connection(self._quic)
+        self._push = {}
 
     async def get(self, url: str, headers: Dict = {}) -> Deque[H3Event]:
         """
@@ -169,12 +170,12 @@ class HttpClient(QuicConnectionProtocol):
         return websocket
 
     def http_event_received(self, event: H3Event):
-        if isinstance(event, (HeadersReceived, DataReceived)):
+        if isinstance(event, (HeadersReceived, DataReceived, PushPromiseReceived)):
             stream_id = event.stream_id
             if stream_id in self._request_events:
                 # http
                 self._request_events[event.stream_id].append(event)
-                if event.stream_ended:
+                if hasattr (event, 'stream_ended') and event.stream_ended:
                     request_waiter = self._request_waiter.pop(stream_id)
                     request_waiter.set_result(self._request_events.pop(stream_id))
 
@@ -182,10 +183,6 @@ class HttpClient(QuicConnectionProtocol):
                 # websocket
                 websocket = self._websockets[stream_id]
                 websocket.http_event_received(event)
-
-            else:
-                # push
-                print(event)
 
     def quic_event_received(self, event: QuicEvent):
         #  pass event to the HTTP layer
@@ -211,7 +208,7 @@ class HttpClient(QuicConnectionProtocol):
         )
         self._http.send_data(stream_id=stream_id, data=request.content, end_stream=True)
 
-        waiter = self._loop.create_future()
+        self.waiter = waiter = self._loop.create_future()
         self._request_events[stream_id] = deque()
         self._request_waiter[stream_id] = waiter
         self.transmit()
@@ -231,7 +228,8 @@ def save_session_ticket(ticket):
 
 
 class Response:
-    headers = b''
+    promises = []
+    headers = None
     data = b''
 
 async def run(configuration: QuicConfiguration, url: str, data: str, response: Response) -> None:
@@ -301,7 +299,12 @@ async def run(configuration: QuicConfiguration, url: str, data: str, response: R
                         headers [k.decode ()] = v.decode ()
                     response.headers = headers
                 elif isinstance(http_event, DataReceived):
-                    response.data = http_event.data
+                    response.data += http_event.data
+                else:
+                    headers = {}
+                    for k, v in http_event.headers:
+                        headers [k.decode ()] = v.decode ()
+                    response.promises.append (headers)
 
 
 def _request (url, data = None):

@@ -48,3 +48,9 @@ class StreamResetError(HTTP20Error):
     A stream was forcefully reset by the remote party.
     """
     pass
+
+class StreamClosedError(HTTP20Error):
+    """
+    A stream was forcefully reset by the remote party.
+    """
+    pass

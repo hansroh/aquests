@@ -32,7 +32,7 @@ _logger = None
 
 EXHAUST_DNS = True
 
-class Timer:
+class TickTimer:
 	def __init__ (self):
 		self.onces = []
 		self._call_id = 0
@@ -57,7 +57,7 @@ class Timer:
 					self.onces.pop (idx)
 					break
 
-	def check (self):
+	def tick (self):
 		with self._lock:
 			if not self.onces:
 				return
@@ -124,15 +124,15 @@ def maintern_zombie_channel (now, map = None):
 					channel.handle_error ()
 
 maintern = None
-timer = None
+tick_timer = None
 def init (kill_zombie_interval = 10.0, logger = None):
-	global timer, maintern, _logger
+	global tick_timer, maintern, _logger
 
 	_logger = logger
 	maintern = Maintern ()
 	maintern.sched (kill_zombie_interval, maintern_zombie_channel)
 	maintern.sched (300.0, maintern_gc)
-	timer = Timer ()
+	tick_timer = TickTimer ()
 
 summary_tracker = None
 def summary_track (now):
@@ -275,7 +275,7 @@ def lifetime_loop (timeout = 30.0, count = 0):
 
 	while map and _shutdown_phase == 0:
 		poll_fun_wrap (timeout, map)
-		timer.check ()
+		tick_timer.tick ()
 		now = time.time()
 		if (now - _last_maintern) > _maintern_interval:
 			maintern (now)

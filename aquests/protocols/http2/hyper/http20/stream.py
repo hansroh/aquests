@@ -192,7 +192,7 @@ class Stream(object):
                     conn.increment_flow_control_window(
                         increment, stream_id=self.stream_id
                     )
-            except h2.exceptions.StreamClosedError:
+            except exceptions.StreamClosedError:
                 # We haven't got to it yet, but the stream is already
                 # closed. We don't need to increment the window in this
                 # case!
@@ -289,7 +289,7 @@ class Stream(object):
             try:
                 with self._conn as conn:
                     conn.reset_stream(self.stream_id, error_code or 0)
-            except h2.exceptions.ProtocolError:
+            except exceptions.ProtocolError:
                 # If for any reason we can't reset the stream, just
                 # tolerate it.
                 pass
