@@ -43,12 +43,13 @@ class URL:
 
 class HttpRequest:
     def __init__(
-        self, method: str, url: URL, content: bytes = b"", headers: Dict = {}
+        self, method: str, url: URL, content: bytes = b"", headers: Dict = {}, allow_push: bool = True
     ) -> None:
         self.content = content
         self.headers = headers
         self.method = method
         self.url = url
+        self.allow_push = allow_push
 
 
 
@@ -66,21 +67,14 @@ class HttpClient(QuicConnectionProtocol):
             self._http = H3Connection(self._quic)
         self._push = {}
 
-    async def get(self, url: str, headers: Dict = {}) -> Deque[H3Event]:
-        """
-        Perform a GET request.
-        """
-        print ('------- url', url)
+    async def get(self, url: str, headers: Dict = {}, allow_push: bool = True) -> Deque[H3Event]:
         return await self._request(
-            HttpRequest(method="GET", url=URL(url), headers=headers)
+            HttpRequest(method="GET", url=URL(url), headers=headers, allow_push=allow_push)
         )
 
-    async def post(self, url: str, data: bytes, headers: Dict = {}) -> Deque[H3Event]:
-        """
-        Perform a POST request.
-        """
+    async def post(self, url: str, data: bytes, headers: Dict = {}, allow_push: bool = True) -> Deque[H3Event]:
         return await self._request(
-            HttpRequest(method="POST", url=URL(url), content=data, headers=headers)
+            HttpRequest(method="POST", url=URL(url), content=data, headers=headers, allow_push=allow_push)
         )
 
     def http_event_received(self, event: H3Event):
@@ -126,14 +120,9 @@ class HttpClient(QuicConnectionProtocol):
 
 
 def save_session_ticket(ticket):
-    """
-    Callback which is invoked by the TLS engine when a new session ticket
-    is received.
-    """
     logger.info("New session ticket received")
-    if args.session_ticket:
-        with open(args.session_ticket, "wb") as fp:
-            pickle.dump(ticket, fp)
+    with open(args.session_ticket, "wb") as fp:
+        pickle.dump(ticket, fp)
 
 
 class Response:
@@ -141,13 +130,13 @@ class Response:
     headers = None
     data = b''
 
-async def run(configuration: QuicConfiguration, url: str, data: str, response: Response) -> None:
+async def run(configuration: QuicConfiguration, url: str, data: str, headers: Dict = {}, allow_push: bool = True, response: Response = None) -> None:
     # parse URL
     parsed = urlparse(url)
     assert parsed.scheme in (
-        "https",
-        "wss",
-    ), "Only https:// or wss:// URLs are supported."
+        "https"
+    ), "Only https:// URLs are supported."
+
     if ":" in parsed.netloc:
         host, port_str = parsed.netloc.split(":")
         port = int(port_str)
@@ -170,13 +159,15 @@ async def run(configuration: QuicConfiguration, url: str, data: str, response: R
             # perform request
             start = time.time()
             if data is not None:
+                headers ['content-type'] = "application/x-www-form-urlencoded"
                 http_events = await client.post(
                     url,
                     data=data.encode("utf8"),
-                    headers={"content-type": "application/x-www-form-urlencoded"},
+                    headers = headers,
+                    allow_push = allow_push
                 )
             else:
-                http_events = await client.get(url)
+                http_events = await client.get(url, headers, allow_push)
             elapsed = time.time() - start
 
             # print speed
@@ -192,20 +183,25 @@ async def run(configuration: QuicConfiguration, url: str, data: str, response: R
             # print response
             for http_event in http_events:
                 if isinstance(http_event, HeadersReceived):
-                    headers = {}
+                    resp_headers = {}
                     for k, v in http_event.headers:
-                        headers [k.decode ()] = v.decode ()
-                    response.headers = headers
+                        resp_headers [k.decode ()] = v.decode ()
+                    response.headers = resp_headers
                 elif isinstance(http_event, DataReceived):
                     response.data += http_event.data
                 else:
-                    headers = {}
+                    # server push
+                    if not allow_push:
+                        client._http.send_cancel_push (http_event.push_id)
+                        client.transmit()
+                        continue
+                    push_headers = {}
                     for k, v in http_event.headers:
-                        headers [k.decode ()] = v.decode ()
-                    response.promises.append (headers)
+                        push_headers [k.decode ()] = v.decode ()
+                    response.promises.append (push_headers)
 
 
-def _request (url, data = None):
+def _request (url, data = None, headers = {}, allow_push = True):
     logging.basicConfig(
         format="%(asctime)s %(levelname)s %(name)s %(message)s",
         level=logging.INFO,
@@ -219,15 +215,15 @@ def _request (url, data = None):
     loop = asyncio.get_event_loop()
     response = Response ()
     loop.run_until_complete(
-        run(configuration=configuration, url=url, data=data, response=response)
+        run(configuration=configuration, url=url, data=data, headers = headers, allow_push = allow_push, response=response)
     )
     return response
 
-def get (url):
-    return _request (url)
+def get (url, headers = {}, allow_push = True):
+    return _request (url, headers = headers, allow_push = allow_push)
 
-def post (url, data):
-    return _request (url, data)
+def post (url, data, headers = {}, allow_push = True):
+    return _request (url, data, headers = headers, allow_push = allow_push)
 
 
 if __name__ == "__main__":
