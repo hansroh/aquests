@@ -121,8 +121,6 @@ class HttpClient(QuicConnectionProtocol):
 
 def save_session_ticket(ticket):
     logger.info("New session ticket received")
-    with open(args.session_ticket, "wb") as fp:
-        pickle.dump(ticket, fp)
 
 
 class Response:
@@ -192,8 +190,9 @@ async def run(configuration: QuicConfiguration, url: str, data: str, headers: Di
                 else:
                     # server push
                     if not allow_push:
-                        client._http.send_cancel_push (http_event.push_id)
-                        client.transmit()
+                        if hasattr (client._http, 'send_cancel_push'):
+                            client._http.send_cancel_push (http_event.push_id)
+                            client.transmit()
                         continue
                     push_headers = {}
                     for k, v in http_event.headers:
