@@ -118,15 +118,18 @@ class HttpClient(QuicConnectionProtocol):
 
         return await asyncio.shield(waiter)
 
-
+SESSION_TICKET = './examples/http3-session-ticket.pik'
 def save_session_ticket(ticket):
     logger.info("New session ticket received")
+    with open(SESSION_TICKET, "wb") as fp:
+        pickle.dump(ticket, fp)
 
 
 class Response:
-    promises = []
-    headers = None
-    data = b''
+    def __init__ (self):
+        self.promises = []
+        self.headers = None
+        self.data = b''
 
 async def run(configuration: QuicConfiguration, url: str, data: str, headers: Dict = {}, allow_push: bool = True, response: Response = None) -> None:
     # parse URL
@@ -200,17 +203,23 @@ async def run(configuration: QuicConfiguration, url: str, data: str, headers: Di
                     response.promises.append (push_headers)
 
 
+ # prepare configuration
+configuration = QuicConfiguration(
+    is_client=True, alpn_protocols=H3_ALPN
+)
+configuration.load_verify_locations(os.path.join (os.path.dirname (__file__), 'pycacert.pem'))
+configuration.verify_mode = ssl.CERT_NONE
+try:
+    with open(SESSION_TICKET, "rb") as fp:
+        configuration.session_ticket = pickle.load(fp)
+except FileNotFoundError:
+    pass
+
 def _request (url, data = None, headers = {}, allow_push = True):
     logging.basicConfig(
         format="%(asctime)s %(levelname)s %(name)s %(message)s",
         level=logging.INFO,
     )
-    # prepare configuration
-    configuration = QuicConfiguration(
-        is_client=True, alpn_protocols=H3_ALPN
-    )
-    configuration.load_verify_locations(os.path.join (os.path.dirname (__file__), 'pycacert.pem'))
-    configuration.verify_mode = ssl.CERT_NONE
     loop = asyncio.get_event_loop()
     response = Response ()
     loop.run_until_complete(
