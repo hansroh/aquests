@@ -1,5 +1,5 @@
 
-Asynchronous Requests Library
+Asynchronous Corequest Library
 ====================================
 
 This is the base library for `Skitai App Engine`_'s corequests.
