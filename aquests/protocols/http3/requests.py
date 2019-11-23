@@ -1,3 +1,5 @@
+# This is NOT for production BUT just for unit test
+
 import argparse
 import asyncio
 import json
@@ -17,7 +19,7 @@ from aioquic.h0.connection import H0_ALPN, H0Connection
 from aioquic.h3.connection import H3_ALPN, H3Connection
 from aioquic.h3.events import DataReceived, H3Event, HeadersReceived, PushPromiseReceived
 from aioquic.quic.configuration import QuicConfiguration
-from aioquic.quic.events import QuicEvent
+from aioquic.quic.events import QuicEvent, ConnectionTerminated
 from aioquic.quic.logger import QuicLogger
 
 try:
@@ -29,30 +31,7 @@ logger = logging.getLogger("client")
 
 HttpConnection = Union[H0Connection, H3Connection]
 
-
-class URL:
-    def __init__(self, url: str):
-        parsed = urlparse(url)
-
-        self.authority = parsed.netloc
-        self.full_path = parsed.path
-        if parsed.query:
-            self.full_path += "?" + parsed.query
-        self.scheme = parsed.scheme
-
-
-class HttpRequest:
-    def __init__(
-        self, method: str, url: URL, content: bytes = b"", headers: Dict = {}, allow_push: bool = True
-    ) -> None:
-        self.content = content
-        self.headers = headers
-        self.method = method
-        self.url = url
-        self.allow_push = allow_push
-
-
-
+EVENT_HISTORY = []
 class HttpClient(QuicConnectionProtocol):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -66,34 +45,33 @@ class HttpClient(QuicConnectionProtocol):
         else:
             self._http = H3Connection(self._quic)
         self._push = {}
+        self._recent_stream_id = 0
 
-    async def get(self, url: str, headers: Dict = {}, allow_push: bool = True) -> Deque[H3Event]:
-        return await self._request(
-            HttpRequest(method="GET", url=URL(url), headers=headers, allow_push=allow_push)
-        )
-
-    async def post(self, url: str, data: bytes, headers: Dict = {}, allow_push: bool = True) -> Deque[H3Event]:
-        return await self._request(
-            HttpRequest(method="POST", url=URL(url), content=data, headers=headers, allow_push=allow_push)
-        )
-
-    def http_event_received(self, event: H3Event):
-        if isinstance(event, (HeadersReceived, DataReceived, PushPromiseReceived)):
+    def http_event_received(self, event):
+        if hasattr (event, 'stream_id'):
             stream_id = event.stream_id
             if stream_id in self._request_events:
                 # http
+                self._recent_stream_id = stream_id
                 self._request_events[event.stream_id].append(event)
                 if hasattr (event, 'stream_ended') and event.stream_ended:
                     request_waiter = self._request_waiter.pop(stream_id)
                     request_waiter.set_result(self._request_events.pop(stream_id))
+        else:
+            EVENT_HISTORY.append (event)
 
-    def quic_event_received(self, event: QuicEvent):
+    def quic_event_received(self, event):
         #  pass event to the HTTP layer
+        EVENT_HISTORY.append (event)
         if self._http is not None:
             for http_event in self._http.handle_event(event):
                 self.http_event_received(http_event)
 
-    async def _request(self, request: HttpRequest):
+        if self._request_waiter and isinstance (event, ConnectionTerminated):
+            loop = asyncio.get_event_loop()
+            loop.stop ()
+
+    async def handle_request(self, request):
         stream_id = self._quic.get_next_available_stream_id()
         self._http.send_headers(
             stream_id=stream_id,
@@ -125,25 +103,60 @@ def save_session_ticket(ticket):
         pickle.dump(ticket, fp)
 
 
-class Response:
-    def __init__ (self):
-        self.promises = []
-        self.headers = None
-        self.data = b''
+async def perform_http_request(client, req):
+    # perform request
+    start = time.time()
+    http_events = await client.handle_request(req)
+    elapsed = time.time() - start
 
-async def run(configuration: QuicConfiguration, url: str, data: str, headers: Dict = {}, allow_push: bool = True, response: Response = None) -> None:
-    # parse URL
-    parsed = urlparse(url)
-    assert parsed.scheme in (
-        "https"
-    ), "Only https:// URLs are supported."
+    # print speed
+    octets = 0
+    for http_event in http_events:
+        if isinstance(http_event, DataReceived):
+            octets += len(http_event.data)
+    logger.info(
+        "Received %d bytes in %.1f s (%.3f Mbps)"
+        % (octets, elapsed, octets * 8 / elapsed / 1000000)
+    )
 
-    if ":" in parsed.netloc:
-        host, port_str = parsed.netloc.split(":")
-        port = int(port_str)
-    else:
-        host = parsed.netloc
-        port = 443
+    response = req.response
+    for http_event in http_events:
+        response.events.append (http_event)
+        if isinstance(http_event, HeadersReceived):
+            resp_headers = {}
+            for k, v in http_event.headers:
+                resp_headers [k.decode ()] = v.decode ()
+            response.headers = resp_headers
+        elif isinstance(http_event, DataReceived):
+            response.data += http_event.data
+        elif isinstance(http_event, PushPromiseReceived):
+            # server push
+            if not req.allow_push:
+                if hasattr (client._http, 'send_cancel_push'):
+                    client._http.send_cancel_push (http_event.push_id)
+                    client.transmit()
+                continue
+            push_headers = {}
+            for k, v in http_event.headers:
+                push_headers [k.decode ()] = v.decode ()
+            response.promises.append (push_headers)
+
+
+async def run(configuration, reqs, repeat = 1):
+    if not isinstance (reqs, list):
+        reqs = [reqs]
+
+    netlocs = set ()
+    for req in reqs:
+        assert req.url.scheme == "https", "Only https:// URLs are supported."
+        if ":" in req.url.netloc:
+            host, port_str = req.url.netloc.split(":")
+            port = int(port_str)
+        else:
+            host = req.url.netloc
+            port = 443
+        netlocs.add ((host, port))
+        assert len (netlocs) == 1, 'different netloc'
 
     async with connect(
         host,
@@ -154,53 +167,47 @@ async def run(configuration: QuicConfiguration, url: str, data: str, headers: Di
     ) as client:
         client = cast(HttpClient, client)
 
-        if parsed.scheme == "wss":
-            pass
-        else:
-            # perform request
-            start = time.time()
-            if data is not None:
-                headers ['content-type'] = "application/x-www-form-urlencoded"
-                http_events = await client.post(
-                    url,
-                    data=data.encode("utf8"),
-                    headers = headers,
-                    allow_push = allow_push
-                )
-            else:
-                http_events = await client.get(url, headers, allow_push)
-            elapsed = time.time() - start
+        # perform request
+        coros = []
+        for req in reqs:
+            coros.extend ([perform_http_request(client, i == 0 and req or req.clone ()) for i in range (repeat)])
+        await asyncio.gather(*coros)
 
-            # print speed
-            octets = 0
-            for http_event in http_events:
-                if isinstance(http_event, DataReceived):
-                    octets += len(http_event.data)
-            logger.info(
-                "Received %d bytes in %.1f s (%.3f Mbps)"
-                % (octets, elapsed, octets * 8 / elapsed / 1000000)
-            )
 
-            # print response
-            for http_event in http_events:
-                if isinstance(http_event, HeadersReceived):
-                    resp_headers = {}
-                    for k, v in http_event.headers:
-                        resp_headers [k.decode ()] = v.decode ()
-                    response.headers = resp_headers
-                elif isinstance(http_event, DataReceived):
-                    response.data += http_event.data
-                else:
-                    # server push
-                    if not allow_push:
-                        if hasattr (client._http, 'send_cancel_push'):
-                            client._http.send_cancel_push (http_event.push_id)
-                            client.transmit()
-                        continue
-                    push_headers = {}
-                    for k, v in http_event.headers:
-                        push_headers [k.decode ()] = v.decode ()
-                    response.promises.append (push_headers)
+class URL:
+    def __init__(self, url: str):
+        parsed = urlparse(url)
+
+        self.authority = parsed.netloc
+        self.full_path = parsed.path
+        if parsed.query:
+            self.full_path += "?" + parsed.query
+        self.scheme = parsed.scheme
+        self.netloc = parsed.netloc
+
+class HttpResponse:
+    def __init__ (self):
+        self.events = []
+        self.promises = []
+        self.headers = None
+        self.data = b''
+
+class HttpRequest:
+    def __init__(self, method, url, content = b"", headers = {}, allow_push = True):
+        self.args = (method, url, content, headers, allow_push)
+        self.content = content
+        if isinstance (self.content, str):
+            self.content = self.content.encode("utf8")
+        self.headers = headers
+        if self.content and not headers:
+            headers ["content-type"] = "application/x-www-form-urlencoded"
+        self.method = method
+        self.url = URL (url)
+        self.allow_push = allow_push
+        self.response = HttpResponse ()
+
+    def clone (self):
+        return HttpRequest (*self.args)
 
 
  # prepare configuration
@@ -215,27 +222,54 @@ try:
 except FileNotFoundError:
     pass
 
-def _request (url, data = None, headers = {}, allow_push = True):
+def show_log ():
     logging.basicConfig(
         format="%(asctime)s %(levelname)s %(name)s %(message)s",
         level=logging.INFO,
     )
+
+def _request (req, repeat):
     loop = asyncio.get_event_loop()
-    response = Response ()
-    loop.run_until_complete(
-        run(configuration=configuration, url=url, data=data, headers = headers, allow_push = allow_push, response=response)
-    )
-    return response
+    loop.run_until_complete(run(configuration, req, repeat))
+    return req.response
 
-def get (url, headers = {}, allow_push = True):
-    return _request (url, headers = headers, allow_push = allow_push)
+def get (url, headers = {}, allow_push = True, repeat = 1):
+    req = HttpRequest ('GET', url, b'', headers, allow_push)
+    return _request (req, repeat)
 
-def post (url, data, headers = {}, allow_push = True):
-    return _request (url, data, headers = headers, allow_push = allow_push)
+def post (url, data, headers = {}, allow_push = True, repeat = 1):
+    req = HttpRequest ('POST', url, data, headers, allow_push)
+    return _request (req, repeat)
+
+
+class MultiCall:
+    def __init__ (self, endpoint):
+        self._calls = []
+        self.endpoint = endpoint
+
+    @property
+    def control_event_history (self):
+        global EVENT_HISTORY
+        eh, EVENT_HISTORY = EVENT_HISTORY, []
+        return eh
+
+    def get (self, url, headers = {}, allow_push = True, repeat = 1):
+        self._calls.append (HttpRequest ('GET', self.endpoint + url, b'', headers, allow_push))
+
+    def post (self, url, data, headers = {}, allow_push = True, repeat = 1):
+        self._calls.append (HttpRequest ('POST', self.endpoint + url, data, headers, allow_push))
+
+    def request (self):
+        loop = asyncio.get_event_loop()
+        try:
+            loop.run_until_complete(run(configuration, self._calls))
+        except RuntimeError:
+            pass
+        return [req.response for req in self._calls]
+
 
 
 if __name__ == "__main__":
     r = get ('https://localhost:4433/')
     print (r.headers)
     print (r.data)
-
