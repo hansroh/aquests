@@ -19,7 +19,7 @@ from aioquic.h0.connection import H0_ALPN, H0Connection
 from aioquic.h3.connection import H3_ALPN, H3Connection
 from aioquic.h3.events import DataReceived, H3Event, HeadersReceived, PushPromiseReceived
 from aioquic.quic.configuration import QuicConfiguration
-from aioquic.quic.events import QuicEvent, ConnectionTerminated
+from aioquic.quic.events import QuicEvent, ConnectionTerminated, StreamDataReceived
 from aioquic.quic.logger import QuicLogger
 
 try:
@@ -51,22 +51,22 @@ class HttpClient(QuicConnectionProtocol):
         if hasattr (event, 'stream_id'):
             stream_id = event.stream_id
             if stream_id in self._request_events:
-                # http
                 self._recent_stream_id = stream_id
                 self._request_events[event.stream_id].append(event)
                 if hasattr (event, 'stream_ended') and event.stream_ended:
                     request_waiter = self._request_waiter.pop(stream_id)
                     request_waiter.set_result(self._request_events.pop(stream_id))
-        else:
-            EVENT_HISTORY.append (event)
 
     def quic_event_received(self, event):
         #  pass event to the HTTP layer
-        EVENT_HISTORY.append (event)
+        if not isinstance (event, StreamDataReceived):
+            EVENT_HISTORY.append (event)
         if self._http is not None:
             for http_event in self._http.handle_event(event):
+                if not isinstance (event, (HeadersReceived, PushPromiseReceived, DataReceived)):
+                    # logging only control frames
+                    EVENT_HISTORY.append (http_event)
                 self.http_event_received(http_event)
-
         if self._request_waiter and isinstance (event, ConnectionTerminated):
             loop = asyncio.get_event_loop()
             loop.stop ()
