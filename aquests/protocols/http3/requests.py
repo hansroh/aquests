@@ -16,11 +16,14 @@ import os
 from aioquic.asyncio.client import connect
 from aioquic.asyncio.protocol import QuicConnectionProtocol
 from aioquic.h0.connection import H0_ALPN, H0Connection
-from aioquic.h3.connection import H3_ALPN, H3Connection
+from aioquic.h3.connection import H3_ALPN
+from .connection import H3Connection
+from .events import DuplicatePushReceived
 from aioquic.h3.events import DataReceived, H3Event, HeadersReceived, PushPromiseReceived
 from aioquic.quic.configuration import QuicConfiguration
 from aioquic.quic.events import QuicEvent, ConnectionTerminated, StreamDataReceived
 from aioquic.quic.logger import QuicLogger
+from .client import URL, HttpResponse, HttpRequest
 
 try:
     import uvloop
@@ -61,8 +64,10 @@ class HttpClient(QuicConnectionProtocol):
         #  pass event to the HTTP layer
         if not isinstance (event, StreamDataReceived):
             EVENT_HISTORY.append (event)
+
         if self._http is not None:
             for http_event in self._http.handle_event(event):
+                #print ('-----------', http_event)
                 if not isinstance (event, (HeadersReceived, PushPromiseReceived, DataReceived)):
                     # logging only control frames
                     EVENT_HISTORY.append (http_event)
@@ -96,7 +101,7 @@ class HttpClient(QuicConnectionProtocol):
 
         return await asyncio.shield(waiter)
 
-SESSION_TICKET = './examples/http3-session-ticket.pik'
+SESSION_TICKET = '/tmp/http3-session-ticket.pik'
 def save_session_ticket(ticket):
     logger.info("New session ticket received")
     with open(SESSION_TICKET, "wb") as fp:
@@ -125,15 +130,15 @@ async def perform_http_request(client, req):
         if isinstance(http_event, HeadersReceived):
             resp_headers = {}
             for k, v in http_event.headers:
-                resp_headers [k.decode ()] = v.decode ()
+                resp_headers [k] = v
             response.headers = resp_headers
         elif isinstance(http_event, DataReceived):
             response.data += http_event.data
         elif isinstance(http_event, PushPromiseReceived):
             # server push
             if not req.allow_push:
-                if hasattr (client._http, 'send_cancel_push'):
-                    client._http.send_cancel_push (http_event.push_id)
+                if hasattr (client._http, 'cancel_push'):
+                    client._http.cancel_push (http_event.push_id)
                     client.transmit()
                 continue
             push_headers = {}
@@ -174,78 +179,22 @@ async def run(configuration, reqs, repeat = 1):
         await asyncio.gather(*coros)
 
 
-class URL:
-    def __init__(self, url: str):
-        parsed = urlparse(url)
-
-        self.authority = parsed.netloc
-        self.full_path = parsed.path
-        if parsed.query:
-            self.full_path += "?" + parsed.query
-        self.scheme = parsed.scheme
-        self.netloc = parsed.netloc
-
-class HttpResponse:
-    def __init__ (self):
-        self.events = []
-        self.promises = []
-        self.headers = None
-        self.data = b''
-
-class HttpRequest:
-    def __init__(self, method, url, content = b"", headers = {}, allow_push = True):
-        self.args = (method, url, content, headers, allow_push)
-        self.content = content
-        if isinstance (self.content, str):
-            self.content = self.content.encode("utf8")
-        self.headers = headers
-        if self.content and not headers:
-            headers ["content-type"] = "application/x-www-form-urlencoded"
-        self.method = method
-        self.url = URL (url)
-        self.allow_push = allow_push
-        self.response = HttpResponse ()
-
-    def clone (self):
-        return HttpRequest (*self.args)
-
-
- # prepare configuration
-configuration = QuicConfiguration(
-    is_client=True, alpn_protocols=H3_ALPN
-)
-configuration.load_verify_locations(os.path.join (os.path.dirname (__file__), 'pycacert.pem'))
-configuration.verify_mode = ssl.CERT_NONE
-try:
-    with open(SESSION_TICKET, "rb") as fp:
-        configuration.session_ticket = pickle.load(fp)
-except FileNotFoundError:
-    pass
-
-def show_log ():
-    logging.basicConfig(
-        format="%(asctime)s %(levelname)s %(name)s %(message)s",
-        level=logging.INFO,
-    )
-
-def _request (req, repeat):
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(run(configuration, req, repeat))
-    return req.response
-
-def get (url, headers = {}, allow_push = True, repeat = 1):
-    req = HttpRequest ('GET', url, b'', headers, allow_push)
-    return _request (req, repeat)
-
-def post (url, data, headers = {}, allow_push = True, repeat = 1):
-    req = HttpRequest ('POST', url, data, headers, allow_push)
-    return _request (req, repeat)
-
-
 class MultiCall:
     def __init__ (self, endpoint):
         self._calls = []
         self.endpoint = endpoint
+
+         # prepare configuration
+        self.configuration = QuicConfiguration(
+            is_client=True, alpn_protocols=H3_ALPN
+        )
+        self.configuration.load_verify_locations(os.path.join (os.path.dirname (__file__), 'pycacert.pem'))
+        self.configuration.verify_mode = ssl.CERT_NONE
+        try:
+            with open(SESSION_TICKET, "rb") as fp:
+                self.configuration.session_ticket = pickle.load(fp)
+        except FileNotFoundError:
+            pass
 
     @property
     def control_event_history (self):
@@ -262,7 +211,7 @@ class MultiCall:
     def request (self):
         loop = asyncio.get_event_loop()
         try:
-            loop.run_until_complete(run(configuration, self._calls))
+            loop.run_until_complete(run(self.configuration, self._calls))
         except RuntimeError:
             pass
         return [req.response for req in self._calls]
