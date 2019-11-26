@@ -45,6 +45,7 @@ class Stream(object):
                  close_cb):
         self.stream_id = stream_id
         self.headers = HTTPHeaderMap()
+        self.events = []
 
         # Set to a key-value set of the response headers once their
         # HEADERS..CONTINUATION frame sequence finishes.

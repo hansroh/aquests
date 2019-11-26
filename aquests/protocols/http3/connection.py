@@ -14,7 +14,7 @@ class H3Connection (H3Connection):
         self._max_client_bidi_stream_id = 0 if not self._is_client else None
         self._push_map = {}
         self._canceled_push_ids = set ()
-        self._uncatched_events = []
+        self._uncaught_events = []
 
     def send_push_promise (self, stream_id, headers):
         assert not self._is_client, "Only servers may send a push promise."
@@ -65,23 +65,23 @@ class H3Connection (H3Connection):
 
     def handle_event (self, event):
         http_events = super ().handle_event (event)
-        _uncatched_events, self._uncatched_events = self._uncatched_events, []
-        return http_events + _uncatched_events
+        _uncaught_events, self._uncaught_events = self._uncaught_events, []
+        return http_events + _uncaught_events
 
     # privates ------------------------------------------------
     def _handle_control_frame (self, frame_type, frame_data):
         super ()._handle_control_frame (frame_type, frame_data)
         if frame_type == FrameType.MAX_PUSH_ID:
-            self._uncatched_events.append (MaxPushIdReceived (push_id = self._max_push_id))
+            self._uncaught_events.append (MaxPushIdReceived (push_id = self._max_push_id))
 
         elif frame_type == FrameType.CANCEL_PUSH:
             _push_id = parse_uint_var (frame_data)
             self._canceled_push_ids.add (_push_id)
-            self._uncatched_events.append (PushCanceled (push_id = _push_id))
+            self._uncaught_events.append (PushCanceled (push_id = _push_id))
 
         elif frame_type == FrameType.GOAWAY:
             _last_stream_id = max (-1, parse_uint_var (frame_data) - 4)
-            self._uncatched_events.append (ConnectionShutdownInitiated (last_stream_id = _last_stream_id))
+            self._uncaught_events.append (ConnectionShutdownInitiated (last_stream_id = _last_stream_id))
 
     def _handle_request_or_push_frame (self, frame_type, frame_data, stream, stream_ended):
         if frame_type == FrameType.HEADERS:

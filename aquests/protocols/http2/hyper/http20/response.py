@@ -46,7 +46,7 @@ class HTTP20Response(object):
 
         #: The status code returned by the server.
         self.status = int(status)
-
+        self.events = stream.events
         #: The response headers. These are determined upon creation, assigned
         #: once, and never assigned again.
         self.headers = headers
