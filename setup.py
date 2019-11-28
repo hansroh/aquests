@@ -67,12 +67,10 @@ package_data = {
 
 install_requires = [
 	"rs4",
-	"h2",
-	#"protobuf",
-	#"redis",
-	#"pymongo",
-	#"psycopg2-binary" # becasue of bson, install last
+	"h2"
 ]
+if os.name != 'nt':
+	install_requires.append ('aioquic; python_version >= "3.6"')
 
 with open ('README.rst', encoding='utf-8') as f:
 	long_description = f.read()
